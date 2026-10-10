@@ -78,7 +78,8 @@ def pattern(t,p,ne=False):
     out=[]; i=0
     while i<len(p):
         c=p[i]
-        if c=='\\' and i+1<len(p): out.append(p[i+1]); i+=2; continue
+        if c=='\\':   # FORMATTING §5: escapes the next char; a trailing backslash writes nothing
+            out.append(p[i+1:i+2]); i+=2; continue
         if c=="'":
             j=p.find("'",i+1); j=len(p) if j<0 else j; out.append(p[i+1:j]); i=j+1; continue
         if c in 'yMd':
