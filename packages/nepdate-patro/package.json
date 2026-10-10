@@ -23,7 +23,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run --coverage",
-    "prepack": "node -e \"for (const [from, to] of [['../../LICENSE', 'LICENSE'], ['../../shared/data/NOTICE', 'NOTICE']]) require('node:fs').copyFileSync(from, to)\""
+    "prepack": "node -e \"for (const [from, to] of [['../../LICENSE', 'LICENSE'], ['../../shared/data/NOTICE', 'NOTICE']]) require('node:fs').copyFileSync(from, to)\"",
+    "test:browser": "vitest run --config vitest.browser.config.ts"
   },
   "peerDependencies": {
     "nepdate": "~0.0.0"

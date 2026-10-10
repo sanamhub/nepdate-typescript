@@ -86,6 +86,22 @@ jobs:
       - if: matrix.runtime == 'bun'
         run: bun -e "await import('./packages/nepdate/dist/index.js'); await import('./packages/nepdate-patro/dist/index.js')"
 
+  # Browser smoke test (ADR-0004): imports both built packages in Chromium through Vitest browser mode.
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:browser -w nepdate-patro
+
   shared-check:
     permissions:
       contents: read

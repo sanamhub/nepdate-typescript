@@ -4,6 +4,8 @@
 - Date: 2026-09-25
 - Updated: 2026-10-07 (hub ADR-0004: the patro (tithi, holidays, events) moves from the `nepdate/meta` subpath to the package
   `nepdate-patro`)
+- Updated: 2026-10-10 (§6: `@types/node`, and `@vitest/browser-playwright` with `playwright` for the
+  browser smoke test, approved by the lead after the T0 light check)
 - Deciders: Sanam Pakuwal
 
 ## Context
@@ -47,7 +49,11 @@ every other port. Hub [ADR-0004](https://github.com/sanamhub/nepdate/blob/main/d
    only, emits `dist/`), both extending the base.
 6. **Tools:** Biome (lint + format, one root `biome.json`), Vitest (tests, one `vitest.config.ts`
    per package), `publint` and `@arethetypeswrong/cli` (package shape), esbuild (size check only),
-   mitata (benchmarks, in `bench/` only). All root `devDependencies`, exact versions.
+   mitata (benchmarks, in `bench/` only), `@types/node` (types for the tests and scripts, same
+   major as the Node version in CI), and `@vitest/browser-playwright` with `playwright` (the
+   browser smoke test of ADR-0004 only). All root `devDependencies`, exact versions.
+   `tsconfig.base.json` sets `"types": []` and only each package's `tsconfig.json` (tests) adds
+   `node`, so the build of `src/` fails on a Node API.
 7. **Shared data:** `shared/` is a read-only copy of the hub's `data/` and `spec/` with
    `shared/VERSION` (hub ADR-0001 §3). CI calls the hub's reusable `shared-check`; the weekly
    `shared-sync` runs `npm run codegen`.
