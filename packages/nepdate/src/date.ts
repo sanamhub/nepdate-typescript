@@ -33,6 +33,16 @@ function checkIntegers(year: number, month: number, day: number): void {
   }
 }
 
+function checkInteger(name: string, value: number): void {
+  if ((value | 0) !== value && !Number.isSafeInteger(value)) {
+    throw new NepDateError("not-an-integer", `${name} must be a safe integer, got ${value}`);
+  }
+}
+
+function outOfRange(what: string): NepDateError {
+  return new NepDateError("out-of-range", `${what} is outside BS 1901-01-01..2199-12-30`);
+}
+
 /** The month index `(year - MIN_YEAR) * 12 + month - 1` of the month containing `serial`. */
 function monthIndexOf(serial: number): number {
   // The estimate is never more than one month off for any serial (ADR-0002 §6), so one step in
@@ -180,6 +190,23 @@ export class NepaliDate {
   /** The Gregorian date, a plain object you can pass to `Temporal.PlainDate.from`. */
   toGregorian(): GregorianDate {
     return civilFromDays(this.#serial + EPOCH_UNIX_DAYS);
+  }
+
+  /**
+   * The date `n` days later (earlier if `n` is negative).
+   * @throws {NepDateError} `"not-an-integer"` (D-03), or `"out-of-range"` past MIN or MAX.
+   */
+  addDays(n: number): NepaliDate {
+    checkInteger("n", n);
+    const serial = this.#serial + n;
+    if (serial < 0 || serial > MAX_SERIAL)
+      throw outOfRange(`${this.year}-${this.month}-${this.day} + ${n} days`);
+    return fromSerial(serial);
+  }
+
+  /** The signed number of days from this date to `other` (`other - this`, D-07). */
+  daysUntil(other: NepaliDate): number {
+    return other.#serial - this.#serial;
   }
 
   /** True if `other` is the same day. */
