@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Keeps the pinned action SHAs current. The cooldown gives a bad release a week to be pulled.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+  # Dev tools only: neither package has runtime dependencies (ADR-0001 §1).
+  - package-ecosystem: npm
+    directories: ["/", "/bench"]
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
