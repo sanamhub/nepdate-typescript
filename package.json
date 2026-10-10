@@ -1,0 +1,24 @@
+{
+  "name": "nepdate-typescript",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w nepdate && npm run build -w nepdate-patro",
+    "test": "npm test -w nepdate && npm test -w nepdate-patro",
+    "codegen": "node scripts/codegen.ts",
+    "ci": "node scripts/ci.ts"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@biomejs/biome": "2.5.15",
+    "@vitest/coverage-v8": "5.0.3",
+    "esbuild": "0.28.2",
+    "fast-check": "4.10.2",
+    "publint": "0.3.25",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}

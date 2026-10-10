@@ -1,0 +1,34 @@
+{
+  "name": "nepdate-patro",
+  "version": "0.0.0",
+  "description": "The Nepali patro for nepdate: tithi, public holidays and events.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run --coverage",
+    "prepack": "node -e \"for (const [from, to] of [['../../LICENSE', 'LICENSE'], ['../../shared/data/NOTICE', 'NOTICE']]) require('node:fs').copyFileSync(from, to)\""
+  },
+  "peerDependencies": {
+    "nepdate": "~0.0.0"
+  },
+  "devDependencies": {
+    "nepdate": "0.0.0"
+  }
+}

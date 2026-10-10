@@ -1,0 +1,28 @@
+{
+  "name": "nepdate",
+  "version": "0.0.0",
+  "description": "Bikram Sambat (Nepali calendar) dates: conversion, arithmetic, formatting and parsing.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run --coverage",
+    "prepack": "node -e \"for (const [from, to] of [['../../LICENSE', 'LICENSE'], ['../../shared/data/NOTICE', 'NOTICE'], ['../../README.md', 'README.md']]) require('node:fs').copyFileSync(from, to)\""
+  }
+}

@@ -3,3 +3,7 @@ dist/
 coverage/
 *.tsbuildinfo
 bench/node_modules/
+packages/*/LICENSE
+packages/*/NOTICE
+packages/nepdate/README.md
+*.tgz
