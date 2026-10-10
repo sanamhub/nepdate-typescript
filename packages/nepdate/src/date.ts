@@ -61,6 +61,27 @@ export let serialOf: (date: NepaliDate) => number;
 // Internal: builds a date from fields and serial that the caller has already checked.
 let create: (year: number, month: number, day: number, serial: number) => NepaliDate;
 
+/** The calendar breakdown between two dates (ALGORITHM §8a). */
+export interface DateDiff {
+  /** True when the other date is before this one. */
+  readonly negative: boolean;
+  readonly years: number;
+  /** 0 to 11. */
+  readonly months: number;
+  /** 0 to 32. */
+  readonly days: number;
+  /** The signed day difference, the same as `daysUntil`. */
+  readonly totalDays: number;
+}
+
+/** Serial of `date` moved by `n` months with clamp; the caller knows the target is in range. */
+function clampedMonthSerial(date: NepaliDate, n: number): number {
+  const t = (date.year - MIN_YEAR) * 12 + date.month - 1 + n;
+  const start = MONTH_START[t] as number;
+  const length = (MONTH_START[t + 1] as number) - start;
+  return start + (date.day <= length ? date.day : length) - 1;
+}
+
 /**
  * `date` moved by `n` whole months (ALGORITHM §8). The target month index is range-checked before
  * it is split, so the divisions see a non-negative value, and no intermediate date is built.
@@ -253,6 +274,22 @@ export class NepaliDate {
   addYears(n: number, overflow: Overflow = "clamp"): NepaliDate {
     checkInteger("n", n);
     return shiftMonths(this, 12 * n, overflow);
+  }
+
+  /**
+   * Years, months and days from this date to `other`, counted from the earlier of the two
+   * (ALGORITHM §8a). `negative` is true when `other` is earlier.
+   */
+  diff(other: NepaliDate): DateDiff {
+    const totalDays = other.#serial - this.#serial;
+    const negative = totalDays < 0;
+    const from = negative ? other : this;
+    const to = negative ? this : other;
+    // The month count from the fields is right or one too many (§8a), never too few.
+    let n = (to.year - from.year) * 12 + to.month - from.month;
+    let mid = clampedMonthSerial(from, n);
+    if (mid > to.#serial) mid = clampedMonthSerial(from, --n);
+    return { negative, years: (n / 12) | 0, months: n % 12, days: to.#serial - mid, totalDays };
   }
 
   /** True if `other` is the same day. */
