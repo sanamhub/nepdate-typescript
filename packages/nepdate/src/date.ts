@@ -1,0 +1,184 @@
+import { EPOCH_UNIX_DAYS, MAX_YEAR, MIN_YEAR } from "./calendar.gen.js";
+import { NepDateError } from "./errors.js";
+import {
+  civilFromDays,
+  daysFromCivil,
+  type GregorianDate,
+  gregorianMonthLength,
+} from "./gregorian.js";
+import { MONTH_START, MONTHS, YEAR_START } from "./tables.js";
+
+/** Serial of BS 2199-12-30, the last supported day (ALGORITHM §2). */
+export const MAX_SERIAL = 109211;
+/** Weekday of serial 0 (BS 1901-01-01 was a Thursday), 0 = Sunday. */
+const EPOCH_WEEKDAY = 4;
+const MIN_AD_YEAR = 1844;
+const MAX_AD_YEAR = 2143;
+
+// Only code in this module can pass this, so JavaScript callers can't skip the checks in `of`.
+const TOKEN: unique symbol = Symbol("NepaliDate");
+
+function checkInteger(name: string, value: number): void {
+  if (!Number.isSafeInteger(value)) {
+    throw new NepDateError("not-an-integer", `${name} must be a safe integer, got ${value}`);
+  }
+}
+
+/** The month index `(year - MIN_YEAR) * 12 + month - 1` of the month containing `serial`. */
+function monthIndexOf(serial: number): number {
+  // The estimate is never more than one month off for any serial (ADR-0002 §6), so one step in
+  // either direction fixes it. serial * MONTHS stays below 2^31.
+  let i = ((serial * MONTHS) / 109212) | 0;
+  if ((MONTH_START[i] as number) > serial) i--;
+  else if ((MONTH_START[i + 1] as number) <= serial) i++;
+  return i;
+}
+
+/** Internal: the serial of a date (ALGORITHM §4). Set by the static block of `NepaliDate`. */
+export let serialOf: (date: NepaliDate) => number;
+// Internal: builds a date from fields and serial that the caller has already checked.
+let create: (year: number, month: number, day: number, serial: number) => NepaliDate;
+
+/** Internal: the date at `serial`, which the caller has checked is in `0..MAX_SERIAL`. */
+export function fromSerial(serial: number): NepaliDate {
+  const i = monthIndexOf(serial);
+  return create(
+    MIN_YEAR + ((i / 12) | 0),
+    (i % 12) + 1,
+    serial - (MONTH_START[i] as number) + 1,
+    serial,
+  );
+}
+
+/**
+ * A date of the Bikram Sambat calendar, BS 1901-01-01 to 2199-12-30. Immutable; build one with
+ * {@link NepaliDate.of} or {@link NepaliDate.fromGregorian}. Months are 1-based.
+ */
+export class NepaliDate {
+  // Runs before MIN and MAX below, which need `create`.
+  static {
+    serialOf = (date) => date.#serial;
+    create = (year, month, day, serial) => new NepaliDate(TOKEN, year, month, day, serial);
+  }
+
+  /** The first supported date, BS 1901-01-01 (AD 1844-04-11). */
+  static readonly MIN: NepaliDate = fromSerial(0);
+  /** The last supported date, BS 2199-12-30 (AD 2143-04-15). */
+  static readonly MAX: NepaliDate = fromSerial(MAX_SERIAL);
+
+  /** The BS year, 1901 to 2199. */
+  readonly year: number;
+  /** The month, 1 (Baishakh) to 12 (Chaitra). */
+  readonly month: number;
+  /** The day of the month, 1 to 32. */
+  readonly day: number;
+  #serial: number;
+
+  private constructor(token: symbol, year: number, month: number, day: number, serial: number) {
+    if (token !== TOKEN) throw new TypeError("use NepaliDate.of or NepaliDate.fromGregorian");
+    this.year = year;
+    this.month = month;
+    this.day = day;
+    this.#serial = serial;
+  }
+
+  /**
+   * The BS date `year`-`month`-`day`.
+   * @throws {NepDateError} `"not-an-integer"` if an argument is not a safe integer, else the first
+   * failing check: `"out-of-range"` (year outside 1901..2199), `"invalid-month"`, `"invalid-day"`.
+   */
+  static of(year: number, month: number, day: number): NepaliDate {
+    checkInteger("year", year);
+    checkInteger("month", month);
+    checkInteger("day", day);
+    if (year < MIN_YEAR || year > MAX_YEAR) {
+      throw new NepDateError("out-of-range", `year ${year} is outside ${MIN_YEAR}..${MAX_YEAR}`);
+    }
+    if (month < 1 || month > 12) {
+      throw new NepDateError("invalid-month", `month ${month} is outside 1..12`);
+    }
+    const i = (year - MIN_YEAR) * 12 + month - 1;
+    const start = MONTH_START[i] as number;
+    const length = (MONTH_START[i + 1] as number) - start;
+    if (day < 1 || day > length) {
+      throw new NepDateError(
+        "invalid-day",
+        `day ${day} is outside 1..${length} for ${year}-${month}`,
+      );
+    }
+    return new NepaliDate(TOKEN, year, month, day, start + day - 1);
+  }
+
+  /**
+   * The BS date of a Gregorian date. Accepts any `{ year, month, day }`, such as a
+   * `Temporal.PlainDate`.
+   * @throws {NepDateError} `"not-an-integer"`, `"invalid-gregorian"` (no such Gregorian date) or
+   * `"out-of-range"` (outside AD 1844-04-11..2143-04-15), checked in that order.
+   */
+  static fromGregorian(date: GregorianDate): NepaliDate {
+    const { year, month, day } = date;
+    checkInteger("year", year);
+    checkInteger("month", month);
+    checkInteger("day", day);
+    if (month < 1 || month > 12 || day < 1 || day > gregorianMonthLength(year, month)) {
+      throw new NepDateError(
+        "invalid-gregorian",
+        `${year}-${month}-${day} is not a Gregorian date`,
+      );
+    }
+    // The year check keeps daysFromCivil inside its integer range; the serial check is exact.
+    const serial =
+      year < MIN_AD_YEAR || year > MAX_AD_YEAR
+        ? -1
+        : daysFromCivil(year, month, day) - EPOCH_UNIX_DAYS;
+    if (serial < 0 || serial > MAX_SERIAL) {
+      throw new NepDateError(
+        "out-of-range",
+        `AD ${year}-${month}-${day} is outside 1844-04-11..2143-04-15`,
+      );
+    }
+    return fromSerial(serial);
+  }
+
+  /** -1 if `a` is before `b`, 1 if after, 0 if the same day. Pass it to `Array.prototype.sort`. */
+  static compare(a: NepaliDate, b: NepaliDate): -1 | 0 | 1 {
+    return a.#serial < b.#serial ? -1 : a.#serial > b.#serial ? 1 : 0;
+  }
+
+  /** The day of the week, 0 = Sunday to 6 = Saturday (as `Date#getDay`). */
+  get weekday(): number {
+    return (this.#serial + EPOCH_WEEKDAY) % 7;
+  }
+
+  /** The day of the BS year, 1 to 367. */
+  get dayOfYear(): number {
+    return this.#serial - (YEAR_START[this.year - MIN_YEAR] as number) + 1;
+  }
+
+  /** The number of days in this date's month, 29 to 32. */
+  get monthLength(): number {
+    const i = (this.year - MIN_YEAR) * 12 + this.month - 1;
+    return (MONTH_START[i + 1] as number) - (MONTH_START[i] as number);
+  }
+
+  /** The first day of this date's month. */
+  firstOfMonth(): NepaliDate {
+    return new NepaliDate(TOKEN, this.year, this.month, 1, this.#serial - this.day + 1);
+  }
+
+  /** The last day of this date's month. */
+  lastOfMonth(): NepaliDate {
+    const length = this.monthLength;
+    return new NepaliDate(TOKEN, this.year, this.month, length, this.#serial - this.day + length);
+  }
+
+  /** The Gregorian date, a plain object you can pass to `Temporal.PlainDate.from`. */
+  toGregorian(): GregorianDate {
+    return civilFromDays(this.#serial + EPOCH_UNIX_DAYS);
+  }
+
+  /** True if `other` is the same day. */
+  equals(other: NepaliDate): boolean {
+    return this.#serial === other.#serial;
+  }
+}
