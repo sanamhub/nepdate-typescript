@@ -45,10 +45,29 @@ function readCalendar(): number[][] {
   return years;
 }
 
-function calendarSource(_years: number[][]): string {
+// days_from_civil(1844, 4, 11), ALGORITHM §2. Date.UTC is fine here: the generator is not the core.
+const EPOCH_UNIX_DAYS = Date.UTC(1844, 3, 11) / 86_400_000;
+
+// ADR-0002 §5: 2 bits per month (length - 29), month k of the whole range in byte k >> 2 at bit
+// 2 * (k & 3), so month 1 of 1901 sits in the low bits of byte 0.
+function packMonthLengths(years: number[][]): string {
+  const lengths = years.flat();
+  const bytes = new Uint8Array(Math.ceil(lengths.length / 4));
+  lengths.forEach((len, k) => {
+    bytes[k >> 2] = (bytes[k >> 2] as number) | ((len - 29) << (2 * (k & 3)));
+  });
+  return Buffer.from(bytes).toString("base64");
+}
+
+function calendarSource(years: number[][]): string {
   return `${HEADER}
 export const MIN_YEAR = ${MIN_YEAR};
 export const MAX_YEAR = ${MAX_YEAR};
+export const EPOCH_UNIX_DAYS = ${EPOCH_UNIX_DAYS};
+
+/** The ${years.length * 12} month lengths from MIN_YEAR, 2 bits each (length - 29), base64. */
+export const PACKED_MONTH_LENGTHS =
+  "${packMonthLengths(years)}";
 `;
 }
 
