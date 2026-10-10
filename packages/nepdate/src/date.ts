@@ -8,6 +8,9 @@ import {
 } from "./gregorian.js";
 import { MONTH_START, MONTHS, YEAR_START } from "./tables.js";
 
+/** What `addMonths` does when the day doesn't exist in the target month (ALGORITHM §8). */
+export type Overflow = "clamp" | "spill";
+
 /** Serial of BS 2199-12-30, the last supported day (ALGORITHM §2). */
 export const MAX_SERIAL = 109211;
 /** Weekday of serial 0 (BS 1901-01-01 was a Thursday), 0 = Sunday. */
@@ -57,6 +60,29 @@ function monthIndexOf(serial: number): number {
 export let serialOf: (date: NepaliDate) => number;
 // Internal: builds a date from fields and serial that the caller has already checked.
 let create: (year: number, month: number, day: number, serial: number) => NepaliDate;
+
+/**
+ * `date` moved by `n` whole months (ALGORITHM §8). The target month index is range-checked before
+ * it is split, so the divisions see a non-negative value, and no intermediate date is built.
+ */
+function shiftMonths(date: NepaliDate, n: number, overflow: Overflow): NepaliDate {
+  const t = (date.year - MIN_YEAR) * 12 + date.month - 1 + n;
+  if (!(t >= 0 && t < MONTHS)) {
+    throw outOfRange(`${date.year}-${date.month}-${date.day} + ${n} months`);
+  }
+  const start = MONTH_START[t] as number;
+  const length = (MONTH_START[t + 1] as number) - start;
+  const year = MIN_YEAR + ((t / 12) | 0);
+  const month = (t % 12) + 1;
+  const day = date.day;
+  if (day <= length) return create(year, month, day, start + day - 1);
+  if (overflow !== "spill") return create(year, month, length, start + length - 1);
+  // Spill: the days past the month's end go into the next month (at most 3 of them).
+  if (t + 1 >= MONTHS) throw outOfRange(`${date.year}-${date.month}-${date.day} + ${n} months`);
+  return month === 12
+    ? create(year + 1, 1, day - length, start + day - 1)
+    : create(year, month + 1, day - length, start + day - 1);
+}
 
 /** Internal: the date at `serial`, which the caller has checked is in `0..MAX_SERIAL`. */
 export function fromSerial(serial: number): NepaliDate {
@@ -207,6 +233,26 @@ export class NepaliDate {
   /** The signed number of days from this date to `other` (`other - this`, D-07). */
   daysUntil(other: NepaliDate): number {
     return other.#serial - this.#serial;
+  }
+
+  /**
+   * The date `n` months later (earlier if `n` is negative), same day of the month. When that
+   * month is shorter, `"clamp"` (the default, as C#) gives its last day and `"spill"` carries the
+   * extra days into the next month (ALGORITHM §8).
+   * @throws {NepDateError} `"not-an-integer"` (D-02), or `"out-of-range"`.
+   */
+  addMonths(n: number, overflow: Overflow = "clamp"): NepaliDate {
+    checkInteger("n", n);
+    return shiftMonths(this, n, overflow);
+  }
+
+  /**
+   * The date `n` years later (earlier if `n` is negative); the same as `addMonths(12 * n)`.
+   * @throws {NepDateError} `"not-an-integer"`, or `"out-of-range"`.
+   */
+  addYears(n: number, overflow: Overflow = "clamp"): NepaliDate {
+    checkInteger("n", n);
+    return shiftMonths(this, 12 * n, overflow);
   }
 
   /** True if `other` is the same day. */
