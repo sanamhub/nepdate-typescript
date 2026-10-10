@@ -18,9 +18,18 @@ const MAX_AD_YEAR = 2143;
 // Only code in this module can pass this, so JavaScript callers can't skip the checks in `of`.
 const TOKEN: unique symbol = Symbol("NepaliDate");
 
-function checkInteger(name: string, value: number): void {
-  if (!Number.isSafeInteger(value)) {
-    throw new NepDateError("not-an-integer", `${name} must be a safe integer, got ${value}`);
+// `(x | 0) === x` is the fast path for the usual small integers. Values that fail it are checked
+// with Number.isSafeInteger, so a large safe integer reaches the range checks instead.
+function checkIntegers(year: number, month: number, day: number): void {
+  if ((year | 0) === year && (month | 0) === month && (day | 0) === day) return;
+  for (const [name, value] of [
+    ["year", year],
+    ["month", month],
+    ["day", day],
+  ] as const) {
+    if (!Number.isSafeInteger(value)) {
+      throw new NepDateError("not-an-integer", `${name} must be a safe integer, got ${value}`);
+    }
   }
 }
 
@@ -88,9 +97,7 @@ export class NepaliDate {
    * failing check: `"out-of-range"` (year outside 1901..2199), `"invalid-month"`, `"invalid-day"`.
    */
   static of(year: number, month: number, day: number): NepaliDate {
-    checkInteger("year", year);
-    checkInteger("month", month);
-    checkInteger("day", day);
+    checkIntegers(year, month, day);
     if (year < MIN_YEAR || year > MAX_YEAR) {
       throw new NepDateError("out-of-range", `year ${year} is outside ${MIN_YEAR}..${MAX_YEAR}`);
     }
@@ -117,9 +124,7 @@ export class NepaliDate {
    */
   static fromGregorian(date: GregorianDate): NepaliDate {
     const { year, month, day } = date;
-    checkInteger("year", year);
-    checkInteger("month", month);
-    checkInteger("day", day);
+    checkIntegers(year, month, day);
     if (month < 1 || month > 12 || day < 1 || day > gregorianMonthLength(year, month)) {
       throw new NepDateError(
         "invalid-gregorian",

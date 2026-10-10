@@ -42,6 +42,9 @@ describe("NepaliDate.of (T1-03)", () => {
     [[2081, 1, 2 ** 53], "not-an-integer"],
     [[1900, 13, 40], "out-of-range"],
     [[2200, 1, 1], "out-of-range"],
+    [[2 ** 40, 1, 1], "out-of-range"],
+    [[2081, 2 ** 40, 1], "invalid-month"],
+    [[-0, 1, 1], "out-of-range"],
     [[2081, 13, 1], "invalid-month"],
     [[2081, 0, 40], "invalid-month"],
   ] as const)("of(%j) throws %s", (args, kind) => {
