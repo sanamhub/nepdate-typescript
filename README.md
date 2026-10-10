@@ -16,7 +16,7 @@ original is [NepDate](https://github.com/RajuPrasai/NepDate).
 - BS 1901-01-01 to 2199-12-30 (AD 1844-04-11 to 2143-04-15), the widest range on npm. Same results
   as C# NepDate and every other port, proved by the shared vectors.
 
-**Status:** phase T0 (repository and CI) done; next: T1. Progress: [docs/plan/PROGRESS.md](docs/plan/PROGRESS.md).
+**Status:** phases T0 and T1 (conversion) done; next: T2 and T3. Progress: [docs/plan/PROGRESS.md](docs/plan/PROGRESS.md).
 
 ## Where to start
 

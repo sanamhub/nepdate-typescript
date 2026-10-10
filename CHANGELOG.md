@@ -6,3 +6,9 @@ version (ADR-0005); an entry that concerns only one package starts with its name
 [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+### Added
+
+- `nepdate`: `NepaliDate` for BS 1901-01-01 to 2199-12-30 with `of`, `fromGregorian`,
+  `toGregorian`, `MIN`, `MAX`, `compare`, `equals`, `weekday`, `dayOfYear`, `monthLength`,
+  `firstOfMonth` and `lastOfMonth`; `NepDateError` with `kind`.
