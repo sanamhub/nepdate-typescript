@@ -1,5 +1,6 @@
 import { EPOCH_UNIX_DAYS, MAX_YEAR, MIN_YEAR } from "./calendar.gen.js";
 import { NepDateError } from "./errors.js";
+import { FiscalYear, type Quarter } from "./fiscal.js";
 import {
   civilFromDays,
   daysFromCivil,
@@ -290,6 +291,17 @@ export class NepaliDate {
     let mid = clampedMonthSerial(from, n);
     if (mid > to.#serial) mid = clampedMonthSerial(from, --n);
     return { negative, years: (n / 12) | 0, months: n % 12, days: to.#serial - mid, totalDays };
+  }
+
+  /** The fiscal year that contains this date (ALGORITHM §8b). */
+  fiscalYear(): FiscalYear {
+    return FiscalYear.containing(this);
+  }
+
+  /** The fiscal quarter of this date: 1 for Shrawan to Ashoj, ..., 4 for Baishakh to Ashad. */
+  quarter(): Quarter {
+    // Months 4..12 map to 1..3 three at a time; months 1..3 wrap round to 4.
+    return (((((this.month + 8) / 3) | 0) % 4) + 1) as Quarter;
   }
 
   /** True if `other` is the same day. */
