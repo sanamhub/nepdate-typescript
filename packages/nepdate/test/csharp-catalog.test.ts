@@ -2,7 +2,15 @@
 // One test per catalogue row (docs/plan/00-ROADMAP.md, "C# test catalogue").
 
 import { describe, expect, expectTypeOf } from "vitest";
-import { type ErrorKind, NepaliDate, NepDateError } from "../src/index.js";
+import {
+  DateRange,
+  type ErrorKind,
+  FiscalYear,
+  NepaliDate,
+  NepDateError,
+  type Overflow,
+  type Quarter,
+} from "../src/index.js";
 import { type CatalogCase, checkCatalog } from "./catalog.js";
 
 const of = NepaliDate.of;
@@ -401,4 +409,401 @@ const cases: Record<string, CatalogCase> = {
 
 describe("C# catalogue, phase 1", () => {
   checkCatalog("1", cases);
+});
+
+// ---- Phase 2 ----
+
+// Fiscal-year boundaries still match C# (D-08 changes only the API shape), so these are
+// translated through FiscalYear and quarterRange instead of being skipped.
+const qStart = (date: NepaliDate, q: Quarter): NepaliDate =>
+  date.fiscalYear().quarterRange(q).start;
+const qEnd = (date: NepaliDate, q: Quarter): NepaliDate => date.fiscalYear().quarterRange(q).end;
+const spill: Overflow = "spill";
+
+const fractionMonths: CatalogCase = { deviation: "D-02" };
+const needsFromJSDate: CatalogCase = { pending: "T4-03: needs NepaliDate.fromJSDate" };
+const needsToday: CatalogCase = { pending: "T4-03: needs NepaliDate.today" };
+const noSetOps: CatalogCase = { deviation: "D-09" };
+
+const sameFyStartOf =
+  (month: number): CatalogCase =>
+  () =>
+    same(of(2080, month, 15).fiscalYear().start(), of(2080, 4, 1));
+const prevFyStartOf =
+  (month: number): CatalogCase =>
+  () =>
+    same(of(2080, month, 15).fiscalYear().start(), of(2079, 4, 1));
+
+const cases2: Record<string, CatalogCase> = {
+  // Core/FiscalYearInstanceMethodTests
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_DateInShrawan_ReturnsSameyearShrawan1": () =>
+    same(of(2080, 4, 15).fiscalYear().start(), of(2080, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_DateInChaitra_ReturnsSameYearShrawan1": () =>
+    same(of(2080, 12, 15).fiscalYear().start(), of(2080, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_DateInBasikhakh_ReturnsPreviousYearShrawan1":
+    () => same(of(2080, 1, 15).fiscalYear().start(), of(2079, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_DateInAshadh_ReturnsPreviousYearShrawan1":
+    () => same(of(2080, 3, 15).fiscalYear().start(), of(2079, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_WithPositiveYearOffset_ShiftsForward": () =>
+    same(new FiscalYear(of(2080, 4, 15).fiscalYear().startYear + 1).start(), of(2081, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_WithNegativeYearOffset_ShiftsBackward": () =>
+    same(new FiscalYear(of(2080, 4, 15).fiscalYear().startYear - 1).start(), of(2079, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearEndDate_DateInShrawan_ReturnsNextYearAshad": () =>
+    expect(of(2080, 4, 15).fiscalYear().end().year).toBe(2081),
+  "FiscalYearInstanceMethodTests.FiscalYearEndDate_DateInChaitra_ReturnsNextYearAshadh": () =>
+    expect(of(2080, 12, 15).fiscalYear().end().year).toBe(2081),
+  "FiscalYearInstanceMethodTests.FiscalYearEndDate_DateInBasikhakh_ReturnsSameYearAshadh": () =>
+    expect(of(2080, 1, 15).fiscalYear().end().year).toBe(2080),
+  "FiscalYearInstanceMethodTests.FiscalYearEndDate_WithPositiveYearOffset_ShiftsForward": () =>
+    expect(new FiscalYear(of(2080, 4, 15).fiscalYear().startYear + 1).end().year).toBe(2082),
+  "FiscalYearInstanceMethodTests.FiscalYearStartAndEndDate_DateInQ2_ReturnsBothBoundaries": () => {
+    const fy = of(2080, 7, 15).fiscalYear();
+    same(fy.start(), of(2080, 4, 1));
+    expect(fy.end().year).toBe(2081);
+  },
+  "FiscalYearInstanceMethodTests.FiscalYearStartAndEndDate_DateInQ4_ReturnsPreviousFiscalYearBoundaries":
+    () => {
+      const fy = of(2081, 1, 15).fiscalYear();
+      same(fy.start(), of(2080, 4, 1));
+      expect(fy.end().year).toBe(2081);
+    },
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_ExplicitFirst_ReturnsShrawan1": () =>
+    same(qStart(of(2080, 4, 15), 1), of(2080, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_ExplicitSecond_ReturnsKartik1": () =>
+    same(qStart(of(2080, 4, 15), 2), of(2080, 7, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_ExplicitThird_ReturnsMagh1": () =>
+    same(qStart(of(2080, 4, 15), 3), of(2080, 10, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_ExplicitFourth_ReturnsNextYearBasikhakh1":
+    () => same(qStart(of(2080, 4, 15), 4), of(2081, 1, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_ExplicitFirst_ReturnsLastDayOfAshoj":
+    () => expect(qEnd(of(2080, 4, 15), 1).year).toBe(2080),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_ExplicitSecond_ReturnsLastDayOfPoush":
+    () => expect(qEnd(of(2080, 4, 15), 2).year).toBe(2080),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_ExplicitThird_ReturnsLastDayOfChaitra":
+    () => expect(qEnd(of(2080, 4, 15), 3).year).toBe(2080),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_ExplicitFourth_ReturnsNextYearLastDayOfAshadh":
+    () => expect(qEnd(of(2080, 4, 15), 4).year).toBe(2081),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartAndEndDate_ExplicitSecond_ReturnsBothBoundaries":
+    () => {
+      same(qStart(of(2080, 4, 15), 2), of(2080, 7, 1));
+      expect(qEnd(of(2080, 4, 15), 2).month).toBe(9);
+    },
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartAndEndDate_ExplicitThird_ReturnsBothBoundaries":
+    () => {
+      same(qStart(of(2080, 4, 15), 3), of(2080, 10, 1));
+      expect(qEnd(of(2080, 4, 15), 3).month).toBe(12);
+    },
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_Current_DateInQ1_ReturnsShrawan1": () =>
+    same(qStart(of(2080, 4, 15), of(2080, 4, 15).quarter()), of(2080, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_Current_DateInQ1_ReturnsLastDayOfAshoj":
+    () => expect(qEnd(of(2080, 4, 15), of(2080, 4, 15).quarter()).month).toBe(6),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_Current_DateInQ2_ReturnsKartik1": () =>
+    same(qStart(of(2080, 7, 15), of(2080, 7, 15).quarter()), of(2080, 7, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_Current_DateInQ3_ReturnsMagh1": () =>
+    same(qStart(of(2080, 10, 15), of(2080, 10, 15).quarter()), of(2080, 10, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_Current_DateInQ3_ReturnsLastDayOfChaitra":
+    () => expect(qEnd(of(2080, 10, 15), of(2080, 10, 15).quarter()).month).toBe(12),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_ExplicitFirstWithOffset1_ReturnsNextYearShrawan1":
+    () =>
+      same(
+        new FiscalYear(of(2080, 4, 15).fiscalYear().startYear + 1).quarterRange(1).start,
+        of(2081, 4, 1),
+      ),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_ExplicitFirstWithNegativeOffset_ReturnsPreviousYearShrawan1":
+    () =>
+      same(
+        new FiscalYear(of(2080, 4, 15).fiscalYear().startYear - 1).quarterRange(1).start,
+        of(2079, 4, 1),
+      ),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_AllFiscalMonths_Return2080Shrawan1#1":
+    sameFyStartOf(4),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_AllFiscalMonths_Return2080Shrawan1#2":
+    sameFyStartOf(6),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_AllFiscalMonths_Return2080Shrawan1#3":
+    sameFyStartOf(7),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_AllFiscalMonths_Return2080Shrawan1#4":
+    sameFyStartOf(12),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_Q4CalendarMonths_ReturnPreviousYearShrawan1#1":
+    prevFyStartOf(1),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_Q4CalendarMonths_ReturnPreviousYearShrawan1#2":
+    prevFyStartOf(2),
+  "FiscalYearInstanceMethodTests.FiscalYearStartDate_Q4CalendarMonths_ReturnPreviousYearShrawan1#3":
+    prevFyStartOf(3),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_FromQ4Date_ExplicitFirst_ReturnsFY2080Q1Start":
+    () => same(qStart(of(2081, 1, 15), 1), of(2080, 4, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_FromQ4Date_ExplicitSecond_ReturnsFY2080Q2Start":
+    () => same(qStart(of(2081, 1, 15), 2), of(2080, 7, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_FromQ4Date_ExplicitThird_ReturnsFY2080Q3Start":
+    () => same(qStart(of(2081, 1, 15), 3), of(2080, 10, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_FromQ4Date_ExplicitFourth_ReturnsFY2080Q4Start":
+    () => same(qStart(of(2081, 1, 15), 4), of(2081, 1, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterStartDate_FromQ4Date_Current_ReturnsFY2080Q4Start":
+    () => same(qStart(of(2081, 1, 15), of(2081, 1, 15).quarter()), of(2081, 1, 1)),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_FromQ4Date_ExplicitFirst_ReturnsFY2080Q1End":
+    () => expect(qEnd(of(2081, 1, 15), 1).year).toBe(2080),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_FromQ4Date_ExplicitThird_ReturnsFY2080Q3End":
+    () => expect(qEnd(of(2081, 1, 15), 3).year).toBe(2080),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_FromQ4Date_ExplicitFourth_ReturnsFY2080Q4End":
+    () => expect(qEnd(of(2081, 1, 15), 4).year).toBe(2081),
+  "FiscalYearInstanceMethodTests.FiscalYearQuarterEndDate_FromQ4Date_Current_ReturnsFY2080Q4End":
+    () => expect(qEnd(of(2081, 1, 15), of(2081, 1, 15).quarter()).year).toBe(2081),
+
+  // Core/FiscalYearTests
+  "FiscalYearTests.GetFiscalYearStartAndEndDate_ValidYear_ReturnsCorrectDates": () => {
+    const fy = new FiscalYear(2080);
+    same(fy.start(), of(2080, 4, 1));
+    same(fy.end(), of(2081, 3, 1).lastOfMonth());
+  },
+  "FiscalYearTests.GetFiscalYearStartAndEndDate_InvalidYear_ThrowsException#1": () =>
+    throwsKind(() => new FiscalYear(1843).start(), "out-of-range"),
+  "FiscalYearTests.GetFiscalYearStartAndEndDate_InvalidYear_ThrowsException#2": () =>
+    throwsKind(() => new FiscalYear(2200).start(), "out-of-range"),
+  "FiscalYearTests.GetFiscalYearStartDate_ValidYear_ReturnsCorrectDate": () =>
+    same(new FiscalYear(2080).start(), of(2080, 4, 1)),
+  "FiscalYearTests.GetFiscalYearEndDate_ValidYear_ReturnsCorrectDate": () =>
+    same(new FiscalYear(2080).end(), of(2081, 3, 1).lastOfMonth()),
+  "FiscalYearTests.FiscalYearStartAndEndDate_OnNepaliDateInstance_ReturnsCorrectDates": () => {
+    const fy = of(2080, 4, 15).fiscalYear();
+    same(fy.start(), of(2080, 4, 1));
+    same(fy.end(), of(2081, 3, 1).lastOfMonth());
+  },
+  "FiscalYearTests.FiscalYearStartDate_OnNepaliDateInstance_ReturnsCorrectDate": () =>
+    same(of(2080, 4, 15).fiscalYear().start(), of(2080, 4, 1)),
+  "FiscalYearTests.FiscalYearEndDate_OnNepaliDateInstance_ReturnsCorrectDate": () =>
+    same(of(2080, 4, 15).fiscalYear().end(), of(2081, 3, 1).lastOfMonth()),
+  "FiscalYearTests.GetFiscalYearQuarterStartAndEndDate_ValidYearAndMonth_ReturnsCorrectDates":
+    () => {
+      same(new FiscalYear(2080).quarterRange(1).start, of(2080, 4, 1));
+      expect(new FiscalYear(2080).quarterRange(1).end.month).toBe(6);
+    },
+  "FiscalYearTests.GetFiscalYearQuarterStartDate_ValidYearAndMonth_ReturnsCorrectDate": () =>
+    same(new FiscalYear(2080).quarterRange(2).start, of(2080, 7, 1)),
+  "FiscalYearTests.GetFiscalYearQuarterEndDate_ValidYearAndMonth_ReturnsCorrectDate": () =>
+    same(new FiscalYear(2080).quarterRange(3).end, of(2080, 12, 1).lastOfMonth()),
+
+  // Core/NepaliDateArithmeticEdgeCaseTests
+  "NepaliDateArithmeticEdgeCaseTests.AddDays_Zero_ReturnsSameDate": () => {
+    const d = of(2080, 5, 15);
+    same(d.addDays(0), d);
+  },
+  "NepaliDateArithmeticEdgeCaseTests.AddDays_PositiveAcrossMonthBoundary_IsCorrect": () =>
+    same(of(2080, 5, 31).addDays(1), of(2080, 6, 1)),
+  "NepaliDateArithmeticEdgeCaseTests.AddDays_NegativeAcrossMonthBoundary_IsCorrect": () =>
+    same(of(2080, 6, 1).addDays(-1), of(2080, 5, 31)),
+  "NepaliDateArithmeticEdgeCaseTests.AddDays_PositiveAcrossYearBoundary_IsCorrect": () =>
+    same(of(2080, 12, 30).addDays(1), of(2081, 1, 1)),
+  "NepaliDateArithmeticEdgeCaseTests.AddDays_NegativeAcrossYearBoundary_IsCorrect": () =>
+    same(of(2081, 1, 1).addDays(-1), of(2080, 12, 30)),
+  "NepaliDateArithmeticEdgeCaseTests.AddDays_LargePositiveValue_IsCorrect": () => {
+    const r = of(2080, 1, 1).addDays(400);
+    expect(r.year === 2080 || r.year === 2081).toBe(true);
+  },
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_PositiveCrossesYearBoundary_IsCorrect": () =>
+    same(of(2080, 12, 15).addMonths(1), of(2081, 1, 15)),
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_NegativeCrossesYearBoundary_IsCorrect": () =>
+    same(of(2080, 1, 15).addMonths(-1), of(2079, 12, 15)),
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_PositiveMoreThan12_CrossesMultipleYears": () =>
+    same(of(2080, 1, 15).addMonths(13), of(2081, 2, 15)),
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_Exactly12_SameMonthNextYear": () =>
+    same(of(2080, 5, 15).addMonths(12), of(2081, 5, 15)),
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_DayCappedAtMonthEnd_WhenResultMonthIsShorter": () =>
+    same(of(2081, 4, 32).addMonths(1), of(2081, 5, 31)),
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_Negative_SameDayPreservedWhenFits": () =>
+    same(of(2080, 6, 15).addMonths(-1), of(2080, 5, 15)),
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_HalfMonth_AddsApproximately15Days": fractionMonths,
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_NegativeHalfMonth_SubtractsApproximately15Days":
+    fractionMonths,
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_OneAndHalfMonths_AddsApproximately46Days":
+    fractionMonths,
+  "NepaliDateArithmeticEdgeCaseTests.AddMonths_FractionalValue_ReturnsDateFurtherThanZeroMonths":
+    fractionMonths,
+  "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithMidnightTime_IgnoresTime":
+    needsFromJSDate,
+  "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithNoonTime_IgnoresTime": needsFromJSDate,
+  "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithEndOfDayTime_IgnoresTime":
+    needsFromJSDate,
+  "NepaliDateArithmeticEdgeCaseTests.Constructor_TwoDateTimesOnSameEnglishDateDifferentTimes_ProduceSameNepaliDate":
+    needsFromJSDate,
+  "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_DayYearMonthFormat_ReturnsCorrectDate":
+    needsParse,
+  "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_MonthDayYearInvertedOrder_ReturnsCorrectDate":
+    needsParse,
+  "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_TwoDigitYear_ExpandsToCurrentMillennium":
+    needsParse,
+  "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_InvalidDateAfterAdjustment_ReturnsFalse":
+    needsParse,
+  "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_ValidStandardFormat_ReturnsCorrectDate":
+    needsParse,
+
+  // Core/NepaliDateManipulationTests
+  "NepaliDateManipulationTests.MonthEndDate_ReturnsCorrectDate": () =>
+    same(of(2080, 5, 1).lastOfMonth(), of(2080, 5, 31)),
+  "NepaliDateManipulationTests.AddMonths_ReturnsCorrectDate#1": () =>
+    same(of(2080, 5, 15).addMonths(1), of(2080, 6, 15)),
+  "NepaliDateManipulationTests.AddMonths_ReturnsCorrectDate#2": () =>
+    same(of(2080, 5, 15).addMonths(-1), of(2080, 4, 15)),
+  "NepaliDateManipulationTests.AddMonths_ReturnsCorrectDate#3": () =>
+    same(of(2080, 5, 15).addMonths(12), of(2081, 5, 15)),
+  "NepaliDateManipulationTests.AddMonths_ReturnsCorrectDate#4": () =>
+    same(of(2081, 4, 32).addMonths(5), of(2081, 9, 29)),
+  "NepaliDateManipulationTests.AddMonths_ReturnsCorrectDate#5": () =>
+    same(of(2081, 4, 32).addMonths(5, spill), of(2081, 10, 3)),
+  "NepaliDateManipulationTests.AddDays_ReturnsCorrectDate#1": () =>
+    same(of(2080, 5, 15).addDays(5), of(2080, 5, 20)),
+  "NepaliDateManipulationTests.AddDays_ReturnsCorrectDate#2": () =>
+    same(of(2080, 5, 15).addDays(-5), of(2080, 5, 10)),
+  "NepaliDateManipulationTests.AddDays_ReturnsCorrectDate#3": () =>
+    same(of(2080, 5, 31).addDays(1), of(2080, 6, 1)),
+  "NepaliDateManipulationTests.AddDays_ReturnsCorrectDate#4": () =>
+    same(of(2080, 12, 30).addDays(5), of(2081, 1, 5)),
+  "NepaliDateManipulationTests.Subtract_TwoDates_ReturnsCorrectTimeSpan": () =>
+    expect(of(2080, 5, 1).daysUntil(of(2080, 5, 16))).toBe(15),
+  "NepaliDateManipulationTests.Subtract_SameDate_ReturnsZero": () =>
+    expect(of(2080, 5, 15).daysUntil(of(2080, 5, 15))).toBe(0),
+
+  // Core/NepaliDateRangeExtendedTests
+  "NepaliDateRangeExtendedTests.ForCalendarYear_StartsAtBaishakhOne_EndsAtChaitraEnd": () => {
+    const r = DateRange.year(2080);
+    same(r.start, of(2080, 1, 1));
+    same(r.end, of(2080, 12, 1).lastOfMonth());
+  },
+  "NepaliDateRangeExtendedTests.ForCalendarYear_LengthIsReasonable": () => {
+    const length = DateRange.year(2080).length;
+    expect(length >= 365 && length <= 366).toBe(true);
+  },
+  "NepaliDateRangeExtendedTests.CurrentMonth_StartIsFirstDayOfCurrentMonth": needsToday,
+  "NepaliDateRangeExtendedTests.CurrentMonth_EndIsLastDayOfCurrentMonth": needsToday,
+  "NepaliDateRangeExtendedTests.CurrentMonth_ContainsToday": needsToday,
+  "NepaliDateRangeExtendedTests.CurrentFiscalYear_ContainsToday": needsToday,
+  "NepaliDateRangeExtendedTests.CurrentFiscalYear_StartIsShrawan": needsToday,
+  "NepaliDateRangeExtendedTests.CurrentFiscalYear_EndIsAshadh": needsToday,
+  "NepaliDateRangeExtendedTests.CurrentCalendarYear_ContainsToday": needsToday,
+  "NepaliDateRangeExtendedTests.CurrentCalendarYear_StartIsBaishakh1": needsToday,
+  "NepaliDateRangeExtendedTests.SplitByFiscalQuarter_EmptyRange_ReturnsEmptyArray": noSetOps,
+  "NepaliDateRangeExtendedTests.SplitByFiscalQuarter_RangeWithinOneQuarter_ReturnsSingleRange":
+    noSetOps,
+  "NepaliDateRangeExtendedTests.SplitByFiscalQuarter_RangeSpanningTwoQuarters_ReturnsTwoRanges":
+    noSetOps,
+  "NepaliDateRangeExtendedTests.SplitByFiscalQuarter_FullFiscalYear_ReturnsFourRanges": noSetOps,
+  "NepaliDateRangeExtendedTests.SplitByFiscalQuarter_RangeInQ4Months_SingleRange": noSetOps,
+  "NepaliDateRangeExtendedTests.DatesWithInterval_Zero_ThrowsArgumentOutOfRangeException": noSetOps,
+  "NepaliDateRangeExtendedTests.DatesWithInterval_NegativeInterval_ThrowsArgumentOutOfRangeException":
+    noSetOps,
+  "NepaliDateRangeExtendedTests.DatesWithInterval_IntervalOfOne_YieldsEveryDay": noSetOps,
+  "NepaliDateRangeExtendedTests.DatesWithInterval_IntervalOfTwo_YieldsOddDays": noSetOps,
+  "NepaliDateRangeExtendedTests.DatesWithInterval_IntervalLargerThanRange_YieldsOnlyStartDate":
+    noSetOps,
+  "NepaliDateRangeExtendedTests.DatesWithInterval_EmptyRange_YieldsNothing": noSetOps,
+  "NepaliDateRangeExtendedTests.WeekendDays_IncludeSundayTrue_ReturnsBothSaturdayAndSunday":
+    noSetOps,
+  "NepaliDateRangeExtendedTests.WeekendDays_IncludeSundayFalse_ReturnsOnlySaturday": noSetOps,
+  "NepaliDateRangeExtendedTests.WeekendDays_RangeWithNoWeekend_ReturnsEmpty": noSetOps,
+  "NepaliDateRangeExtendedTests.WeekendDays_EmptyRange_ReturnsEmpty": noSetOps,
+  "NepaliDateRangeExtendedTests.WorkingDays_ExcludeSundayFalse_ExcludesOnlySaturday": noSetOps,
+  "NepaliDateRangeExtendedTests.WorkingDays_ExcludeSundayTrue_ExcludesBothSatAndSun": noSetOps,
+  "NepaliDateRangeExtendedTests.WorkingDays_EmptyRange_ReturnsEmpty": noSetOps,
+  "NepaliDateRangeExtendedTests.FromDayCount_ZeroDays_ThrowsArgumentOutOfRangeException": noSetOps,
+  "NepaliDateRangeExtendedTests.FromDayCount_NegativeDays_ThrowsArgumentOutOfRangeException":
+    noSetOps,
+  "NepaliDateRangeExtendedTests.Intersect_NonOverlappingRanges_ReturnsEmptyRange": noSetOps,
+  "NepaliDateRangeExtendedTests.Intersect_AdjacentRanges_ReturnsEmptyRange": noSetOps,
+  "NepaliDateRangeExtendedTests.Intersect_OneRangeFullyInsideOther_ReturnsInnerRange": noSetOps,
+  "NepaliDateRangeExtendedTests.Union_LeftRangeIsEmpty_ReturnsRightRange": noSetOps,
+  "NepaliDateRangeExtendedTests.Union_RightRangeIsEmpty_ReturnsLeftRange": noSetOps,
+  "NepaliDateRangeExtendedTests.Union_NonOverlappingRanges_SpansEntireGap": noSetOps,
+  "NepaliDateRangeExtendedTests.Contains_ExactStartDate_ReturnsTrue": () =>
+    expect(DateRange.of(of(2080, 1, 5), of(2080, 1, 20)).contains(of(2080, 1, 5))).toBe(true),
+  "NepaliDateRangeExtendedTests.Contains_ExactEndDate_ReturnsTrue": () =>
+    expect(DateRange.of(of(2080, 1, 5), of(2080, 1, 20)).contains(of(2080, 1, 20))).toBe(true),
+  "NepaliDateRangeExtendedTests.Contains_OneDayBeforeStart_ReturnsFalse": () =>
+    expect(DateRange.of(of(2080, 1, 5), of(2080, 1, 20)).contains(of(2080, 1, 4))).toBe(false),
+  "NepaliDateRangeExtendedTests.Contains_OneDayAfterEnd_ReturnsFalse": () =>
+    expect(DateRange.of(of(2080, 1, 5), of(2080, 1, 20)).contains(of(2080, 1, 21))).toBe(false),
+  "NepaliDateRangeExtendedTests.Contains_EmptyRange_ContainsNothing": noSetOps,
+  "NepaliDateRangeExtendedTests.IsAdjacentTo_GapBetweenRanges_ReturnsFalse": noSetOps,
+  "NepaliDateRangeExtendedTests.IsAdjacentTo_OverlappingRanges_ReturnsFalse": noSetOps,
+  "NepaliDateRangeExtendedTests.IsAdjacentTo_EmptyRange_ReturnsFalse": noSetOps,
+  "NepaliDateRangeExtendedTests.Except_NonOverlappingExcludeRange_ReturnsOriginalRange": noSetOps,
+  "NepaliDateRangeExtendedTests.Except_ExcludeRangeFullyContainsThis_ReturnsEmptyArray": noSetOps,
+  "NepaliDateRangeExtendedTests.Except_ExcludeOverlapsStart_ReturnsRightPart": noSetOps,
+  "NepaliDateRangeExtendedTests.Except_ExcludeOverlapsEnd_ReturnsLeftPart": noSetOps,
+  "NepaliDateRangeExtendedTests.GetEnumerator_ThreeDayRange_YieldsExactlyThreeDates": () =>
+    expect([...DateRange.of(of(2080, 1, 5), of(2080, 1, 7))]).toHaveLength(3),
+  "NepaliDateRangeExtendedTests.GetEnumerator_EmptyRange_YieldsNoDates": noSetOps,
+  "NepaliDateRangeExtendedTests.GetEnumerator_SingleDayRange_YieldsOneDate": () =>
+    expect([...DateRange.of(of(2080, 1, 5), of(2080, 1, 5))]).toHaveLength(1),
+  "NepaliDateRangeExtendedTests.ToString_DefaultFormat_IsStartDashEnd": noSetOps,
+  "NepaliDateRangeExtendedTests.ToString_EmptyRange_ReturnsEmptyRangeString": noSetOps,
+  "NepaliDateRangeExtendedTests.ToString_WithDateFormat_UsesSpecifiedFormat": noSetOps,
+  "NepaliDateRangeExtendedTests.ToString_WithDateFormat_EmptyRange_ReturnsEmptyRangeString":
+    noSetOps,
+  "NepaliDateRangeExtendedTests.Equals_IdenticalRanges_ReturnsTrue": noSetOps,
+  "NepaliDateRangeExtendedTests.Equals_DifferentStart_ReturnsFalse": noSetOps,
+  "NepaliDateRangeExtendedTests.Equals_DifferentEnd_ReturnsFalse": noSetOps,
+  "NepaliDateRangeExtendedTests.Equals_BothEmpty_ReturnsTrue": noSetOps,
+  "NepaliDateRangeExtendedTests.Equals_ObjectOverload_SameRange_ReturnsTrue": noSetOps,
+  "NepaliDateRangeExtendedTests.Equals_ObjectOverload_WrongType_ReturnsFalse": noSetOps,
+  "NepaliDateRangeExtendedTests.GetHashCode_EqualRanges_SameHash": noSetOps,
+  "NepaliDateRangeExtendedTests.OperatorEquals_IdenticalRanges_ReturnsTrue": noSetOps,
+  "NepaliDateRangeExtendedTests.OperatorNotEquals_DifferentRanges_ReturnsTrue": noSetOps,
+
+  // Core/NepaliDateRangeTests
+  "NepaliDateRangeTests.Constructor_ValidDates_CreatesRange": () => {
+    const r = DateRange.of(of(2080, 1, 5), of(2080, 1, 20));
+    same(r.start, of(2080, 1, 5));
+    same(r.end, of(2080, 1, 20));
+  },
+  "NepaliDateRangeTests.Constructor_EndBeforeStart_CreatesEmptyRange": noSetOps,
+  "NepaliDateRangeTests.SingleDay_CreatesRangeWithOneDay": () =>
+    expect(DateRange.of(of(2080, 1, 5), of(2080, 1, 5)).length).toBe(1),
+  "NepaliDateRangeTests.FromDayCount_CreatesCorrectRange": noSetOps,
+  "NepaliDateRangeTests.ForMonth_CreatesCorrectRange": () =>
+    same(DateRange.month(2080, 5).start, of(2080, 5, 1)),
+  "NepaliDateRangeTests.ForFiscalYear_CreatesCorrectRange": () =>
+    same(new FiscalYear(2080).range().start, of(2080, 4, 1)),
+  "NepaliDateRangeTests.Contains_DateInRange_ReturnsTrue": () =>
+    expect(DateRange.of(of(2080, 1, 5), of(2080, 1, 20)).contains(of(2080, 1, 10))).toBe(true),
+  "NepaliDateRangeTests.Contains_DateOutsideRange_ReturnsFalse": () =>
+    expect(DateRange.of(of(2080, 1, 5), of(2080, 1, 20)).contains(of(2080, 1, 25))).toBe(false),
+  "NepaliDateRangeTests.Contains_RangeFullyContained_ReturnsTrue": noSetOps,
+  "NepaliDateRangeTests.Overlaps_RangesOverlap_ReturnsTrue": noSetOps,
+  "NepaliDateRangeTests.Overlaps_RangesDontOverlap_ReturnsFalse": noSetOps,
+  "NepaliDateRangeTests.IsAdjacentTo_AdjacentRanges_ReturnsTrue": noSetOps,
+  "NepaliDateRangeTests.Intersect_OverlappingRanges_ReturnsIntersection": noSetOps,
+  "NepaliDateRangeTests.Union_OverlappingRanges_ReturnsUnion": noSetOps,
+  "NepaliDateRangeTests.Except_RemovingRangeFromMiddle_ReturnsTwoRanges": noSetOps,
+  "NepaliDateRangeTests.SplitByMonth_RangeAcrossMonths_SplitsCorrectly": noSetOps,
+  "NepaliDateRangeTests.WorkingDays_ReturnsCorrectDays": noSetOps,
+  "NepaliDateRangeTests.Enumeration_EnumeratesAllDaysInRange": () =>
+    expect([...DateRange.of(of(2080, 1, 1), of(2080, 1, 10))]).toHaveLength(10),
+  "NepaliDateRangeTests.Demo_RangeOperations": () => {
+    // The C# test has no Assert; exercise the ported range surface instead.
+    const range = DateRange.of(of(2080, 1, 5), of(2080, 1, 20));
+    expect(range.contains(of(2080, 1, 10))).toBe(true);
+    expect([...range]).toHaveLength(range.length);
+    expect([...DateRange.month(2080, 5)]).toHaveLength(31);
+    expect([...new FiscalYear(2080).range()].length).toBeGreaterThan(0);
+  },
+
+  // Core/OptimizationVerificationTests (subtraction rows)
+  "OptimizationVerificationTests.Subtraction_SameDate_ReturnsZeroDays": () =>
+    expect(of(2080, 5, 15).daysUntil(of(2080, 5, 15))).toBe(0),
+  "OptimizationVerificationTests.Subtraction_AdjacentDays_ReturnsOneDay": () =>
+    expect(of(2080, 5, 15).daysUntil(of(2080, 5, 16))).toBe(1),
+  "OptimizationVerificationTests.Subtraction_CrossMonth_CorrectDays": () =>
+    expect(
+      of(2080, 4, 1)
+        .lastOfMonth()
+        .daysUntil(of(2080, 5, 1)),
+    ).toBe(1),
+  "OptimizationVerificationTests.Subtraction_CrossYear_CorrectDays": () =>
+    expect(
+      of(2079, 12, 1)
+        .lastOfMonth()
+        .daysUntil(of(2080, 1, 1)),
+    ).toBe(1),
+};
+
+describe("C# catalogue, phase 2", () => {
+  checkCatalog("2", cases2);
 });

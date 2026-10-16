@@ -54,6 +54,20 @@ const operations: [id: string, name: string, body: () => void][] = [
         do_not_optimize(NepaliDate.fromGregorian(AD[i] as GregorianDate));
     },
   ],
+  [
+    "B3",
+    "addDays(1000)",
+    () => {
+      for (let i = 0; i < 64; i++) do_not_optimize((DATES[i] as NepaliDate).addDays(1000));
+    },
+  ],
+  [
+    "B4",
+    "addMonths(13) clamp",
+    () => {
+      for (let i = 0; i < 64; i++) do_not_optimize((DATES[i] as NepaliDate).addMonths(13));
+    },
+  ],
 ];
 
 console.log(`node ${process.version}, ${DATES.length} dates, gc exposed: ${"gc" in globalThis}`);
