@@ -16,5 +16,7 @@ date.year = 2082;
 // @ts-expect-error the constructor is private
 new NepaliDate();
 
-// Anything with year, month and day is accepted, as a Temporal.PlainDate would be.
-NepaliDate.fromGregorian({ year: 2024, month: 7, day: 30, dayOfWeek: 2 } as GregorianDate);
+// Anything with year, month and day is accepted, as a Temporal.PlainDate would be; extra fields
+// are fine (excess property checks do not apply to a variable).
+const withExtraField = { year: 2024, month: 7, day: 30, dayOfWeek: 2 };
+NepaliDate.fromGregorian(withExtraField);
