@@ -9,7 +9,7 @@ import {
   gregorianMonthLength,
 } from "./gregorian.js";
 import type { Lang } from "./lang.js";
-import { strictParts } from "./parse.js";
+import { lenientParts, strictParts } from "./parse.js";
 import { MONTH_START, MONTHS, YEAR_START } from "./tables.js";
 
 /** What `addMonths` does when the day doesn't exist in the target month (ALGORITHM §8). */
@@ -224,6 +224,21 @@ export class NepaliDate {
       if (error instanceof NepDateError) return null;
       throw error;
     }
+  }
+
+  /**
+   * The BS date parsed leniently from human input (PARSING §2): strict first, then the closed
+   * month-name list with case-insensitive Latin matching.
+   * @throws {NepDateError} a parse kind, or `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
+   */
+  static parseLenient(s: string): NepaliDate {
+    try {
+      return NepaliDate.parse(s);
+    } catch (error) {
+      if (!(error instanceof NepDateError)) throw error;
+    }
+    const [year, month, day] = lenientParts(s.normalize("NFC"));
+    return NepaliDate.of(year, month, day);
   }
 
   /** -1 if `a` is before `b`, 1 if after, 0 if the same day. Pass it to `Array.prototype.sort`. */
