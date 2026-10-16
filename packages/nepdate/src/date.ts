@@ -1,7 +1,7 @@
 import { EPOCH_UNIX_DAYS, MAX_YEAR, MIN_YEAR } from "./calendar.gen.js";
 import { NepDateError } from "./errors.js";
 import { FiscalYear, type Quarter } from "./fiscal.js";
-import { type DateOrder, longDate, type Separator, shortDate } from "./format.js";
+import { type DateOrder, formatDate, longDate, type Separator, shortDate } from "./format.js";
 import {
   civilFromDays,
   daysFromCivil,
@@ -357,6 +357,11 @@ export class NepaliDate {
       opts?.pad ?? true,
       opts?.lang ?? "en",
     );
+  }
+
+  /** The pattern form of FORMATTING §5. */
+  format(pattern: string, lang: Lang = "en"): string {
+    return formatDate(this.year, this.month, this.day, this.weekday, pattern, lang);
   }
 
   /** True if `other` is the same day. */

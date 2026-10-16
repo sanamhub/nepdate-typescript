@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { formatCacheSize } from "../src/format.js";
 import { NepaliDate } from "../src/index.js";
 import { readVectors } from "./vectors.js";
 
@@ -50,5 +51,45 @@ describe("short and long (T3-02)", () => {
         row.dmy_dash_nopad,
       );
     }
+  });
+});
+
+describe("format pattern (T3-03)", () => {
+  test("FORMATTING §5 examples", () => {
+    const d = bs("2081-04-15");
+    expect(d.format("yyyy-MM-dd")).toBe("2081-04-15");
+    expect(d.format("M/d/yyyy")).toBe("4/15/2081");
+    expect(d.format("yyyy'BS'")).toBe("2081BS");
+    expect(d.format("yyyy\\M\\M-\\d\\d")).toBe("2081MM-dd");
+    expect(d.format("MMM yyyy")).toBe("Shr 2081");
+    expect(d.format("dd.MM.yy")).toBe("15.04.81");
+    expect(d.format("")).toBe("2081/04/15");
+    expect(d.format("d")).toBe("2081/04/15");
+    expect(d.format("D")).toBe("Shrawan 15, 2081");
+    expect(d.format("s")).toBe("2081-04-15");
+  });
+
+  test("format-pattern.tsv (451 rows), skipping only D-04 rows", () => {
+    const rows = readVectors("csharp-golden/format-pattern.tsv");
+    expect(rows).toHaveLength(451);
+    let skipped = 0;
+    for (const row of rows) {
+      const d = bs(row.bs as string);
+      const pattern = row.pattern as string;
+      // D-04: the C# golden shortens both Ashad and Ashoj to "Ash"; the port keeps Asa / Aso.
+      const mmm = pattern.includes("MMM") && !pattern.includes("MMMM");
+      if (mmm && (d.month === 3 || d.month === 6)) {
+        skipped++;
+        continue;
+      }
+      expect(d.format(pattern), `${row.bs} ${pattern}`).toBe(row.result);
+    }
+    expect(skipped).toBe(7);
+  });
+
+  test("40 different patterns leave the cache at 32 entries", () => {
+    const d = bs("2081-04-15");
+    for (let i = 0; i < 40; i++) expect(d.format(`yyyy'#${i}'`)).toBe(`2081#${i}`);
+    expect(formatCacheSize()).toBe(32);
   });
 });
