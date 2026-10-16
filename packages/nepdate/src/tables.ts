@@ -23,7 +23,8 @@ function base64Value(code: number): number {
   return code === 43 ? 62 : 63; // + or /
 }
 
-function build(): void {
+/** Internal: decodes `PACKED_MONTH_LENGTHS` and fills the three tables. Exported for the load-time test. */
+export function build(): void {
   const text = PACKED_MONTH_LENGTHS;
   let month = 0;
   for (let c = 0; c < text.length && month < MONTHS; c += 4) {

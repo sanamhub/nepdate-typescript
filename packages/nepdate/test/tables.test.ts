@@ -1,28 +1,27 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { EPOCH_UNIX_DAYS } from "../src/calendar.gen.js";
+import { build, MONTH_LENGTHS, MONTH_START, YEAR_START } from "../src/tables.js";
 
 const json = JSON.parse(
   readFileSync(new URL("../../../shared/data/calendar/bs-calendar.json", import.meta.url), "utf8"),
 ) as { month_lengths: Record<string, number[]> };
 
-test("module load builds the tables (time reported, not asserted)", async () => {
+test("build() builds the tables in under 1 ms (time reported, not asserted)", () => {
   const start = performance.now();
-  await import("../src/tables.js");
+  build();
   const ms = performance.now() - start;
-  console.log(`tables.ts import: ${ms.toFixed(3)} ms (includes module loading by Vitest)`);
+  console.log(`tables build(): ${ms.toFixed(3)} ms`);
 });
 
-test("MONTH_LENGTHS equals bs-calendar.json for every month", async () => {
-  const { MONTH_LENGTHS } = await import("../src/tables.js");
+test("MONTH_LENGTHS equals bs-calendar.json for every month", () => {
   expect(MONTH_LENGTHS).toHaveLength(3588);
   const expected: number[] = [];
   for (let y = 1901; y <= 2199; y++) expected.push(...(json.month_lengths[String(y)] ?? []));
   expect(Array.from(MONTH_LENGTHS)).toEqual(expected);
 });
 
-test("MONTH_START and YEAR_START are prefix sums ending at 109212", async () => {
-  const { MONTH_LENGTHS, MONTH_START, YEAR_START } = await import("../src/tables.js");
+test("MONTH_START and YEAR_START are prefix sums ending at 109212", () => {
   expect(MONTH_START).toHaveLength(3589);
   expect(YEAR_START).toHaveLength(300);
   expect(MONTH_START[0]).toBe(0);
