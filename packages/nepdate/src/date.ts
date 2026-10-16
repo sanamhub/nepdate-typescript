@@ -1,12 +1,14 @@
 import { EPOCH_UNIX_DAYS, MAX_YEAR, MIN_YEAR } from "./calendar.gen.js";
 import { NepDateError } from "./errors.js";
 import { FiscalYear, type Quarter } from "./fiscal.js";
+import { type DateOrder, longDate, type Separator, shortDate } from "./format.js";
 import {
   civilFromDays,
   daysFromCivil,
   type GregorianDate,
   gregorianMonthLength,
 } from "./gregorian.js";
+import type { Lang } from "./lang.js";
 import { MONTH_START, MONTHS, YEAR_START } from "./tables.js";
 
 /** What `addMonths` does when the day doesn't exist in the target month (ALGORITHM §8). */
@@ -302,6 +304,59 @@ export class NepaliDate {
   quarter(): Quarter {
     // Months 4..12 map to 1..3 three at a time; months 1..3 wrap round to 4.
     return (((((this.month + 8) / 3) | 0) % 4) + 1) as Quarter;
+  }
+
+  /** The default display form, `YYYY/MM/DD` with zero-padded ASCII digits (FORMATTING §2). */
+  toString(): string {
+    return shortDate(this.year, this.month, this.day, "ymd", "/", true, "en");
+  }
+
+  /** The interchange form, `YYYY-MM-DD` (D-11). */
+  toJSON(): string {
+    return shortDate(this.year, this.month, this.day, "ymd", "-", true, "en");
+  }
+
+  /**
+   * The three fields in `order`, joined by `separator` (FORMATTING §3). Defaults: `"ymd"`, `"/"`,
+   * padded, `"en"`.
+   */
+  short(opts?: {
+    readonly order?: DateOrder;
+    readonly separator?: Separator;
+    readonly pad?: boolean;
+    readonly lang?: Lang;
+  }): string {
+    return shortDate(
+      this.year,
+      this.month,
+      this.day,
+      opts?.order ?? "ymd",
+      opts?.separator ?? "/",
+      opts?.pad ?? true,
+      opts?.lang ?? "en",
+    );
+  }
+
+  /**
+   * `[weekday, ]month day[, year]` (FORMATTING §4). Defaults: no weekday, with year, padded,
+   * `"en"`.
+   */
+  long(opts?: {
+    readonly weekday?: boolean;
+    readonly year?: boolean;
+    readonly pad?: boolean;
+    readonly lang?: Lang;
+  }): string {
+    return longDate(
+      this.year,
+      this.month,
+      this.day,
+      this.weekday,
+      opts?.weekday ?? false,
+      opts?.year ?? true,
+      opts?.pad ?? true,
+      opts?.lang ?? "en",
+    );
   }
 
   /** True if `other` is the same day. */
