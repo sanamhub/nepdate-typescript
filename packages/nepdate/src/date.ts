@@ -51,7 +51,7 @@ function outOfRange(what: string): NepDateError {
 function monthIndexOf(serial: number): number {
   // The estimate is never more than one month off for any serial (ADR-0002 §6), so one step in
   // either direction fixes it. serial * MONTHS stays below 2^31.
-  let i = ((serial * MONTHS) / 109212) | 0;
+  let i = ((serial * MONTHS) / (MAX_SERIAL + 1)) | 0;
   if ((MONTH_START[i] as number) > serial) i--;
   else if ((MONTH_START[i + 1] as number) <= serial) i++;
   return i;
