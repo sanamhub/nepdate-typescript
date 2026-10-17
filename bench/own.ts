@@ -8,6 +8,7 @@
 import { do_not_optimize, measure } from "mitata";
 import { type GregorianDate, NepaliDate } from "nepdate";
 import { coverage, info } from "nepdate-patro";
+import { machineLoad } from "./load.ts";
 
 const DAY_MS = 86_400_000;
 const EPOCH_DAYS = Date.UTC(1844, 3, 11) / DAY_MS;
@@ -121,8 +122,11 @@ const operations: [id: string, name: string, body: () => void][] = [
 
 console.log(`node ${process.version}, ${DATES.length} dates, gc exposed: ${"gc" in globalThis}`);
 for (const [id, name, body] of operations) {
+  const load = await machineLoad();
   const stats = await measure(body, { heap: () => process.memoryUsage().heapUsed });
   const ns = (stats.avg / DATES.length).toFixed(1);
   const heap = stats.heap === undefined ? "n/a" : `${(stats.heap.avg / DATES.length).toFixed(0)} B`;
-  console.log(`${id}  ${ns} ns/op  heap ${heap}/op (approximate)  ${name}`);
+  console.log(
+    `${id}  ${ns} ns/op  load ${load.toFixed(0)}%  heap ${heap}/op (approximate)  ${name}`,
+  );
 }
