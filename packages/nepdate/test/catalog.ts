@@ -23,10 +23,18 @@ export function catalogRows(...tags: string[]): Row[] {
 
 /**
  * Declares one Vitest test per catalogue row tagged with one of `tags`, named exactly after the
- * row's id. A row without an entry in `cases`, and an entry without a row, fail with the id.
+ * row's id. Pass `file` to keep the rows of one C# test file (the patro and interop rows share
+ * phase 4 but live in different packages). A row without an entry in `cases`, and an entry
+ * without a row, fail with the id.
  */
-export function checkCatalog(tags: string | string[], cases: Record<string, CatalogCase>): void {
-  const rows = catalogRows(...(Array.isArray(tags) ? tags : [tags]));
+export function checkCatalog(
+  tags: string | string[],
+  cases: Record<string, CatalogCase>,
+  file?: string,
+): void {
+  const rows = catalogRows(...(Array.isArray(tags) ? tags : [tags])).filter(
+    (row) => file === undefined || row.file === file,
+  );
   const ids = new Set(rows.map((row) => row.id as string));
   for (const id of ids) {
     const entry = cases[id];

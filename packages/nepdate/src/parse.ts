@@ -152,7 +152,6 @@ function tokenizeLenient(input: string): LenientToken[] {
   for (let i = 0; i < input.length; i++) {
     let code = input.charCodeAt(i);
     if (code >= 0x0966 && code <= 0x096f) code = code - 0x0966 + 0x30;
-    if (code === 0x200c || code === 0x200d) continue;
     if (isLenientSeparator(code)) {
       flush();
       chunk = "";
@@ -167,8 +166,9 @@ function tokenizeLenient(input: string): LenientToken[] {
 }
 
 /**
- * Lenient parse (PARSING §2): the three fields as `[year, month, day]`, after NFC normalisation
- * and the closed month-name list. Returns the fields, or throws a parse `NepDateError`.
+ * Lenient parse (PARSING §2): the three fields as `[year, month, day]`, matched as given (no
+ * Unicode normalisation, no zero-width joiner removal) against the closed month-name list. Returns
+ * the fields, or throws a parse `NepDateError`.
  */
 export function lenientParts(input: string): [number, number, number] {
   const tokens = tokenizeLenient(input);

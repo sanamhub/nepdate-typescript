@@ -1,7 +1,7 @@
 // C# NepDate's own tests (shared/spec/vectors/csharp-tests/catalog.tsv), translated to this API.
 // One test per catalogue row (docs/plan/00-ROADMAP.md, "C# test catalogue").
 
-import { describe, expect, expectTypeOf } from "vitest";
+import { describe, expect, expectTypeOf, vi } from "vitest";
 import {
   type DateOrder,
   DateRange,
@@ -64,6 +64,26 @@ function forEachDay(fn: (date: NepaliDate) => void): number {
   }
   return count;
 }
+
+// T4-03: the rows that read "today" run with a fixed clock, so their ranges are deterministic.
+// 2024-07-30 18:30 UTC is 2081-04-16 in Nepal and 2081-04-15 in UTC.
+function withToday<T>(fn: (today: NepaliDate) => T): T {
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(Date.UTC(2024, 6, 30, 18, 30));
+    return fn(NepaliDate.today("UTC"));
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+// C# builds a NepaliDate from a DateTime; the port takes the same instant with an explicit zone.
+const fromDateTime =
+  (hour: number, minute = 0, second = 0): CatalogCase =>
+  () => {
+    const jsDate = new Date(Date.UTC(2023, 3, 14, hour, minute, second));
+    same(NepaliDate.fromJSDate(jsDate, "utc"), of(2080, 1, 1));
+  };
 
 // Abilities/NepaliDateComparableTests: _d1 = 2081-01-01, _d2 = 2081-06-15, _d3 = 2082-01-01.
 const d1 = of(2081, 1, 1);
@@ -263,9 +283,11 @@ const cases: Record<string, CatalogCase> = {
   // C# returns the NepaliMonths enum; months here are plain numbers, 5 = Bhadra.
   "NepaliDatePropertiesTests.MonthName_ReturnsCorrectEnum": () =>
     expect(of(2080, 5, 15).month).toBe(5),
-  "NepaliDatePropertiesTests.Today_ReturnsCurrentNepaliDate": {
-    pending: "T4-03: needs NepaliDate.today",
-  },
+  "NepaliDatePropertiesTests.Today_ReturnsCurrentNepaliDate": () =>
+    withToday((today) => {
+      same(today, of(2081, 4, 15));
+      same(today, NepaliDate.fromJSDate(new Date(), "utc"));
+    }),
   "NepaliDatePropertiesTests.DayOfYear_FirstDayOfYear_Returns1": () =>
     expect(of(2080, 1, 1).dayOfYear).toBe(1),
   "NepaliDatePropertiesTests.DayOfYear_FirstDayOfMonth4_EqualsSum_Of_Months1To3_Plus1": () => {
@@ -424,8 +446,6 @@ const qEnd = (date: NepaliDate, q: Quarter): NepaliDate => date.fiscalYear().qua
 const spill: Overflow = "spill";
 
 const fractionMonths: CatalogCase = { deviation: "D-02" };
-const needsFromJSDate: CatalogCase = { pending: "T4-03: needs NepaliDate.fromJSDate" };
-const needsToday: CatalogCase = { pending: "T4-03: needs NepaliDate.today" };
 const noSetOps: CatalogCase = { deviation: "D-09" };
 
 const sameFyStartOf =
@@ -621,12 +641,17 @@ const cases2: Record<string, CatalogCase> = {
   "NepaliDateArithmeticEdgeCaseTests.AddMonths_FractionalValue_ReturnsDateFurtherThanZeroMonths":
     fractionMonths,
   "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithMidnightTime_IgnoresTime":
-    needsFromJSDate,
-  "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithNoonTime_IgnoresTime": needsFromJSDate,
+    fromDateTime(0),
+  "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithNoonTime_IgnoresTime":
+    fromDateTime(12),
   "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithEndOfDayTime_IgnoresTime":
-    needsFromJSDate,
+    fromDateTime(23, 59, 59),
   "NepaliDateArithmeticEdgeCaseTests.Constructor_TwoDateTimesOnSameEnglishDateDifferentTimes_ProduceSameNepaliDate":
-    needsFromJSDate,
+    () => {
+      const midnight = NepaliDate.fromJSDate(new Date(Date.UTC(2023, 3, 14, 0, 0, 0)), "utc");
+      const endOfDay = NepaliDate.fromJSDate(new Date(Date.UTC(2023, 3, 14, 23, 59, 59)), "utc");
+      same(midnight, endOfDay);
+    },
   "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_DayYearMonthFormat_ReturnsCorrectDate":
     needsParse,
   "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_MonthDayYearInvertedOrder_ReturnsCorrectDate":
@@ -674,14 +699,38 @@ const cases2: Record<string, CatalogCase> = {
     const length = DateRange.year(2080).length;
     expect(length >= 365 && length <= 366).toBe(true);
   },
-  "NepaliDateRangeExtendedTests.CurrentMonth_StartIsFirstDayOfCurrentMonth": needsToday,
-  "NepaliDateRangeExtendedTests.CurrentMonth_EndIsLastDayOfCurrentMonth": needsToday,
-  "NepaliDateRangeExtendedTests.CurrentMonth_ContainsToday": needsToday,
-  "NepaliDateRangeExtendedTests.CurrentFiscalYear_ContainsToday": needsToday,
-  "NepaliDateRangeExtendedTests.CurrentFiscalYear_StartIsShrawan": needsToday,
-  "NepaliDateRangeExtendedTests.CurrentFiscalYear_EndIsAshadh": needsToday,
-  "NepaliDateRangeExtendedTests.CurrentCalendarYear_ContainsToday": needsToday,
-  "NepaliDateRangeExtendedTests.CurrentCalendarYear_StartIsBaishakh1": needsToday,
+  "NepaliDateRangeExtendedTests.CurrentMonth_StartIsFirstDayOfCurrentMonth": () =>
+    withToday((today) => {
+      same(DateRange.month(today.year, today.month).start, of(today.year, today.month, 1));
+    }),
+  "NepaliDateRangeExtendedTests.CurrentMonth_EndIsLastDayOfCurrentMonth": () =>
+    withToday((today) => {
+      same(DateRange.month(today.year, today.month).end, today.lastOfMonth());
+    }),
+  "NepaliDateRangeExtendedTests.CurrentMonth_ContainsToday": () =>
+    withToday((today) => {
+      expect(DateRange.month(today.year, today.month).contains(today)).toBe(true);
+    }),
+  "NepaliDateRangeExtendedTests.CurrentFiscalYear_ContainsToday": () =>
+    withToday((today) => {
+      expect(today.fiscalYear().range().contains(today)).toBe(true);
+    }),
+  "NepaliDateRangeExtendedTests.CurrentFiscalYear_StartIsShrawan": () =>
+    withToday((today) => {
+      expect(today.fiscalYear().start().month).toBe(4);
+    }),
+  "NepaliDateRangeExtendedTests.CurrentFiscalYear_EndIsAshadh": () =>
+    withToday((today) => {
+      expect(today.fiscalYear().end().month).toBe(3);
+    }),
+  "NepaliDateRangeExtendedTests.CurrentCalendarYear_ContainsToday": () =>
+    withToday((today) => {
+      expect(DateRange.year(today.year).contains(today)).toBe(true);
+    }),
+  "NepaliDateRangeExtendedTests.CurrentCalendarYear_StartIsBaishakh1": () =>
+    withToday((today) => {
+      same(DateRange.year(today.year).start, of(today.year, 1, 1));
+    }),
   "NepaliDateRangeExtendedTests.SplitByFiscalQuarter_EmptyRange_ReturnsEmptyArray": noSetOps,
   "NepaliDateRangeExtendedTests.SplitByFiscalQuarter_RangeWithinOneQuarter_ReturnsSingleRange":
     noSetOps,
@@ -1243,4 +1292,37 @@ const cases3: Record<string, CatalogCase> = {
 
 describe("C# catalogue, phase 3", () => {
   checkCatalog("3", cases3);
+});
+
+// Extensions/DateTimeExtensionsTests (phase 4): C# DateTime.ToNepaliDate becomes
+// NepaliDate.fromJSDate with an explicit zone. DateTime.MinValue and MaxValue are far outside the
+// supported AD range, so those rows check the "out-of-range" error.
+const cases4: Record<string, CatalogCase> = {
+  "DateTimeExtensionsTests.ToNepaliDate_ValidDateTime_ReturnsCorrectNepaliDate": () => {
+    const date = NepaliDate.fromJSDate(new Date(Date.UTC(2023, 3, 14)), "utc");
+    expect([date.year, date.month, date.day]).toEqual([2080, 1, 1]);
+  },
+  "DateTimeExtensionsTests.ToNepaliDate_MinValue_ThrowsArgumentOutOfRangeException": () =>
+    throwsKind(() => NepaliDate.fromJSDate(new Date(-62135596800000), "utc"), "out-of-range"),
+  "DateTimeExtensionsTests.ToNepaliDate_MaxValue_ThrowsArgumentOutOfRangeException": () =>
+    throwsKind(
+      () => NepaliDate.fromJSDate(new Date(Date.UTC(9999, 11, 31)), "utc"),
+      "out-of-range",
+    ),
+  "DateTimeExtensionsTests.ToNepaliDate_DateBeforeMinSupported_ThrowsArgumentOutOfRangeException":
+    () =>
+      throwsKind(
+        () => NepaliDate.fromJSDate(new Date(Date.UTC(1844, 3, 10)), "utc"),
+        "out-of-range",
+      ),
+  "DateTimeExtensionsTests.ToNepaliDate_DateAfterMaxSupported_ThrowsArgumentOutOfRangeException":
+    () =>
+      throwsKind(
+        () => NepaliDate.fromJSDate(new Date(Date.UTC(2143, 3, 16)), "utc"),
+        "out-of-range",
+      ),
+};
+
+describe("C# catalogue, phase 4 interop", () => {
+  checkCatalog("4", cases4, "Extensions/DateTimeExtensionsTests.cs");
 });

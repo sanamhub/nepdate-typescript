@@ -2,10 +2,12 @@
 // to logical CPU 2 from the repository root:
 //   npm run build
 //   cmd /c "start /affinity 4 /wait /b node --expose-gc bench/own.ts"
-// Each operation runs over the 64 dates of BENCHMARK §2; times are per single operation.
+// B1 to B6 run over the 64 dates of BENCHMARK §2; B7 and B8 over the 64 dates moved into the
+// patro coverage (BENCHMARK §3). Each operation runs over all 64 inputs; times are per operation.
 
 import { do_not_optimize, measure } from "mitata";
 import { type GregorianDate, NepaliDate } from "nepdate";
+import { coverage, info } from "nepdate-patro";
 
 const DAY_MS = 86_400_000;
 const EPOCH_DAYS = Date.UTC(1844, 3, 11) / DAY_MS;
@@ -34,6 +36,15 @@ const MONTHS = DATES.map((d) => d.month);
 const DAYS = DATES.map((d) => d.day);
 const AD: GregorianDate[] = DATES.map((d) => d.toGregorian());
 const STRINGS = DATES.map((d) => d.toString());
+
+// BENCHMARK §3: B7 and B8 use the 64 dates moved into the patro coverage.
+const PATRO_FIRST = serialOf(coverage().start);
+const PATRO_LAST = serialOf(coverage().end);
+const patroStep = Math.floor((PATRO_LAST - PATRO_FIRST) / 63);
+const PATRO_DATES = Array.from({ length: 64 }, (_, i) => atSerial(PATRO_FIRST + i * patroStep));
+const PATRO_YEARS = PATRO_DATES.map((d) => d.year);
+const PATRO_MONTHS = PATRO_DATES.map((d) => d.month);
+const PATRO_LENGTHS = PATRO_DATES.map((d) => d.monthLength);
 
 const operations: [id: string, name: string, body: () => void][] = [
   [
@@ -84,6 +95,26 @@ const operations: [id: string, name: string, body: () => void][] = [
     "parse('YYYY/MM/DD')",
     () => {
       for (let i = 0; i < 64; i++) do_not_optimize(NepaliDate.parse(STRINGS[i] as string));
+    },
+  ],
+  [
+    "B7",
+    "patro info(date)",
+    () => {
+      for (let i = 0; i < 64; i++) do_not_optimize(info(PATRO_DATES[i] as NepaliDate));
+    },
+  ],
+  [
+    "B8",
+    "month grid: of + info for every day",
+    () => {
+      for (let i = 0; i < 64; i++) {
+        const year = PATRO_YEARS[i] as number;
+        const month = PATRO_MONTHS[i] as number;
+        for (let day = 1; day <= (PATRO_LENGTHS[i] as number); day++) {
+          do_not_optimize(info(NepaliDate.of(year, month, day)));
+        }
+      }
     },
   ],
 ];

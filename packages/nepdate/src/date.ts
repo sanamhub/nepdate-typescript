@@ -207,6 +207,52 @@ export class NepaliDate {
   }
 
   /**
+   * The BS date of the calendar day that `date` shows in `zone`. `"utc"` reads the `getUTC*`
+   * fields and `"local"` the `get*` fields; the zone is required because a `Date` holds an instant,
+   * not a calendar day (API.md).
+   * @throws {NepDateError} as {@link NepaliDate.fromGregorian}: `"not-an-integer"` for an invalid
+   * `Date`, `"out-of-range"` outside AD 1844-04-11..2143-04-15.
+   */
+  static fromJSDate(date: Date, zone: "utc" | "local"): NepaliDate {
+    if (zone === "utc") {
+      return NepaliDate.fromGregorian({
+        year: date.getUTCFullYear(),
+        month: date.getUTCMonth() + 1,
+        day: date.getUTCDate(),
+      });
+    }
+    return NepaliDate.fromGregorian({
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+    });
+  }
+
+  /**
+   * Today's BS date in `timeZone` (default `"Asia/Kathmandu"`), read with
+   * `Intl.DateTimeFormat` so the machine's own zone never matters.
+   * @throws {NepDateError} `"out-of-range"` when the clock is outside AD 1844-04-11..2143-04-15.
+   * @throws {RangeError} from `Intl` when `timeZone` is not a known zone.
+   */
+  static today(timeZone: string = "Asia/Kathmandu"): NepaliDate {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(Date.now());
+    let year = 0;
+    let month = 0;
+    let day = 0;
+    for (const part of parts) {
+      if (part.type === "year") year = Number(part.value);
+      else if (part.type === "month") month = Number(part.value);
+      else if (part.type === "day") day = Number(part.value);
+    }
+    return NepaliDate.fromGregorian({ year, month, day });
+  }
+
+  /**
    * The BS date parsed strictly from `year month day`, in that order (PARSING §1). Accepts ASCII
    * and Devanagari digits, mixed, and the separators `- / . _ \ space । |`.
    * @throws {NepDateError} a parse kind, or `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
@@ -228,7 +274,8 @@ export class NepaliDate {
 
   /**
    * The BS date parsed leniently from human input (PARSING §2): strict first, then the closed
-   * month-name list with case-insensitive Latin matching.
+   * month-name list with case-insensitive Latin matching. The input is matched as given: there is
+   * no Unicode normalisation and no joiner removal.
    * @throws {NepDateError} a parse kind, or `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
    */
   static parseLenient(s: string): NepaliDate {
@@ -237,7 +284,7 @@ export class NepaliDate {
     } catch (error) {
       if (!(error instanceof NepDateError)) throw error;
     }
-    const [year, month, day] = lenientParts(s.normalize("NFC"));
+    const [year, month, day] = lenientParts(s);
     return NepaliDate.of(year, month, day);
   }
 
@@ -276,6 +323,18 @@ export class NepaliDate {
   /** The Gregorian date, a plain object you can pass to `Temporal.PlainDate.from`. */
   toGregorian(): GregorianDate {
     return civilFromDays(this.#serial + EPOCH_UNIX_DAYS);
+  }
+
+  /**
+   * The `Date` at midnight of this BS date in `zone`: `"utc"` uses `Date.UTC` and `"local"` the
+   * local-time constructor, so the instant differs by the machine's offset. Pass it back through
+   * {@link NepaliDate.fromJSDate} with the same zone to get this date again.
+   */
+  toJSDate(zone: "utc" | "local"): Date {
+    const { year, month, day } = this.toGregorian();
+    return zone === "utc"
+      ? new Date(Date.UTC(year, month - 1, day))
+      : new Date(year, month - 1, day);
   }
 
   /**
