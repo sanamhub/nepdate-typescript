@@ -53,3 +53,16 @@ test("addMonths(n, clamp) never moves past the original day", () => {
     { seed: 20261012, numRuns: 10_000 },
   );
 });
+
+// T3-06: the formatters and parsers round-trip every date.
+test("parse(toString()), parse(short ne) and parseLenient(long()) round-trip", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 0, max: 109211 }), (serial) => {
+      const d = NepaliDate.MIN.addDays(serial);
+      expect(NepaliDate.parse(d.toString()).equals(d)).toBe(true);
+      expect(NepaliDate.parse(d.short({ lang: "ne" })).equals(d)).toBe(true);
+      expect(NepaliDate.parseLenient(d.long()).equals(d)).toBe(true);
+    }),
+    { seed: 20261014, numRuns: 10_000 },
+  );
+});

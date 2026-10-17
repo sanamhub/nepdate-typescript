@@ -1,12 +1,15 @@
 import { EPOCH_UNIX_DAYS, MAX_YEAR, MIN_YEAR } from "./calendar.gen.js";
 import { NepDateError } from "./errors.js";
 import { FiscalYear, type Quarter } from "./fiscal.js";
+import { type DateOrder, formatDate, longDate, type Separator, shortDate } from "./format.js";
 import {
   civilFromDays,
   daysFromCivil,
   type GregorianDate,
   gregorianMonthLength,
 } from "./gregorian.js";
+import type { Lang } from "./lang.js";
+import { lenientParts, strictParts } from "./parse.js";
 import { MONTH_START, MONTHS, YEAR_START } from "./tables.js";
 
 /** What `addMonths` does when the day doesn't exist in the target month (ALGORITHM §8). */
@@ -203,6 +206,41 @@ export class NepaliDate {
     return fromSerial(serial);
   }
 
+  /**
+   * The BS date parsed strictly from `year month day`, in that order (PARSING §1). Accepts ASCII
+   * and Devanagari digits, mixed, and the separators `- / . _ \ space । |`.
+   * @throws {NepDateError} a parse kind, or `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
+   */
+  static parse(s: string): NepaliDate {
+    const [year, month, day] = strictParts(s);
+    return NepaliDate.of(year, month, day);
+  }
+
+  /** `parse`, or `null` instead of throwing. */
+  static tryParse(s: string): NepaliDate | null {
+    try {
+      return NepaliDate.parse(s);
+    } catch (error) {
+      if (error instanceof NepDateError) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * The BS date parsed leniently from human input (PARSING §2): strict first, then the closed
+   * month-name list with case-insensitive Latin matching.
+   * @throws {NepDateError} a parse kind, or `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
+   */
+  static parseLenient(s: string): NepaliDate {
+    try {
+      return NepaliDate.parse(s);
+    } catch (error) {
+      if (!(error instanceof NepDateError)) throw error;
+    }
+    const [year, month, day] = lenientParts(s.normalize("NFC"));
+    return NepaliDate.of(year, month, day);
+  }
+
   /** -1 if `a` is before `b`, 1 if after, 0 if the same day. Pass it to `Array.prototype.sort`. */
   static compare(a: NepaliDate, b: NepaliDate): -1 | 0 | 1 {
     return a.#serial < b.#serial ? -1 : a.#serial > b.#serial ? 1 : 0;
@@ -302,6 +340,64 @@ export class NepaliDate {
   quarter(): Quarter {
     // Months 4..12 map to 1..3 three at a time; months 1..3 wrap round to 4.
     return (((((this.month + 8) / 3) | 0) % 4) + 1) as Quarter;
+  }
+
+  /** The default display form, `YYYY/MM/DD` with zero-padded ASCII digits (FORMATTING §2). */
+  toString(): string {
+    return shortDate(this.year, this.month, this.day, "ymd", "/", true, "en");
+  }
+
+  /** The interchange form, `YYYY-MM-DD` (D-11). */
+  toJSON(): string {
+    return shortDate(this.year, this.month, this.day, "ymd", "-", true, "en");
+  }
+
+  /**
+   * The three fields in `order`, joined by `separator` (FORMATTING §3). Defaults: `"ymd"`, `"/"`,
+   * padded, `"en"`.
+   */
+  short(opts?: {
+    readonly order?: DateOrder;
+    readonly separator?: Separator;
+    readonly pad?: boolean;
+    readonly lang?: Lang;
+  }): string {
+    return shortDate(
+      this.year,
+      this.month,
+      this.day,
+      opts?.order ?? "ymd",
+      opts?.separator ?? "/",
+      opts?.pad ?? true,
+      opts?.lang ?? "en",
+    );
+  }
+
+  /**
+   * `[weekday, ]month day[, year]` (FORMATTING §4). Defaults: no weekday, with year, padded,
+   * `"en"`.
+   */
+  long(opts?: {
+    readonly weekday?: boolean;
+    readonly year?: boolean;
+    readonly pad?: boolean;
+    readonly lang?: Lang;
+  }): string {
+    return longDate(
+      this.year,
+      this.month,
+      this.day,
+      this.weekday,
+      opts?.weekday ?? false,
+      opts?.year ?? true,
+      opts?.pad ?? true,
+      opts?.lang ?? "en",
+    );
+  }
+
+  /** The pattern form of FORMATTING §5. */
+  format(pattern: string, lang: Lang = "en"): string {
+    return formatDate(this.year, this.month, this.day, this.weekday, pattern, lang);
   }
 
   /** True if `other` is the same day. */

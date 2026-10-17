@@ -1,11 +1,9 @@
 import { MAX_YEAR, MIN_YEAR } from "./calendar.gen.js";
 import { NepaliDate } from "./date.js";
-import { nepaliDigits } from "./digits.js";
+import { toNepaliDigits } from "./digits.js";
 import { NepDateError } from "./errors.js";
+import type { Lang } from "./lang.js";
 import { DateRange } from "./range.js";
-
-/** Output language of names and digits. */
-export type Lang = "en" | "ne";
 
 /** A quarter of the fiscal year: Q1 is Shrawan to Ashoj, Q4 is Baishakh to Ashad. */
 export type Quarter = 1 | 2 | 3 | 4;
@@ -87,7 +85,7 @@ export class FiscalYear {
   /** `"2082/83"`, or `"२०८२/८३"` with `lang` `"ne"`. */
   label(lang: Lang = "en"): string {
     const next = (((this.startYear + 1) % 100) + 100) % 100;
-    if (lang === "ne") return `${nepaliDigits(this.startYear)}/${nepaliDigits(next, 2)}`;
+    if (lang === "ne") return `${toNepaliDigits(this.startYear)}/${toNepaliDigits(next, 2)}`;
     return `${this.startYear}/${next < 10 ? "0" : ""}${next}`;
   }
 }

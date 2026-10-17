@@ -33,6 +33,7 @@ const YEARS = DATES.map((d) => d.year);
 const MONTHS = DATES.map((d) => d.month);
 const DAYS = DATES.map((d) => d.day);
 const AD: GregorianDate[] = DATES.map((d) => d.toGregorian());
+const STRINGS = DATES.map((d) => d.toString());
 
 const operations: [id: string, name: string, body: () => void][] = [
   [
@@ -66,6 +67,23 @@ const operations: [id: string, name: string, body: () => void][] = [
     "addMonths(13) clamp",
     () => {
       for (let i = 0; i < 64; i++) do_not_optimize((DATES[i] as NepaliDate).addMonths(13));
+    },
+  ],
+  [
+    "B5",
+    "long({weekday: true, lang: 'ne'})",
+    () => {
+      for (let i = 0; i < 64; i++) {
+        const text = (DATES[i] as NepaliDate).long({ weekday: true, lang: "ne" });
+        do_not_optimize(text.charCodeAt(text.length - 1));
+      }
+    },
+  ],
+  [
+    "B6",
+    "parse('YYYY/MM/DD')",
+    () => {
+      for (let i = 0; i < 64; i++) do_not_optimize(NepaliDate.parse(STRINGS[i] as string));
     },
   ],
 ];

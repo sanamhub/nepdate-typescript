@@ -3,13 +3,16 @@
 
 import { describe, expect, expectTypeOf } from "vitest";
 import {
+  type DateOrder,
   DateRange,
   type ErrorKind,
   FiscalYear,
+  monthName,
   NepaliDate,
   NepDateError,
   type Overflow,
   type Quarter,
+  type Separator,
 } from "../src/index.js";
 import { type CatalogCase, checkCatalog } from "./catalog.js";
 
@@ -806,4 +809,438 @@ const cases2: Record<string, CatalogCase> = {
 
 describe("C# catalogue, phase 2", () => {
   checkCatalog("2", cases2);
+});
+
+// ---- Phase 3 ----
+
+const EN_MONTH = [
+  "Baishakh",
+  "Jestha",
+  "Ashad",
+  "Shrawan",
+  "Bhadra",
+  "Ashoj",
+  "Kartik",
+  "Mangsir",
+  "Poush",
+  "Magh",
+  "Falgun",
+  "Chaitra",
+] as const;
+
+// C# passes null to parse methods; strict null checks make that a compile error, so the row
+// checks the parameter type instead.
+const takesStringOnly: CatalogCase = () => {
+  expectTypeOf(NepaliDate.parseLenient).parameter(0).toEqualTypeOf<string>();
+};
+
+const sameMonth =
+  (month: number): CatalogCase =>
+  () => {
+    expect(of(2080, month, 15).month).toBe(month);
+    expect(monthName(month)).toBe(EN_MONTH[month - 1]);
+  };
+
+const monthNumberName =
+  (month: number): CatalogCase =>
+  () => {
+    expect(monthName(month)).toBe(EN_MONTH[month - 1]);
+  };
+
+const lenient =
+  (input: string, year: number, month: number, day: number): CatalogCase =>
+  () => {
+    same(NepaliDate.parseLenient(input), of(year, month, day));
+  };
+
+const shortForm =
+  (order: DateOrder, separator: Separator, pad: boolean, expected: string): CatalogCase =>
+  () => {
+    expect(of(2080, 5, 15).short({ order, separator, pad })).toBe(expected);
+  };
+
+const cases3: Record<string, CatalogCase> = {
+  // Core/NepaliDateFormattableTests (the fixture is 2081-04-15)
+  "NepaliDateFormattableTests.ToString_NullFormat_ReturnsDefault": () =>
+    expect(of(2081, 4, 15).format("")).toBe("2081/04/15"),
+  "NepaliDateFormattableTests.ToString_G_SameAsDefault": () =>
+    expect(of(2081, 4, 15).format("G")).toBe("2081/04/15"),
+  "NepaliDateFormattableTests.ToString_g_SameAsDefault": () =>
+    expect(of(2081, 4, 15).format("g")).toBe("2081/04/15"),
+  "NepaliDateFormattableTests.ToString_d_SameAsDefault": () =>
+    expect(of(2081, 4, 15).format("d")).toBe("2081/04/15"),
+  "NepaliDateFormattableTests.ToString_D_ReturnsLongDateString": () =>
+    expect(of(2081, 4, 15).format("D")).toContain("2081"),
+  "NepaliDateFormattableTests.ToString_s_ReturnsSortableIsoFormat": () =>
+    expect(of(2081, 4, 15).format("s")).toBe("2081-04-15"),
+  "NepaliDateFormattableTests.CustomFormat_yyyy_MM_dd_WithDash": () =>
+    expect(of(2081, 4, 15).format("yyyy-MM-dd")).toBe("2081-04-15"),
+  "NepaliDateFormattableTests.CustomFormat_dd_MM_yyyy_WithDot": () =>
+    expect(of(2081, 4, 15).format("dd.MM.yyyy")).toBe("15.04.2081"),
+  "NepaliDateFormattableTests.CustomFormat_MM_slash_dd_slash_yyyy": () =>
+    expect(of(2081, 4, 15).format("MM/dd/yyyy")).toBe("04/15/2081"),
+  "NepaliDateFormattableTests.CustomFormat_MMMxxx_ReturnsThreeCharMonthAbbreviation": () =>
+    expect(of(2081, 4, 15).format("MMM")).toBe("Shr"),
+  "NepaliDateFormattableTests.CustomFormat_MMMM_ReturnsFullMonthName": () =>
+    expect(of(2081, 4, 15).format("MMMM")).toBe("Shrawan"),
+  "NepaliDateFormattableTests.CustomFormat_yy_ReturnsTwoDigitYear": () =>
+    expect(of(2081, 4, 15).format("yy/MM/dd")).toBe("81/04/15"),
+  "NepaliDateFormattableTests.CustomFormat_M_WithoutLeadingZero_ReturnsUnpadded": () =>
+    expect(of(2081, 4, 15).format("M/d/yyyy")).toBe("4/15/2081"),
+  "NepaliDateFormattableTests.CustomFormat_SingleDigitMonth_WithoutLeadingZero": () =>
+    expect(of(2081, 1, 5).format("M/d/yyyy")).toBe("1/5/2081"),
+  "NepaliDateFormattableTests.CustomFormat_LiteralInSingleQuotes": () =>
+    expect(of(2081, 4, 15).format("yyyy'BS'")).toBe("2081BS"),
+  "NepaliDateFormattableTests.CustomFormat_BackslashEscapedTokens_ProduceLiterals": () =>
+    expect(of(2081, 4, 15).format("yyyy\\M\\M-\\d\\d")).toBe("2081MM-dd"),
+  "NepaliDateFormattableTests.CustomFormat_BackslashBeforeLiteralChar_IsPassedThrough": () =>
+    expect(of(2081, 4, 15).format("yyyy\\-MM\\-dd")).toBe("2081-04-15"),
+  "NepaliDateFormattableTests.StringInterpolation_WithFormatSpecifier_UsesIFormattable": () =>
+    expect(of(2081, 4, 15).format("yyyy-MM-dd")).toBe("2081-04-15"),
+  "NepaliDateFormattableTests.StringFormatMethod_WithSpecifier": () =>
+    expect(of(2081, 4, 15).format("yyyy-MM-dd")).toBe("2081-04-15"),
+  "NepaliDateFormattableTests.SortableFormat_LexicographicOrderEqualsChronologicalOrder": () =>
+    expect(of(2080, 1, 1).format("s") < of(2081, 1, 1).format("s")).toBe(true),
+
+  // Core/NepaliDateParsableTests
+  "NepaliDateParsableTests.Parse_Via_GenericConstraint_Returns_CorrectDate": () =>
+    same(NepaliDate.parse("2080/04/15"), of(2080, 4, 15)),
+  "NepaliDateParsableTests.TryParse_Via_GenericConstraint_ValidDate_Returns_True": () =>
+    expect(NepaliDate.tryParse("2080/04/15")?.equals(of(2080, 4, 15))).toBe(true),
+  "NepaliDateParsableTests.TryParse_Via_GenericConstraint_InvalidDate_Returns_False": () =>
+    expect(NepaliDate.tryParse("garbage")).toBeNull(),
+  "NepaliDateParsableTests.SpanParse_Via_GenericConstraint_Returns_CorrectDate": () =>
+    same(NepaliDate.parse("2080/04/15"), of(2080, 4, 15)),
+  "NepaliDateParsableTests.SpanTryParse_Via_GenericConstraint_ValidDate_Returns_True": () =>
+    expect(NepaliDate.tryParse("2080/04/15")).not.toBeNull(),
+
+  // Core/NepaliDateMonthNameTests: the C# MonthName enum maps to the 1-based month number.
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#1": sameMonth(1),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#2": sameMonth(2),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#3": sameMonth(3),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#4": sameMonth(4),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#5": sameMonth(5),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#6": sameMonth(6),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#7": sameMonth(7),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#8": sameMonth(8),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#9": sameMonth(9),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#10": sameMonth(10),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#11": sameMonth(11),
+  "NepaliDateMonthNameTests.MonthName_AllMonths_ReturnCorrectEnum#12": sameMonth(12),
+  "NepaliDateMonthNameTests.MonthName_SameMonthDifferentDays_AllReturnSameEnum": () =>
+    expect(of(2080, 4, 15).month).toBe(4),
+  "NepaliDateMonthNameTests.MonthName_SameMonthDifferentYears_AllReturnSameEnum#1": () =>
+    expect(of(2070, 9, 1).month).toBe(9),
+  "NepaliDateMonthNameTests.MonthName_SameMonthDifferentYears_AllReturnSameEnum#2": () =>
+    expect(of(2080, 9, 1).month).toBe(9),
+  "NepaliDateMonthNameTests.MonthName_SameMonthDifferentYears_AllReturnSameEnum#3": () =>
+    expect(of(2090, 9, 1).month).toBe(9),
+  "NepaliDateMonthNameTests.MonthName_SameMonthDifferentYears_AllReturnSameEnum#4": () =>
+    expect(of(2100, 9, 1).month).toBe(9),
+  "NepaliDateMonthNameTests.MonthName_AddingOneMonth_AdvancesEnum": () =>
+    expect(of(2080, 11, 1).month).toBe(11),
+  "NepaliDateMonthNameTests.MonthName_YearBoundary_WrapsFromChaitraToBasikhakh": () =>
+    expect(of(2080, 12, 1).month).toBe(12),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#1": monthNumberName(1),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#2": monthNumberName(2),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#3": monthNumberName(3),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#4": monthNumberName(4),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#5": monthNumberName(5),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#6": monthNumberName(6),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#7": monthNumberName(7),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#8": monthNumberName(8),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#9": monthNumberName(9),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#10":
+    monthNumberName(10),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#11":
+    monthNumberName(11),
+  "NepaliDateMonthNameTests.NepaliMonthsEnum_IntegerValueMatchesMonthNumber#12":
+    monthNumberName(12),
+
+  // Core/OptimizationVerificationTests: ToString and ToUnicodeString
+  "OptimizationVerificationTests.ToString_ProducesExactFormat#1": () =>
+    expect(of(2080, 5, 15).toString()).toBe("2080/05/15"),
+  "OptimizationVerificationTests.ToString_ProducesExactFormat#2": () =>
+    expect(of(2080, 1, 1).toString()).toBe("2080/01/01"),
+  "OptimizationVerificationTests.ToString_ProducesExactFormat#3": () =>
+    expect(of(2080, 12, 30).toString()).toBe("2080/12/30"),
+  "OptimizationVerificationTests.ToString_ProducesExactFormat#4": () =>
+    expect(of(1901, 1, 1).toString()).toBe("1901/01/01"),
+  "OptimizationVerificationTests.ToString_ProducesExactFormat#5": () =>
+    expect(of(2199, 12, 30).toString()).toBe("2199/12/30"),
+  "OptimizationVerificationTests.ToString_ProducesExactFormat#6": () =>
+    expect(of(2000, 6, 9).toString()).toBe("2000/06/09"),
+  "OptimizationVerificationTests.ToString_ProducesExactFormat#7": () =>
+    expect(of(2100, 10, 29).toString()).toBe("2100/10/29"),
+  "OptimizationVerificationTests.ToString_OutputIsExactly10Characters": () =>
+    expect(of(2080, 5, 15).toString()).toHaveLength(10),
+  "OptimizationVerificationTests.ToString_AllMonthsZeroPadded": () => {
+    for (let m = 1; m <= 12; m++)
+      expect(of(2080, m, 1).toString().slice(5, 7)).toBe(String(m).padStart(2, "0"));
+  },
+  "OptimizationVerificationTests.ToString_AllDaysZeroPadded": () => {
+    for (let d = 1; d <= of(2080, 5, 1).monthLength; d++)
+      expect(of(2080, 5, d).toString().slice(8, 10)).toBe(String(d).padStart(2, "0"));
+  },
+  "OptimizationVerificationTests.ToString_RoundtripsWithConstructor": () =>
+    expect(NepaliDate.parse(of(2080, 5, 15).toString()).equals(of(2080, 5, 15))).toBe(true),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#1":
+    shortForm("ymd", "/", true, "2080/05/15"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#2":
+    shortForm("ymd", "-", true, "2080-05-15"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#3":
+    shortForm("ymd", ".", true, "2080.05.15"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#4":
+    shortForm("ymd", "_", true, "2080_05_15"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#5":
+    shortForm("ymd", " ", true, "2080 05 15"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#6":
+    shortForm("ymd", "\\", true, "2080\\05\\15"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#7":
+    shortForm("dmy", "/", true, "15/05/2080"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#8":
+    shortForm("dmy", "-", true, "15-05-2080"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#9":
+    shortForm("mdy", "/", true, "05/15/2080"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#10":
+    shortForm("ydm", "/", true, "2080/15/05"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#11":
+    shortForm("myd", "/", true, "05/2080/15"),
+  "OptimizationVerificationTests.ToString_WithFormatAndSeparator_ProducesCorrectOutput#12":
+    shortForm("dym", "/", true, "15/2080/05"),
+  "OptimizationVerificationTests.ToString_WithoutLeadingZeros_ProducesCorrectOutput#1": shortForm(
+    "ymd",
+    "/",
+    false,
+    "2080/5/15",
+  ),
+  "OptimizationVerificationTests.ToString_WithoutLeadingZeros_ProducesCorrectOutput#2": shortForm(
+    "dmy",
+    "-",
+    false,
+    "15-5-2080",
+  ),
+  "OptimizationVerificationTests.ToString_WithoutLeadingZeros_ProducesCorrectOutput#3": shortForm(
+    "mdy",
+    ".",
+    false,
+    "5.15.2080",
+  ),
+  "OptimizationVerificationTests.ToUnicodeString_DefaultFormat_ConvertsAllDigits": () =>
+    expect(of(2080, 5, 15).short({ lang: "ne" })).toBe("२०८०/०५/१५"),
+  "OptimizationVerificationTests.ToUnicodeString_EachDigitConvertsCorrectly": () =>
+    expect(of(2081, 4, 15).short({ lang: "ne" })).toContain("१"),
+  "OptimizationVerificationTests.ToUnicodeString_SeparatorsPreserved": () =>
+    expect(of(2080, 5, 15).short({ order: "ymd", separator: "-", lang: "ne" })).toContain("-"),
+  "OptimizationVerificationTests.ToUnicodeString_SameLengthAsToString": () => {
+    const d = of(2080, 5, 15);
+    expect(d.short({ lang: "ne" })).toHaveLength(d.toString().length);
+  },
+
+  // Core/OptimizationVerificationTests: SmartDateParser (lenient, D-06 deviations marked)
+  "OptimizationVerificationTests.SmartDateParser_NepaliDigits_ParseCorrectly#1": () =>
+    same(NepaliDate.parse("२०८०/०५/१५"), of(2080, 5, 15)),
+  "OptimizationVerificationTests.SmartDateParser_NepaliDigits_ParseCorrectly#2": () =>
+    same(NepaliDate.parse("२०८०-०५-१५"), of(2080, 5, 15)),
+  "OptimizationVerificationTests.SmartDateParser_PureEnglishDigits_NoConversionNeeded": () =>
+    same(NepaliDate.parse("2080/05/15"), of(2080, 5, 15)),
+  "OptimizationVerificationTests.SmartDateParser_MixedNepaliEnglishDigits_ParseCorrectly": () =>
+    same(NepaliDate.parse("2080/०५/15"), of(2080, 5, 15)),
+  "OptimizationVerificationTests.SmartDateParser_WithIndicators_RemovesAndParsesCorrectly#1":
+    lenient("2080/05/15 B.S.", 2080, 5, 15),
+  "OptimizationVerificationTests.SmartDateParser_WithIndicators_RemovesAndParsesCorrectly#2":
+    lenient("2080/05/15 BS", 2080, 5, 15),
+  "OptimizationVerificationTests.SmartDateParser_WithIndicators_RemovesAndParsesCorrectly#3":
+    lenient("2080/05/15 V.S.", 2080, 5, 15),
+  "OptimizationVerificationTests.SmartDateParser_WithIndicators_RemovesAndParsesCorrectly#4":
+    lenient("2080/05/15 VS", 2080, 5, 15),
+  "OptimizationVerificationTests.SmartDateParser_WithIndicators_RemovesAndParsesCorrectly#5":
+    lenient("2080/05/15 bs", 2080, 5, 15),
+  "OptimizationVerificationTests.SmartDateParser_WithIndicators_RemovesAndParsesCorrectly#6":
+    lenient("2080/05/15 v.s.", 2080, 5, 15),
+  "OptimizationVerificationTests.SmartDateParser_WithNepaliKeywords_RemovesAndParses": () =>
+    same(NepaliDate.parseLenient("2080/05/15 गते"), of(2080, 5, 15)),
+  "OptimizationVerificationTests.SmartDateParser_WithExtraSpaces_ParsesCorrectly": () =>
+    same(NepaliDate.parseLenient("  2080 / 05 / 15  "), of(2080, 5, 15)),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#1": lenient(
+    "15 Baisakh 2080",
+    2080,
+    1,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#2": lenient(
+    "15 Jestha 2080",
+    2080,
+    2,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#3": lenient(
+    "15 Asar 2080",
+    2080,
+    3,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#4": lenient(
+    "15 Shrawan 2080",
+    2080,
+    4,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#5": lenient(
+    "15 Bhadra 2080",
+    2080,
+    5,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#6": lenient(
+    "15 Ashwin 2080",
+    2080,
+    6,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#7": lenient(
+    "15 Kartik 2080",
+    2080,
+    7,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#8": lenient(
+    "15 Mangsir 2080",
+    2080,
+    8,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#9": lenient(
+    "15 Poush 2080",
+    2080,
+    9,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#10": lenient(
+    "15 Magh 2080",
+    2080,
+    10,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#11": lenient(
+    "15 Falgun 2080",
+    2080,
+    11,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_AllMonthNames_ParseCorrectly#12": lenient(
+    "15 Chaitra 2080",
+    2080,
+    12,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_MonthNameDifferentPositions_ParsesCorrectly#1":
+    lenient("Baisakh 15, 2080", 2080, 1, 15),
+  "OptimizationVerificationTests.SmartDateParser_MonthNameDifferentPositions_ParsesCorrectly#2":
+    lenient("2080 Baisakh 15", 2080, 1, 15),
+  "OptimizationVerificationTests.SmartDateParser_NepaliUnicodeMonthNames_ParseCorrectly#1": lenient(
+    "15 वैशाख 2080",
+    2080,
+    1,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_NepaliUnicodeMonthNames_ParseCorrectly#2": lenient(
+    "15 जेष्ठ 2080",
+    2080,
+    2,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_NepaliUnicodeMonthNames_ParseCorrectly#3": lenient(
+    "15 असार 2080",
+    2080,
+    3,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_NepaliUnicodeMonthNames_ParseCorrectly#4": lenient(
+    "15 श्रावण 2080",
+    2080,
+    4,
+    15,
+  ),
+  "OptimizationVerificationTests.SmartDateParser_TwoDigitYear_AdjustedTo2000s": {
+    deviation: "D-06",
+  },
+  "OptimizationVerificationTests.SmartDateParser_InvalidInput_ThrowsFormatException": () =>
+    throwsKind(() => NepaliDate.parseLenient("not a date"), "unrecognized"),
+  "OptimizationVerificationTests.SmartDateParser_NullInput_ThrowsException": takesStringOnly,
+  "OptimizationVerificationTests.SmartDateParser_EmptyInput_ThrowsException": () =>
+    throwsKind(() => NepaliDate.parseLenient(""), "unrecognized"),
+  "OptimizationVerificationTests.SmartDateParser_WhitespaceInput_ThrowsException": () =>
+    throwsKind(() => NepaliDate.parseLenient(" "), "unrecognized"),
+  "OptimizationVerificationTests.SmartDateParser_TryParse_ValidInput_ReturnsTrue": () =>
+    expect(NepaliDate.parseLenient("2080/05/15").equals(of(2080, 5, 15))).toBe(true),
+  "OptimizationVerificationTests.SmartDateParser_TryParse_InvalidInput_ReturnsFalse": () =>
+    throwsKind(() => NepaliDate.parseLenient("garbage"), "unrecognized"),
+  "OptimizationVerificationTests.SmartDateParser_TryParse_NullInput_ReturnsFalse": takesStringOnly,
+
+  // Core/OptimizationVerificationTests: ToLongDateString and round-trips
+  "OptimizationVerificationTests.ToLongDateString_Default_ContainsMonthNameAndDay": () =>
+    expect(of(2080, 5, 15).long()).toContain("15"),
+  "OptimizationVerificationTests.ToLongDateString_WithDayName_ContainsDayOfWeek": () =>
+    expect(of(2080, 5, 15).long({ weekday: true })).toContain("Friday"),
+  "OptimizationVerificationTests.ToLongDateString_WithoutYear_DoesNotContainYear": () =>
+    expect(of(2080, 5, 15).long({ year: false })).not.toContain("2080"),
+  "OptimizationVerificationTests.ToString_EveryMonthFirstDay_RoundtripsViaConstructor": () => {
+    for (let y = 1901; y <= 2199; y++) {
+      for (let m = 1; m <= 12; m++) {
+        expect(NepaliDate.parse(of(y, m, 1).toString()).year).toBe(y);
+      }
+    }
+  },
+  "OptimizationVerificationTests.UnicodeConversion_AllDigits_RoundtripCorrectly": () => {
+    for (let y = 1901; y <= 2199; y++) {
+      for (let m = 1; m <= 12; m++) {
+        expect(NepaliDate.parse(of(y, m, 1).short({ lang: "ne" })).year).toBe(y);
+      }
+    }
+  },
+
+  // SmartDateParserTests: lenient parse; D-06 where the port refuses to guess.
+  "SmartDateParserTests.Parse_StandardFormat_ReturnsCorrectDate": () =>
+    same(NepaliDate.parseLenient("2080/04/15"), of(2080, 4, 15)),
+  "SmartDateParserTests.Parse_InvertedFormat_ReturnsCorrectDate": () =>
+    same(NepaliDate.parseLenient("15/04/2080"), of(2080, 4, 15)),
+  "SmartDateParserTests.Parse_MonthDayYearFormat_ReturnsCorrectDate": { deviation: "D-06" },
+  "SmartDateParserTests.Parse_WithMonthNames_ReturnsCorrectDate": () =>
+    same(NepaliDate.parseLenient("15 Shrawan 2080"), of(2080, 4, 15)),
+  "SmartDateParserTests.Parse_WithNepaliUnicode_ReturnsCorrectDate": () =>
+    same(NepaliDate.parseLenient("२०८०/०४/१५"), of(2080, 4, 15)),
+  "SmartDateParserTests.Parse_MixedFormats_ReturnsCorrectDate": () =>
+    same(NepaliDate.parseLenient("15 साउन 2080"), of(2080, 4, 15)),
+  "SmartDateParserTests.Parse_WithSuffixes_ReturnsCorrectDate": () =>
+    same(NepaliDate.parseLenient("15 Shrawan 2080 B.S."), of(2080, 4, 15)),
+  "SmartDateParserTests.Parse_WithTypos_ReturnsCorrectDate": () =>
+    same(NepaliDate.parseLenient("15 Srawan 2080"), of(2080, 4, 15)),
+  "SmartDateParserTests.Parse_ShorterYearFormats_ReturnsCorrectDate": { deviation: "D-06" },
+  "SmartDateParserTests.Parse_InvalidFormat_ThrowsFormatException": () =>
+    throwsKind(() => NepaliDate.parseLenient("not a date"), "unrecognized"),
+  "SmartDateParserTests.TryParse_ValidFormat_ReturnsTrue": () =>
+    expect(NepaliDate.parseLenient("2080/04/15").equals(of(2080, 4, 15))).toBe(true),
+  "SmartDateParserTests.TryParse_InvalidFormat_ReturnsFalse": () =>
+    throwsKind(() => NepaliDate.parseLenient("not a date"), "unrecognized"),
+  "SmartDateParserTests.ExtensionMethod_ToNepaliDate_ParsesCorrectly": () =>
+    same(NepaliDate.parse("2080/04/15"), of(2080, 4, 15)),
+  "SmartDateParserTests.ExtensionMethod_TryToNepaliDate_ParsesCorrectly": () =>
+    expect(NepaliDate.tryParse("2080/04/15")?.equals(of(2080, 4, 15))).toBe(true),
+
+  // StringExtensionsTests: string -> NepaliDate via parse / tryParse.
+  "StringExtensionsTests.ToNepaliDate_ValidDateString_ReturnsNepaliDate": () =>
+    same(NepaliDate.parse("2080/05/15"), of(2080, 5, 15)),
+  "StringExtensionsTests.ToNepaliDate_NepaliDigits_ReturnsNepaliDate": () =>
+    same(NepaliDate.parse("२०८०/०५/१५"), of(2080, 5, 15)),
+  "StringExtensionsTests.ToNepaliDate_InvalidDateString_ThrowsFormatException": () =>
+    throwsKind(() => NepaliDate.parse("not a date"), "invalid-character"),
+  "StringExtensionsTests.TryToNepaliDate_ValidDateString_ReturnsTrue": () =>
+    expect(NepaliDate.tryParse("2080/05/15")?.equals(of(2080, 5, 15))).toBe(true),
+  "StringExtensionsTests.TryToNepaliDate_InvalidDateString_ReturnsFalse": () =>
+    expect(NepaliDate.tryParse("not a date")).toBeNull(),
+};
+
+describe("C# catalogue, phase 3", () => {
+  checkCatalog("3", cases3);
 });
