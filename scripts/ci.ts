@@ -11,6 +11,7 @@ const CORE = "packages/nepdate";
 const PATRO = "packages/nepdate-patro";
 const EVENT_SENTINEL = "World Day Against Human Trafficking";
 const CORE_GZIP_LIMIT = 8 * 1024;
+const PATRO_GZIP_LIMIT = 28 * 1024;
 
 class GateError extends Error {}
 
@@ -98,6 +99,20 @@ function coreIsolation(): void {
   }
 }
 
+function patroSize(): void {
+  // The 26,349 B measured in T4 is the package alone; the core is its peer, so external it.
+  const bundle = capture(
+    `npx esbuild ${PATRO}/dist/index.js --bundle --minify --format=esm --external:nepdate`,
+  );
+  const gzipped = gzipSync(bundle, { level: 9 }).length;
+  console.log(
+    `patro bundle: ${bundle.length} B minified, ${gzipped} B gzip (limit ${PATRO_GZIP_LIMIT} B)`,
+  );
+  if (gzipped > PATRO_GZIP_LIMIT) {
+    throw new GateError(`patro bundle is ${gzipped} B gzip, limit ${PATRO_GZIP_LIMIT} B`);
+  }
+}
+
 const gates: [name: string, body: () => void][] = [
   ["lint + format", () => run("npx biome ci .")],
   ["generated code", () => run("node scripts/codegen.ts --check")],
@@ -107,7 +122,13 @@ const gates: [name: string, body: () => void][] = [
   ["core isolation + size", coreIsolation],
   ["patro types", () => run(`npx tsc -p ${PATRO}/tsconfig.json`)],
   ["patro tests", () => run("npm test -w nepdate-patro")],
-  ["patro build + shape", () => buildAndShape(PATRO)],
+  [
+    "patro build + shape",
+    () => {
+      buildAndShape(PATRO);
+      patroSize();
+    },
+  ],
   ["docs", () => run("node scripts/docs-check.ts")],
 ];
 
