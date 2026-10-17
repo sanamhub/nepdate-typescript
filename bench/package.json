@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "mitata": "1.0.34",
-    "nepdate": "file:../packages/nepdate"
+    "nepdate": "file:../packages/nepdate",
+    "nepdate-patro": "file:../packages/nepdate-patro"
   }
 }

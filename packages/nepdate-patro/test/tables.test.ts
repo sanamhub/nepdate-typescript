@@ -11,34 +11,7 @@ import {
   TITHI_FIRST,
   TITHI_IDS,
 } from "../src/tables.gen.js";
-
-// The generated tables are base64 strings decoded at load with DataView in the package, so the
-// tests decode them the same way: little-endian, independent of the host's byte order.
-function decode(text: string): DataView {
-  const buffer = Buffer.from(text, "base64");
-  return new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-}
-
-function bytes(text: string): Uint8Array {
-  const view = decode(text);
-  const out = new Uint8Array(view.byteLength);
-  for (let i = 0; i < out.length; i++) out[i] = view.getUint8(i);
-  return out;
-}
-
-function uint16(text: string): Uint16Array {
-  const view = decode(text);
-  const out = new Uint16Array(view.byteLength / 2);
-  for (let i = 0; i < out.length; i++) out[i] = view.getUint16(i * 2, true);
-  return out;
-}
-
-function int32(text: string): Int32Array {
-  const view = decode(text);
-  const out = new Int32Array(view.byteLength / 4);
-  for (let i = 0; i < out.length; i++) out[i] = view.getInt32(i * 4, true);
-  return out;
-}
+import { decodeBytes, decodeInt32, decodeUint16 } from "./decode.js";
 
 function strictlyIncreasing(values: Int32Array): boolean {
   for (let i = 1; i < values.length; i++) {
@@ -53,14 +26,14 @@ test("coverage is serial 64285..67077, BS 2077-01-01..2084-08-20 (PATRO §3)", (
 });
 
 test("tithi data is contiguous: 2190 days from serial 64652 (PATRO §3)", () => {
-  const ids = bytes(TITHI_IDS);
+  const ids = decodeBytes(TITHI_IDS);
   expect(TITHI_FIRST).toBe(64652);
   expect(ids).toHaveLength(2190);
   for (const id of ids) expect(id).toBeLessThan(32);
 });
 
 test("294 holidays, sorted and in range", () => {
-  const holidays = int32(HOLIDAY_DAYS);
+  const holidays = decodeInt32(HOLIDAY_DAYS);
   expect(holidays).toHaveLength(294);
   expect(strictlyIncreasing(holidays)).toBe(true);
   expect(holidays[0]).toBe(COVERAGE_FIRST);
@@ -72,9 +45,9 @@ test("294 holidays, sorted and in range", () => {
 });
 
 test("1671 event days with 3032 events, sorted, ids in range", () => {
-  const days = int32(EVENT_DAYS);
-  const counts = bytes(EVENT_COUNTS);
-  const ids = uint16(EVENT_NAME_IDS);
+  const days = decodeInt32(EVENT_DAYS);
+  const counts = decodeBytes(EVENT_COUNTS);
+  const ids = decodeUint16(EVENT_NAME_IDS);
   expect(days).toHaveLength(1671);
   expect(counts).toHaveLength(1671);
   expect(ids).toHaveLength(3032);
