@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { type ErrorKind, NepaliDate, NepDateError } from "../src/index.js";
 import { kindOf } from "./helpers.js";
 import { readVectors } from "./vectors.js";
@@ -16,9 +16,9 @@ const KIND: Record<string, ErrorKind> = {
 };
 
 describe("strict parse (T3-04)", () => {
-  test("parse.tsv strict column (67 rows)", () => {
+  test("parse.tsv strict column (69 rows)", () => {
     const rows = readVectors("parse.tsv");
-    expect(rows).toHaveLength(67);
+    expect(rows).toHaveLength(69);
     for (const row of rows) {
       const input = row.input as string;
       const strict = row.strict as string;
@@ -40,9 +40,9 @@ describe("strict parse (T3-04)", () => {
 });
 
 describe("lenient parse (T3-05)", () => {
-  test("parse.tsv lenient column (67 rows)", () => {
+  test("parse.tsv lenient column (69 rows)", () => {
     const rows = readVectors("parse.tsv");
-    expect(rows).toHaveLength(67);
+    expect(rows).toHaveLength(69);
     for (const row of rows) {
       const input = row.input as string;
       const lenient = row.lenient as string;
@@ -56,6 +56,25 @@ describe("lenient parse (T3-05)", () => {
       } else {
         expect(NepaliDate.parseLenient(input).toJSON(), input).toBe(lenient);
       }
+    }
+  });
+
+  test("no Unicode normalisation: the Kelvin sign and K are matched as given (PARSING §2)", () => {
+    // No Devanagari month name has a canonical decomposition, so the pair that NFC would unify is
+    // the Kelvin sign U+212A and ASCII K. The fold rule accepts both, so the spy is what separates
+    // "matched as given" from "matched after NFC": with an NFC step the call happens, without it
+    // the input reaches the tokenizer unchanged.
+    const composed = "15 \u212Aartik 2080";
+    const decomposed = "15 Kartik 2080";
+    expect(composed.normalize("NFC")).toBe(decomposed);
+
+    const normalize = vi.spyOn(String.prototype, "normalize");
+    try {
+      expect(NepaliDate.parseLenient(composed).toJSON()).toBe("2080-07-15");
+      expect(NepaliDate.parseLenient(decomposed).toJSON()).toBe("2080-07-15");
+      expect(normalize).not.toHaveBeenCalled();
+    } finally {
+      normalize.mockRestore();
     }
   });
 

@@ -274,7 +274,8 @@ export class NepaliDate {
 
   /**
    * The BS date parsed leniently from human input (PARSING §2): strict first, then the closed
-   * month-name list with case-insensitive Latin matching.
+   * month-name list with case-insensitive Latin matching. The input is matched as given: there is
+   * no Unicode normalisation and no joiner removal.
    * @throws {NepDateError} a parse kind, or `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
    */
   static parseLenient(s: string): NepaliDate {
@@ -283,7 +284,7 @@ export class NepaliDate {
     } catch (error) {
       if (!(error instanceof NepDateError)) throw error;
     }
-    const [year, month, day] = lenientParts(s.normalize("NFC"));
+    const [year, month, day] = lenientParts(s);
     return NepaliDate.of(year, month, day);
   }
 
