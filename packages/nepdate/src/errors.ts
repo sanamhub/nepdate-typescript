@@ -1,4 +1,8 @@
-/** What went wrong, for code that handles a {@link NepDateError}. */
+/**
+ * What went wrong, for code that handles a {@link NepDateError}.
+ * @example
+ * try { NepaliDate.of(2081, 13, 1); } catch (error) { (error as NepDateError).kind; }
+ */
 export type ErrorKind =
   | "out-of-range"
   | "invalid-month"
@@ -14,6 +18,8 @@ export type ErrorKind =
 /**
  * The one error type of `nepdate`. It extends `RangeError`, so `instanceof RangeError` still holds,
  * and `kind` says which check failed.
+ * @example
+ * try { NepaliDate.of(2081, 13, 1); } catch (error) { (error as NepDateError).kind; } // "invalid-month"
  */
 export class NepDateError extends RangeError {
   /** Which check failed. */

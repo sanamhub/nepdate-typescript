@@ -10,6 +10,9 @@ const DEVANAGARI_ZERO = 0x0966;
  * `n` (an integer) in Devanagari digits, zero-padded to at least `minWidth` digits. Digits are
  * produced by the char-code offset 0x0966; `Intl.NumberFormat` is never used here because it
  * inserts group separators such as "२,०८१".
+ * @example
+ * toNepaliDigits(2081); // "२०८१"
+ * toNepaliDigits(15, 2); // "१५"
  */
 export function toNepaliDigits(n: number, minWidth = 0): string {
   const digits = String(n < 0 ? -n : n).padStart(minWidth, "0");

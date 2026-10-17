@@ -5,7 +5,11 @@ import { NepDateError } from "./errors.js";
 import type { Lang } from "./lang.js";
 import { DateRange } from "./range.js";
 
-/** A quarter of the fiscal year: Q1 is Shrawan to Ashoj, Q4 is Baishakh to Ashad. */
+/**
+ * A quarter of the fiscal year: Q1 is Shrawan to Ashoj, Q4 is Baishakh to Ashad.
+ * @example
+ * const quarter: Quarter = 1;
+ */
 export type Quarter = 1 | 2 | 3 | 4;
 
 /** Day 1 of BS month `year`-`month`, or "out-of-range" for a year outside 1901..2199. */
@@ -19,6 +23,8 @@ function first(year: number, month: number): NepaliDate {
 /**
  * A Nepali fiscal year, 1 Shrawan to the end of Ashad of the next BS year (ALGORITHM §8b).
  * FY 2082/83 is `new FiscalYear(2082)`.
+ * @example
+ * new FiscalYear(2082).label(); // "2082/83"
  */
 export class FiscalYear {
   /** The BS year in which the fiscal year starts. */

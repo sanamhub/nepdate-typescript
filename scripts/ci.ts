@@ -108,6 +108,7 @@ const gates: [name: string, body: () => void][] = [
   ["patro types", () => run(`npx tsc -p ${PATRO}/tsconfig.json`)],
   ["patro tests", () => run("npm test -w nepdate-patro")],
   ["patro build + shape", () => buildAndShape(PATRO)],
+  ["docs", () => run("node scripts/docs-check.ts")],
 ];
 
 for (const [index, [name, body]] of gates.entries()) {

@@ -74,6 +74,8 @@ const WEEKDAYS_NE_SHORT = ["आइत", "सोम", "मङ्गल", "बु�
 
 /**
  * The name of BS month `month` (1..12).
+ * @example
+ * monthName(2); // "Jestha"
  */
 export function monthName(month: number, lang: Lang = "en"): string {
   return (lang === "ne" ? MONTHS_NE : MONTHS_EN)[month - 1] as string;
@@ -82,6 +84,8 @@ export function monthName(month: number, lang: Lang = "en"): string {
 /**
  * The short name of BS month `month` (1..12). Nepali has no customary abbreviation, so `lang`
  * `"ne"` returns the full name.
+ * @example
+ * monthShortName(3); // "Asa"
  */
 export function monthShortName(month: number, lang: Lang = "en"): string {
   return lang === "ne" ? (MONTHS_NE[month - 1] as string) : (MONTHS_EN_SHORT[month - 1] as string);
@@ -89,6 +93,8 @@ export function monthShortName(month: number, lang: Lang = "en"): string {
 
 /**
  * The name of weekday `weekday` (0 = Sunday).
+ * @example
+ * weekdayName(2); // "Tuesday"
  */
 export function weekdayName(weekday: number, lang: Lang = "en"): string {
   return (lang === "ne" ? WEEKDAYS_NE : WEEKDAYS_EN)[weekday] as string;
@@ -96,6 +102,8 @@ export function weekdayName(weekday: number, lang: Lang = "en"): string {
 
 /**
  * The short name of weekday `weekday` (0 = Sunday).
+ * @example
+ * weekdayShortName(2); // "Tue"
  */
 export function weekdayShortName(weekday: number, lang: Lang = "en"): string {
   return lang === "ne"

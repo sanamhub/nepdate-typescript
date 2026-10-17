@@ -15,6 +15,8 @@ const DATA = build();
  * Never throws: a day without data, and any day outside the coverage, returns the shared frozen
  * empty object (`tithi: null`, `isPublicHoliday: false`, `events: []`). The same call for the same
  * day returns the same object (ADR-0002 §7), so it can be compared by identity.
+ * @example
+ * info(NepaliDate.of(2081, 2, 15)).events[0]?.en; // "Republic Day"
  */
 export function info(date: NepaliDate): CalendarInfo {
   const serial = NepaliDate.MIN.daysUntil(date);
@@ -25,12 +27,18 @@ export function info(date: NepaliDate): CalendarInfo {
 /**
  * The smallest range that contains every day with data, BS 2077-01-01..2084-08-20 with the current
  * data. Use it to decide whether to show "no data for this year".
+ * @example
+ * coverage().length; // 2793
  */
 export function coverage(): DateRange {
   return DATA.coverage;
 }
 
-/** Every public holiday, in ascending order. */
+/**
+ * Every public holiday, in ascending order.
+ * @example
+ * const first = publicHolidays().next().value; // BS 2077-01-01
+ */
 export function* publicHolidays(): IterableIterator<NepaliDate> {
   yield* DATA.holidays;
 }

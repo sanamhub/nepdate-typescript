@@ -2,7 +2,11 @@
 // Callers pass only years 1843..2143 and day counts from EPOCH_UNIX_DAYS on, so every operand of
 // `/` and `%` below is non-negative and below 2^31, and `(a / b) | 0` is exact (ADR-0002 §4).
 
-/** A proleptic Gregorian date. A `Temporal.PlainDate` has this shape. */
+/**
+ * A proleptic Gregorian date. A `Temporal.PlainDate` has this shape.
+ * @example
+ * const date: GregorianDate = { year: 2024, month: 7, day: 30 };
+ */
 export interface GregorianDate {
   readonly year: number;
   readonly month: number;

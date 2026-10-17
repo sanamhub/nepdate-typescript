@@ -5,10 +5,18 @@ import { digitText, yearText } from "./digits.js";
 import type { Lang } from "./lang.js";
 import { monthName, monthShortName, weekdayName } from "./names.js";
 
-/** Order of the three fields in `short` (the C# `DateFormats`, same order). */
+/**
+ * Order of the three fields in `short` (the C# `DateFormats`, same order).
+ * @example
+ * const order: DateOrder = "dmy";
+ */
 export type DateOrder = "ymd" | "ydm" | "myd" | "mdy" | "dym" | "dmy";
 
-/** The separator between fields in `short`. */
+/**
+ * The separator between fields in `short`.
+ * @example
+ * const separator: Separator = "-";
+ */
 export type Separator = "/" | "\\" | "." | "_" | "-" | " ";
 
 /**

@@ -12,7 +12,11 @@ import type { Lang } from "./lang.js";
 import { lenientParts, strictParts } from "./parse.js";
 import { MONTH_START, MONTHS, YEAR_START } from "./tables.js";
 
-/** What `addMonths` does when the day doesn't exist in the target month (ALGORITHM §8). */
+/**
+ * What `addMonths` does when the day doesn't exist in the target month (ALGORITHM §8).
+ * @example
+ * NepaliDate.of(2081, 4, 32).addMonths(1, "spill");
+ */
 export type Overflow = "clamp" | "spill";
 
 /** Serial of BS 2199-12-30, the last supported day (ALGORITHM §2). */
@@ -65,7 +69,11 @@ export let serialOf: (date: NepaliDate) => number;
 // Internal: builds a date from fields and serial that the caller has already checked.
 let create: (year: number, month: number, day: number, serial: number) => NepaliDate;
 
-/** The calendar breakdown between two dates (ALGORITHM §8a). */
+/**
+ * The calendar breakdown between two dates (ALGORITHM §8a).
+ * @example
+ * NepaliDate.of(2080, 1, 1).diff(NepaliDate.of(2081, 2, 15));
+ */
 export interface DateDiff {
   /** True when the other date is before this one. */
   readonly negative: boolean;
@@ -123,6 +131,9 @@ export function fromSerial(serial: number): NepaliDate {
 /**
  * A date of the Bikram Sambat calendar, BS 1901-01-01 to 2199-12-30. Immutable; build one with
  * {@link NepaliDate.of} or {@link NepaliDate.fromGregorian}. Months are 1-based.
+ * @example
+ * const date = NepaliDate.of(2081, 2, 15);
+ * date.toJSON(); // "2081-02-15"
  */
 export class NepaliDate {
   // Runs before MIN and MAX below, which need `create`.
