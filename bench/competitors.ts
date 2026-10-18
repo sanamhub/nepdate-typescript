@@ -116,7 +116,17 @@ export async function loadCompetitor(id: string): Promise<CompetitorImplementati
     case "@remotemerge/nepali-date-converter@1.2.1": {
       const mod = use(await import("@remotemerge/nepali-date-converter"));
       // The package's default export is the constructor itself, not a namespace with a default.
-      const DateConverter = mod;
+      interface RemoteDate {
+        readonly year: number;
+        readonly month: number;
+        readonly date: number;
+      }
+      const DateConverter = mod as unknown as new (
+        value: string,
+      ) => {
+        toAd(): RemoteDate;
+        toBs(): RemoteDate;
+      };
       return {
         b1: (i) => new DateConverter(BS_STRINGS[i]).toAd(),
         b2: (i) => new DateConverter(AD_STRINGS[i]).toBs(),
