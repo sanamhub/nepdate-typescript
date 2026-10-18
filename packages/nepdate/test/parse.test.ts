@@ -36,6 +36,9 @@ describe("strict parse (T3-04)", () => {
         expect(NepaliDate.tryParse(input)?.toJSON(), input).toBe(strict);
       }
     }
+    expect(NepaliDate.parse("२०८१-०४-१९").toJSON()).toBe("2081-04-19");
+    expect(kindOf(() => NepaliDate.parse("२०८१-०४-१५\u0970"))).toBe("invalid-character");
+    expect(kindOf(() => NepaliDate.parse("2081-02-15x"))).toBe("invalid-character");
   });
 });
 
@@ -57,6 +60,15 @@ describe("lenient parse (T3-05)", () => {
         expect(NepaliDate.parseLenient(input).toJSON(), input).toBe(lenient);
       }
     }
+    expect(NepaliDate.parseLenient("2080..7.15").toJSON()).toBe("2080-07-15");
+    expect(kindOf(() => NepaliDate.parseLenient("Kartik foo 2080"))).toBe("unrecognized");
+    expect(kindOf(() => NepaliDate.parseLenient("2080 foo 7 15"))).toBe("unrecognized");
+    expect(kindOf(() => NepaliDate.parseLenient("15-2080.7"))).toBe("ambiguous");
+    expect(kindOf(() => NepaliDate.parseLenient("Kartik Magh 2080 1"))).toBe("unrecognized");
+    expect(kindOf(() => NepaliDate.parseLenient("005 Kartik 2080"))).toBe("ambiguous");
+    expect(kindOf(() => NepaliDate.parseLenient("15 Kartik 080"))).toBe("ambiguous");
+    expect(kindOf(() => NepaliDate.parseLenient("Kartik 2080"))).toBe("unrecognized");
+    expect(kindOf(() => NepaliDate.parseLenient("2080 7 15 1"))).toBe("unrecognized");
   });
 
   test("no Unicode normalisation: the Kelvin sign and K are matched as given (PARSING §2)", () => {

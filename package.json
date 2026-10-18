@@ -9,11 +9,16 @@
     "build": "npm run build -w nepdate && npm run build -w nepdate-patro",
     "test": "npm test -w nepdate && npm test -w nepdate-patro",
     "codegen": "node scripts/codegen.ts",
+    "mutation": "npm run build && stryker run stryker.core.conf.mjs && stryker run stryker.patro.conf.mjs",
+    "mutation:force": "npm run build && stryker run stryker.core.conf.mjs --force && stryker run stryker.patro.conf.mjs --force",
+    "mutation:check": "node scripts/mutation-check.ts --core reports/mutation/core.json --patro reports/mutation/patro.json --floor docs/mutation/floor.json --equivalent docs/mutation/equivalent.md",
     "ci": "node scripts/ci.ts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
     "@biomejs/biome": "2.5.15",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "24.19.2",
     "@vitest/browser-playwright": "5.0.3",
     "@vitest/coverage-v8": "5.0.3",

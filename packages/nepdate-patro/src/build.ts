@@ -70,7 +70,8 @@ function base64Value(code: number): number {
   return code === 43 ? 62 : 63; // + or /
 }
 
-function decodeBase64(text: string): Uint8Array {
+/** Internal: the bytes of a padded base64 string. Exported for the decoder test. */
+export function decodeBase64(text: string): Uint8Array {
   const clean = text.endsWith("==")
     ? text.slice(0, -2)
     : text.endsWith("=")

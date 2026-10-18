@@ -105,8 +105,28 @@ export function problems(text: string): string[] {
     found.push("both publish steps must unset an empty NODE_AUTH_TOKEN");
   }
   const needs = /needs:\s*\[(.*?)\]/.exec(publish);
-  if (needs === null || !needs[1]?.includes("pack") || !needs[1]?.includes("smoke")) {
-    found.push("publish must need pack and smoke");
+  if (
+    needs === null ||
+    !needs[1]?.includes("pack") ||
+    !needs[1]?.includes("smoke") ||
+    !needs[1]?.includes("mutation")
+  ) {
+    found.push("publish must need pack, smoke and mutation");
+  }
+
+  const mutation = job(lines, "mutation").join("\n");
+  if (mutation === "") {
+    found.push("release workflow must have a mutation job");
+  } else {
+    if (!mutation.includes("needs: pack")) found.push("mutation must need pack");
+    if (mutation.includes("environment:")) found.push("mutation must not use an environment");
+    if (mutation.includes("secrets.")) found.push("mutation must not read a secret");
+    if (!mutation.includes("npm run mutation:force")) {
+      found.push("mutation must run the mutation suite");
+    }
+    if (!mutation.includes("npm run mutation:check")) {
+      found.push("mutation must check the floor and equivalents");
+    }
   }
 
   const smoke = job(lines, "smoke").join("\n");
@@ -151,6 +171,12 @@ describe("release workflow", () => {
     expect(problems(commented)).toContain("publish checkout must fetch full history");
   });
 
+  it("reports a missing mutation job", () => {
+    const without = SHIPPED.replace(/^ {2}mutation:[\s\S]*?^ {2}publish:/m, "  publish:");
+    expect(without).not.toEqual(SHIPPED);
+    expect(problems(without)).toContain("release workflow must have a mutation job");
+  });
+
   it("reports every other rule in one negative example", () => {
     const bad = `on:
   workflow_dispatch:
@@ -167,6 +193,12 @@ jobs:
       TOKEN: \${{ secrets.NPM_TOKEN }}
     permissions:
       contents: read
+  mutation:
+    environment: production
+    env:
+      TOKEN: \${{ secrets.NPM_TOKEN }}
+    steps:
+      - run: npm ci
   publish:
     if: github.event_name == 'workflow_dispatch'
     permissions:
@@ -189,7 +221,12 @@ jobs:
       "pass github.sha",
       "NODE_AUTH_TOKEN",
       "unset an empty",
-      "need pack and smoke",
+      "need pack, smoke and mutation",
+      "mutation must need pack",
+      "mutation must not use an environment",
+      "mutation must not read a secret",
+      "run the mutation suite",
+      "check the floor and equivalents",
       "smoke must need pack",
       "smoke must not use an environment",
       "smoke must not read a secret",

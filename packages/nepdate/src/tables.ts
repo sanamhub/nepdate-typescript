@@ -16,7 +16,8 @@ export const YEAR_START: Int32Array = new Int32Array(YEARS + 1);
 
 // Base64 by hand: `atob` and `Buffer` are not in every runtime's type library, and the string is
 // short (1196 characters).
-function base64Value(code: number): number {
+/** Internal: the 6-bit value of one base64 character. Exported for the decoder test. */
+export function base64Value(code: number): number {
   if (code >= 65 && code <= 90) return code - 65; // A-Z
   if (code >= 97 && code <= 122) return code - 71; // a-z
   if (code >= 48 && code <= 57) return code + 4; // 0-9

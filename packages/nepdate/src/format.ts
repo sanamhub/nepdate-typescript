@@ -179,3 +179,8 @@ export function formatDate(
 export function formatCacheSize(): number {
   return PATTERN_CACHE.size;
 }
+
+/** Internal: clears the pattern cache so a test compiles a pattern after a mutant is applied. */
+export function clearFormatCache(): void {
+  PATTERN_CACHE.clear();
+}

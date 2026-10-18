@@ -43,6 +43,7 @@ export interface RowResult {
   readonly throws: number;
   readonly coreLoad: number | null;
   readonly allLoad: number | null;
+  readonly backgroundLoad: number | null;
   readonly attempts: number;
   readonly loaded: boolean;
   readonly heapBytes: number | null;

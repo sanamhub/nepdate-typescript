@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, test } from "vitest";
 import { NepaliDate } from "../src/index.js";
+import { lenientParts, strictParts } from "../src/parse.js";
 
 const DAY_MS = 86_400_000;
 const FIRST = Date.UTC(1844, 3, 11) / DAY_MS;
@@ -64,5 +65,51 @@ test("parse(toString()), parse(short ne) and parseLenient(long()) round-trip", (
       expect(NepaliDate.parseLenient(d.long()).equals(d)).toBe(true);
     }),
     { seed: 20261014, numRuns: 10_000 },
+  );
+});
+
+// T8 review: parseLenient tries strict parse first. Lenient parsing returns the same fields for
+// every strict-valid input, so the strict attempt is a fast path only; docs/mutation/equivalent.md
+// cites this property for the parseLenient try-block mutant.
+test("lenientParts equals strictParts on every strict-valid input", () => {
+  const DEVANAGARI_ZERO = 0x0966;
+  const group = (value: number, width: number, devanagari: boolean): string => {
+    const text = String(value).padStart(width, "0");
+    if (!devanagari) return text;
+    let out = "";
+    for (const ch of text) out += String.fromCharCode(DEVANAGARI_ZERO + ch.charCodeAt(0) - 0x30);
+    return out;
+  };
+  const separator = fc
+    .array(fc.constantFrom("-", "/", ".", "_", "\\", " ", "|", "।"), { minLength: 1, maxLength: 3 })
+    .map((parts) => parts.join(""));
+  const edge = fc.option(separator, { nil: "" });
+  const input = fc
+    .record({
+      year: fc.integer({ min: 1901, max: 2199 }),
+      month: fc.integer({ min: 1, max: 12 }),
+      day: fc.integer({ min: 1, max: 32 }),
+      monthWidth: fc.integer({ min: 1, max: 4 }),
+      dayWidth: fc.integer({ min: 1, max: 4 }),
+      devanagari: fc.array(fc.boolean(), { minLength: 3, maxLength: 3 }),
+      separators: fc.array(separator, { minLength: 2, maxLength: 2 }),
+      lead: edge,
+      trail: edge,
+    })
+    .map(
+      (r) =>
+        r.lead +
+        group(r.year, 4, r.devanagari[0] as boolean) +
+        r.separators[0] +
+        group(r.month, r.monthWidth, r.devanagari[1] as boolean) +
+        r.separators[1] +
+        group(r.day, r.dayWidth, r.devanagari[2] as boolean) +
+        r.trail,
+    );
+  fc.assert(
+    fc.property(input, (s) => {
+      expect(lenientParts(s)).toEqual(strictParts(s));
+    }),
+    { seed: 20261018, numRuns: 10_000 },
   );
 });

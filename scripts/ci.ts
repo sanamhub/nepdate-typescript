@@ -2,7 +2,7 @@
 // repository root: `npm run ci`. The last line is the summary that PROGRESS.md quotes.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
@@ -113,6 +113,42 @@ function patroSize(): void {
   }
 }
 
+// Packed smoke (T8-06): install the two tarballs offline in clean projects and run the README
+// examples through scripts/smoke.ts. The expected coverage range comes from shared/data/patro.
+function packedSmoke(): void {
+  const temp = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "nepdate-smoke-"));
+  const core = join(temp, "core");
+  const patro = join(temp, "patro");
+  try {
+    mkdirSync(core);
+    mkdirSync(patro);
+    writeFileSync(join(core, "package.json"), '{"private":true,"type":"module"}\n');
+    writeFileSync(join(patro, "package.json"), '{"private":true,"type":"module"}\n');
+    run(`npm pack -w nepdate --pack-destination "${temp}"`);
+    run(`npm pack -w nepdate-patro --pack-destination "${temp}"`);
+    const tarballs = readdirSync(temp).filter((name) => name.endsWith(".tgz"));
+    const coreTar = tarballs.find(
+      (name) => name.startsWith("nepdate-") && !name.startsWith("nepdate-patro-"),
+    );
+    const patroTar = tarballs.find((name) => name.startsWith("nepdate-patro-"));
+    if (coreTar === undefined || patroTar === undefined) {
+      throw new GateError(`expected both tarballs, found ${tarballs.join(", ") || "none"}`);
+    }
+    const install = "--offline --no-audit --no-fund --no-package-lock --ignore-scripts";
+    run(`npm install --prefix "${core}" ${install} "${join(temp, coreTar)}"`);
+    run(
+      `npm install --prefix "${patro}" ${install} "${join(temp, coreTar)}" "${join(
+        temp,
+        patroTar,
+      )}"`,
+    );
+    run(`node scripts/smoke.ts --mode core --project "${core}"`);
+    run(`node scripts/smoke.ts --mode patro --project "${patro}"`);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
 const gates: [name: string, body: () => void][] = [
   ["lint + format", () => run("npx biome ci .")],
   ["generated code", () => run("node scripts/codegen.ts --check")],
@@ -133,10 +169,11 @@ const gates: [name: string, body: () => void][] = [
       // (the lockfile has no hasInstallScript entry), and a future bump must not run one here.
       run("npm ci --prefix bench --ignore-scripts --no-audit --no-fund");
       run("npx tsc -p tsconfig.tools.json");
-      run("node --test bench/report.test.ts");
+      run("node --test bench/report.test.ts bench/load.test.ts scripts/mutation-check.test.ts");
     },
   ],
   ["docs", () => run("node scripts/docs-check.ts")],
+  ["packed smoke", packedSmoke],
 ];
 
 for (const [index, [name, body]] of gates.entries()) {
