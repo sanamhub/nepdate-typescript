@@ -114,7 +114,14 @@ function patroSize(): void {
 }
 
 const gates: [name: string, body: () => void][] = [
-  ["lint + format", () => run("npx biome ci .")],
+  [
+    "lint + format + tool types",
+    () => {
+      run("npx biome ci .");
+      run("npx tsc -p tsconfig.tools.json");
+      run("node --test bench/report.test.ts");
+    },
+  ],
   ["generated code", () => run("node scripts/codegen.ts --check")],
   ["core types", () => run(`npx tsc -p ${CORE}/tsconfig.json`)],
   ["core tests", () => run("npm test -w nepdate")],
