@@ -4,7 +4,7 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { do_not_optimize, measure } from "mitata";
 import { INPUTS, loadCompetitor } from "./competitors.ts";
-import { coreLoad, machineLoad } from "./load.ts";
+import { backgroundLoad, coreLoad, decideLoaded, machineLoad } from "./load.ts";
 import type { CoreOp } from "./own-core.ts";
 import { LOAD_LIMIT, LOAD_RETRIES, LOAD_WAIT_MS, type RowResult } from "./protocol.ts";
 import { COMPETITOR_RANGES, inRange, isoDay, type Range } from "./ranges.ts";
@@ -19,6 +19,26 @@ interface LoadSample {
 async function sampleLoad(): Promise<{ core: number; all: number }> {
   const [core, all] = await Promise.all([coreLoad(2), machineLoad()]);
   return { core, all };
+}
+
+// Sample the background load while the measured function runs. CPU 2 is left out because the
+// benchmark keeps it busy by design (T8-05).
+async function during<T>(body: () => Promise<T>): Promise<{ value: T; load: number }> {
+  const samples: number[] = [];
+  let running = true;
+  const sampler = (async () => {
+    while (running) samples.push(await backgroundLoad(2, 250));
+  })();
+  let value!: T;
+  try {
+    value = await body();
+  } finally {
+    running = false;
+    await sampler;
+  }
+  if (samples.length === 0) samples.push(await backgroundLoad(2, 250));
+  const load = samples.reduce((total, sample) => total + sample, 0) / samples.length;
+  return { value, load };
 }
 
 async function waitForQuiet(): Promise<LoadSample> {
@@ -129,9 +149,12 @@ if (impl === "nepdate") {
 
   const load = await waitForQuiet();
   const noHeap = process.argv.includes("--no-heap");
-  const stats = noHeap
-    ? await measure(opDef.run)
-    : await measure(opDef.run, { heap: () => process.memoryUsage().heapUsed });
+  const measured = await during(() =>
+    noHeap
+      ? measure(opDef.run)
+      : measure(opDef.run, { heap: () => process.memoryUsage().heapUsed }),
+  );
+  const stats = measured.value;
   const heap = (stats as { heap?: { avg: number } }).heap;
   const row: RowResult = {
     impl,
@@ -146,8 +169,9 @@ if (impl === "nepdate") {
     throws: 0,
     coreLoad: load.core,
     allLoad: load.all,
+    backgroundLoad: measured.load,
     attempts: load.attempts,
-    loaded: load.loaded,
+    loaded: decideLoaded(load.all, measured.load),
     heapBytes: heap === undefined ? null : heap.avg / opDef.n,
     checkOnly: false,
   };
@@ -173,6 +197,7 @@ if (impl === "nepdate") {
       throws: check.throws,
       coreLoad: null,
       allLoad: null,
+      backgroundLoad: null,
       attempts: 0,
       loaded: false,
       heapBytes: null,
@@ -182,13 +207,17 @@ if (impl === "nepdate") {
   } else {
     const load = await waitForQuiet();
     let ns: number | null = null;
+    let duringRow: number | null = null;
     if (check.measured.length > 0) {
-      const stats = await measure(() => {
-        for (const i of check.measured) {
-          do_not_optimize(op === "B1" ? competitor.b1(i) : competitor.b2(i));
-        }
-      });
-      ns = stats.avg / check.measured.length;
+      const measured = await during(() =>
+        measure(() => {
+          for (const i of check.measured) {
+            do_not_optimize(op === "B1" ? competitor.b1(i) : competitor.b2(i));
+          }
+        }),
+      );
+      ns = measured.value.avg / check.measured.length;
+      duringRow = measured.load;
     }
     const row: RowResult = {
       impl,
@@ -203,8 +232,9 @@ if (impl === "nepdate") {
       throws: check.throws,
       coreLoad: load.core,
       allLoad: load.all,
+      backgroundLoad: duringRow,
       attempts: load.attempts,
-      loaded: load.loaded,
+      loaded: duringRow === null ? load.loaded : decideLoaded(load.all, duringRow),
       heapBytes: null,
       checkOnly: false,
     };

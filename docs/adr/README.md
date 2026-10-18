@@ -13,3 +13,4 @@ ADR.
 | [0005](0005-releases.md) | Releases | Accepted |
 | [0006](0006-same-machine-csharp-column-and-load-gate.md) | Same-machine C# column and the load gate | Accepted |
 | [0007](0007-mutation-testing.md) | Mutation testing | Accepted |
+| [0008](0008-during-row-background-load.md) | During-row background load | Accepted |

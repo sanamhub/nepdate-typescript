@@ -6,11 +6,13 @@
 //   node bench/compare.ts --check
 //   node bench/compare.ts --json > compare.json
 
+import { outDir, writeReport } from "./out.ts";
 import { type RowResult, runMeasure } from "./protocol.ts";
 import { COMPETITOR_RANGES, isoDay } from "./ranges.ts";
 
 const checkOnly = process.argv.includes("--check");
 const extra = process.argv.includes("--no-wait") ? ["--no-wait"] : [];
+const out = outDir();
 const rows: RowResult[] = [];
 for (const competitor of COMPETITOR_RANGES) {
   for (const op of ["B1", "B2"] as const) {
@@ -19,14 +21,15 @@ for (const competitor of COMPETITOR_RANGES) {
   }
 }
 
+const report = {
+  node: process.version,
+  started: new Date().toISOString(),
+  affinity: "4",
+  checkOnly,
+  rows,
+};
 if (process.argv.includes("--json")) {
-  console.log(
-    JSON.stringify(
-      { node: process.version, started: new Date().toISOString(), affinity: "4", rows },
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify(report, null, 2));
 } else if (checkOnly) {
   console.log(`node ${process.version}, 18 agreement checks, no measurements`);
   for (const row of rows) {
@@ -55,12 +58,13 @@ if (process.argv.includes("--json")) {
       const ns = row.ns === null ? "n/a" : row.ns.toFixed(1);
       const status = row.loaded ? "LOADED" : "final";
       const out = row.outOfRange.length === 0 ? "none" : `${row.outOfRange.length} dates`;
+      const during = row.backgroundLoad === null ? "n/a" : `${Math.round(row.backgroundLoad)}%`;
       console.log(
         `  ${row.op}  ${ns.padStart(9)} ns/op  n=${String(row.n).padStart(2)}  ` +
           `in-range ${row.inRange}/64  out ${out}  core ${String(
             Math.round(row.coreLoad ?? 0),
           ).padStart(3)}%  all ${String(Math.round(row.allLoad ?? 0)).padStart(3)}%  ` +
-          `${String(row.attempts)} tries  ${status.padEnd(6)}  ${
+          `during ${during.padStart(4)}  ${String(row.attempts)} tries  ${status.padEnd(6)}  ${
             row.agrees ? "agrees" : "DISAGREES"
           }`,
       );
@@ -69,3 +73,4 @@ if (process.argv.includes("--json")) {
     }
   }
 }
+writeReport(out, "compare", report);

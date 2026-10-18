@@ -15,6 +15,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { parseReport } from "./dotnet-report.ts";
 import { machineLoad } from "./load.ts";
+import { outDir, writeReport } from "./out.ts";
 import type { RowResult } from "./protocol.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -22,6 +23,7 @@ const HUB = resolve(process.env.HUB_DIR ?? join(ROOT, "..", "nepdate"));
 const CACHE = resolve(process.env.DOTNET_CACHE ?? "D:\\devcache\\dotnet");
 const PROJECT = join(HUB, "tools", "dotnet-bench");
 const jsonOutput = process.argv.includes("--json");
+const out = outDir();
 
 interface DotnetRun {
   readonly node: string;
@@ -63,6 +65,7 @@ if (csvIndex >= 0) {
   } else {
     for (const row of rows) console.log(`${row.op}  ${(row.ns as number).toFixed(2)} ns`);
   }
+  writeReport(out, "dotnet", { rows });
   process.exit(0);
 }
 
@@ -222,3 +225,4 @@ if (jsonOutput) {
   }
   console.log(`report ${csv}`);
 }
+writeReport(out, "dotnet", report);

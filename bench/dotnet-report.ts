@@ -94,6 +94,7 @@ export function parseReportText(text: string, source = "report"): RowResult[] {
       throws: 0,
       coreLoad: null,
       allLoad: null,
+      backgroundLoad: null,
       attempts: 0,
       loaded: false,
       heapBytes: Number.isFinite(bytes) ? bytes : null,

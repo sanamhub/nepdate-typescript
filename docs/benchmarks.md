@@ -3,8 +3,11 @@
 Operations B1 to B8 of [`shared/spec/BENCHMARK.md`](https://github.com/sanamhub/nepdate/blob/main/spec/BENCHMARK.md),
 run on 2026-10-18. Every row runs in a fresh process pinned to logical CPU 2. Before each
 TypeScript measurement the child samples the all-CPU load; if it is above 15% it waits 5 s and
-retries, five times. A row that is still above 15% is marked `LOADED` and kept out of target
-verdicts. The C# column was measured on this machine in the same session, not copied from the hub.
+retries, five times. During the row it samples the mean busy share of every CPU except CPU 2,
+because the benchmark keeps CPU 2 busy by design. A row is marked `LOADED` when either figure is
+above 15%, and a loaded row is kept out of target verdicts. [ADR-0008](adr/0008-during-row-background-load.md)
+records the during-row rule. The C# column was measured on this machine in the same session, not
+copied from the hub.
 
 This pass has a mix: B1, B2, B5, B6, B7 and B8 are final; B3 and B4 ran loaded. The C# run itself had
 a median 77% load, so every 3× C# check is pending under [ADR-0006](adr/0006-same-machine-csharp-column-and-load-gate.md)
@@ -36,11 +39,15 @@ even where the TypeScript row is final. No target, 3× rule or load limit was ch
 Exact commands, from the repository root after `npm run build`:
 
 ```
-node bench/own.ts
-node bench/dotnet.ts
-node bench/compare.ts
-node bench/order.ts
+node bench/own.ts --out bench/results/<date>
+node bench/dotnet.ts --out bench/results/<date>
+node bench/compare.ts --out bench/results/<date>
+node bench/order.ts --out bench/results/<date>
 ```
+
+Every future pass commits `bench/results/<date>/` with `own.json`, `dotnet.json`, `compare.json`
+and `order.json`, so each number on this page has a source in the tree. The 2026-10-18 pass predates
+the `--out` flag and the during-row field; its rows keep the before-row load only.
 
 `bench/own.ts` and `bench/compare.ts` spawn one `node --expose-gc bench/measure.ts` per row under
 `cmd /c start "" /affinity 4 /wait /b`. `bench/dotnet.ts` runs the hub's `tools/dotnet-bench` with
