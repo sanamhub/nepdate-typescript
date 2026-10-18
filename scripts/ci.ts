@@ -114,14 +114,7 @@ function patroSize(): void {
 }
 
 const gates: [name: string, body: () => void][] = [
-  [
-    "lint + format + tool types",
-    () => {
-      run("npx biome ci .");
-      run("npx tsc -p tsconfig.tools.json");
-      run("node --test bench/report.test.ts");
-    },
-  ],
+  ["lint + format", () => run("npx biome ci .")],
   ["generated code", () => run("node scripts/codegen.ts --check")],
   ["core types", () => run(`npx tsc -p ${CORE}/tsconfig.json`)],
   ["core tests", () => run("npm test -w nepdate")],
@@ -130,10 +123,15 @@ const gates: [name: string, body: () => void][] = [
   ["patro types", () => run(`npx tsc -p ${PATRO}/tsconfig.json`)],
   ["patro tests", () => run("npm test -w nepdate-patro")],
   [
-    "patro build + shape",
+    "patro build + shape + tool types",
     () => {
       buildAndShape(PATRO);
       patroSize();
+      // The bench package is separate from the root workspaces, and its type imports need the
+      // built packages, so install it here, after both builds.
+      run("npm ci --prefix bench");
+      run("npx tsc -p tsconfig.tools.json");
+      run("node --test bench/report.test.ts");
     },
   ],
   ["docs", () => run("node scripts/docs-check.ts")],
