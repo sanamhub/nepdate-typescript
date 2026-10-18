@@ -25,13 +25,18 @@ because the workflow is green.
    tag. The publish job waits for that approval.
 5. **The version is ready.** Both `packages/nepdate/package.json` and
    `packages/nepdate-patro/package.json` say X.Y.Z. `nepdate-patro` has
-   `peerDependencies.nepdate` `~X.Y.Z` and `devDependencies.nepdate` `X.Y.Z`. `package-lock.json`
-   changed only as `npm install` required. `CHANGELOG.md` has `## [X.Y.Z] - YYYY-MM-DD`.
+   `peerDependencies.nepdate` `~X.Y.Z` and no `devDependencies`; the workspace link supplies the
+   local core during development. `package-lock.json` changed only as `npm install` required.
+   `CHANGELOG.md` has an empty `## [Unreleased]` and `## [X.Y.Z] - YYYY-MM-DD`. A missing
+   `[Unreleased]` heading is allowed, but any entry under it blocks the release.
 6. **The release check passes.** From the repository root:
 
    ```
    node scripts/release-check.ts X.Y.Z
    ```
+
+   Every failure names the expected value. The command checks both versions, the peer range, the
+   empty `[Unreleased]` section and the dated changelog section.
 
 ## Tag
 
@@ -73,8 +78,8 @@ be used. For 0.1.0 only:
 
 ## What the workflow jobs do
 
-`release.yml` has three jobs. The default permission is `contents: read`; only `publish` gets
-`contents: write` and `id-token: write`.
+`release.yml` has six jobs. The default permission is `contents: read`; only `publish` gets
+`id-token: write`, and only `github-release` gets `contents: write`.
 
 `pack` runs on a runner with no secrets:
 
@@ -84,10 +89,19 @@ be used. For 0.1.0 only:
 4. `npm ci` and `npm run ci`.
 5. `scripts/release-version.ts` reads the version from the tag (push) or the core manifest
    (dispatch), rejects anything that is not strict `X.Y.Z`, and writes it to the job output.
-6. `scripts/release-check.ts` checks both manifests, the peer range, the dev range and the changelog
-   section.
-7. Build both packages, `npm pack` each one into `release-tarballs`, run `publint` and `attw` on each
-   tarball, and upload the artifact for seven days. The job output carries the version to `smoke`.
+6. `scripts/release-check.ts` checks both manifests, the peer range, the empty `[Unreleased]`
+   section and the changelog section, and names the expected value on every failure.
+7. `scripts/data-status.ts` reads the built patro tables and blocks the release when fewer than
+   183 days of public holiday data remain. Tithi and event warnings are printed in the job log;
+   copy them into the release notes by hand.
+8. Build both packages, `npm pack` each one into `release-tarballs`, and run
+   `scripts/tarball-check.ts --sums release-tarballs/SHA256SUMS`. The check allows only `dist/`,
+   `LICENSE`, `NOTICE`, `README.md` and `package.json` in each tarball, checks the version and peer
+   range, and rejects `devDependencies`, runtime dependencies, install lifecycle scripts
+   (`preinstall`, `install`, `postinstall`, and `prepare` with its hooks), tar members
+   that are not regular files or directories, and paths with `.` or `..` segments. Then run `publint` and `attw` on
+   each tarball and upload the directory including `SHA256SUMS` for seven days. The job output
+   carries the version to `smoke`.
 
 `smoke` needs `pack`. It has `contents: read`, no environment and no secret:
 
@@ -100,21 +114,49 @@ be used. For 0.1.0 only:
 4. No registry login is used. A broken README example fails this job, so the published npm page and
    the tarballs are checked against the same text.
 
+`mutation` needs `pack`, has `contents: read`, and runs the mutation suite plus
+`npm run mutation:check` before `publish` can start. A score below the floor or an untriaged survivor
+blocks the release.
+
 `publish` runs only when `github.event_name == 'push'` and the ref starts with `refs/tags/v`. It needs
-both `pack` and `smoke`:
+`pack`, `smoke` and `mutation`, and has `contents: read` and `id-token: write`:
 
 1. Wait for the `production` environment reviewer.
 2. Check out the tag with full history, then refuse a commit that is not on `origin/main`:
    `git fetch --no-tags origin main` and `git merge-base --is-ancestor "$COMMIT_SHA" origin/main`.
    The SHA comes from `${{ github.sha }}` through `env`, never from a `run:` expression. A tag on a
    side branch stops here, before any tarball is downloaded.
-3. Download the tarballs from `pack`. The tag commit is checked out again for the changelog.
-4. Set up Node with the npm registry, read the version and run `release-check` again.
-5. Publish `nepdate`, then `nepdate-patro`. Each step first runs
+3. Download the tarballs and `SHA256SUMS` from `pack`. The tag commit is checked out again for the
+   changelog.
+4. Set up Node with the npm registry, read the version and run `release-check` again. Run
+   `sha256sum -c SHA256SUMS` before either package is published.
+5. Publish `nepdate`, then `nepdate-patro`, using only the downloaded tarballs. The publish job does
+   not run `npm pack`. Each step first runs
    `npm view <name>@X.Y.Z version`; if the version already exists the step is skipped, so a
    half-finished release can be re-run without publishing twice. Publishing uses OIDC trusted
    publishing and `--provenance --access public`; the token fallback is above.
-6. Create the GitHub Release `vX.Y.Z` from the changelog section and attach both tarballs.
+
+`verify` needs `publish`. It has `contents: read`, no `id-token` and no environment. It creates a
+clean temporary project and installs `nepdate@X.Y.Z` and `nepdate-patro@X.Y.Z` from the public
+registry. A failed install is retried every 30 seconds for up to 10 minutes. It then runs the README
+quick start (`NepaliDate.of(2081, 2, 15)`, `toGregorian`, `toJSON`, `long`) and one `info()` call
+that checks Republic Day. A failed verify job means the release is not done.
+
+`github-release` needs `publish` and `verify` and is the only job with `contents: write`. It checks
+out the tag, downloads the tarballs, runs `sha256sum -c SHA256SUMS` again, and creates the GitHub
+Release `vX.Y.Z` from the changelog section with both tarballs attached. Because it waits for
+`verify`, a failed verify leaves no release page for packages that are about to be deprecated.
+
+If `verify` fails, do not publish the same files again and do not use a different build under the
+same version. Deprecate both packages with a reason, fix the cause on `main`, and publish the next
+patch version of both with this runbook:
+
+```
+npm deprecate nepdate@X.Y.Z "reason, use X.Y.(Z+1)"
+npm deprecate nepdate-patro@X.Y.Z "reason, use X.Y.(Z+1)"
+```
+
+The manual checks below remain useful evidence after `verify` passes.
 
 ## Verify on npm
 
@@ -192,9 +234,8 @@ If npm rejects the name:
 1. Stop the release. Do not publish the patro package under the old name and do not move the tag.
 2. Ask the owner to choose. The fallback is the scoped pair `@sanamhub/nepdate` and
    `@sanamhub/nepdate-patro`. A scoped package is public only with `--access public`.
-3. Change both `name` fields, the patro `peerDependencies` and `devDependencies` keys, the README
-   imports, the `npm view` names in `release.yml`, and the trusted publishing configuration on
-   npmjs.com.
+3. Change both `name` fields, the patro `peerDependencies` key, the README imports, the `npm view`
+   names in `release.yml`, and the trusted publishing configuration on npmjs.com.
 4. Run `npm install` so the lockfile agrees, run `npm run ci`, and open a pull request. Tag a new
    commit with the same X.Y.Z only after the pull request is green and approved. Never move a tag
    that has been pushed.
