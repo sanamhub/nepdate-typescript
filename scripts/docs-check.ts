@@ -85,6 +85,10 @@ function documentationFiles(): string[] {
   for (const name of readdirSync(docsDir).sort()) {
     if (name.endsWith(".md")) files.push(`docs/${name}`);
   }
+  const runbooksDir = join(docsDir, "runbooks");
+  for (const name of readdirSync(runbooksDir).sort()) {
+    if (name.endsWith(".md")) files.push(`docs/runbooks/${name}`);
+  }
   // packages/nepdate/README.md is a copy of the root README made by prepack, which is scanned
   // above; only the patro package carries its own README.
   for (const pkg of ["nepdate-patro"]) {
@@ -94,7 +98,7 @@ function documentationFiles(): string[] {
   return files;
 }
 
-const TASK_ID = /\bT[0-5](?:-\d{2})?\b/;
+const TASK_ID = /\bT[0-9](?:-\d{2})?\b/;
 const LINK = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
 function checkLinks(file: string, text: string): void {

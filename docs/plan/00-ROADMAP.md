@@ -21,6 +21,7 @@ Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit (today
 | T3 | `T3-format-and-parse.md` | `short`/`long`/`format`, strict and lenient parse |
 | T4 | `T4-patro-and-interop.md` | package `nepdate-patro`, `today()`, `fromJSDate`/`toJSDate`, Temporal-shaped interop |
 | T5 | `T5-docs-bench-release.md` | docs, benchmarks vs competitors, release workflow for both packages, 0.1.0 |
+| T6 | `T6-bench.md` | one process per measurement, same-machine C#, in-range agreement, load discipline, release runbook |
 
 ## Checkpoints
 

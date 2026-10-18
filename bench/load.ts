@@ -1,6 +1,7 @@
-// Machine load for the benchmark report (BENCHMARK §5): the busy share of all CPUs over a short
-// window, sampled just before a measurement. It is not the process's own CPU time, so a number
-// above a few percent means other work was running on the machine.
+// Machine load for the benchmark report (BENCHMARK §5). Two figures matter: the busy share of the
+// logical CPU the benchmark is pinned to, and the busy share of all CPUs. The all-CPU figure decides
+// whether a row is quiet enough for a target verdict (ADR-0006); the core figure is reported next to
+// it. Neither is the process's own CPU time.
 
 import { cpus } from "node:os";
 
@@ -9,7 +10,22 @@ interface Sample {
   readonly total: number;
 }
 
-function sample(): Sample {
+interface CpuTimes {
+  readonly idle: number;
+  readonly total: number;
+}
+
+function timesOf(index: number): CpuTimes {
+  const cpu = cpus()[index];
+  if (cpu === undefined) throw new Error(`logical CPU ${index} does not exist`);
+  const t = cpu.times;
+  return {
+    idle: t.idle,
+    total: t.user + t.nice + t.sys + t.irq + t.idle,
+  };
+}
+
+function allTimes(): Sample {
   let idle = 0;
   let total = 0;
   for (const cpu of cpus()) {
@@ -19,13 +35,23 @@ function sample(): Sample {
   return { idle, total };
 }
 
-/** Busy percentage of all CPUs over `windowMs`, 0 to 100. */
-export async function machineLoad(windowMs = 250): Promise<number> {
-  const before = sample();
-  await new Promise((resolve) => setTimeout(resolve, windowMs));
-  const after = sample();
+function busy(before: { idle: number; total: number }, after: { idle: number; total: number }) {
   const total = after.total - before.total;
   if (total <= 0) return 0;
   const idle = after.idle - before.idle;
   return Math.max(0, Math.min(100, (1 - idle / total) * 100));
+}
+
+/** Busy percentage of all CPUs over `windowMs`, 0 to 100. */
+export async function machineLoad(windowMs = 250): Promise<number> {
+  const before = allTimes();
+  await new Promise((resolve) => setTimeout(resolve, windowMs));
+  return busy(before, allTimes());
+}
+
+/** Busy percentage of one logical CPU over `windowMs`, 0 to 100. */
+export async function coreLoad(index: number, windowMs = 250): Promise<number> {
+  const before = timesOf(index);
+  await new Promise((resolve) => setTimeout(resolve, windowMs));
+  return busy(before, timesOf(index));
 }

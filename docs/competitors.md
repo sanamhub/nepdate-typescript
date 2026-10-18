@@ -47,8 +47,11 @@ Two groups, because string APIs are dominated by parsing and formatting:
 | string | `@remotemerge/nepali-date-converter` | `new DateConverter("2080-01-15").toAd()` | `new DateConverter("2023-04-28").toBs()` |
 
 Our numeric row is `NepaliDate.of(y, m, d).toGregorian()` / `NepaliDate.fromGregorian({year, month, day})`;
-our string row is `NepaliDate.parse(s).toGregorian()` formatted to ISO. The common range is BS
-2000–2089.
+our string row is `NepaliDate.parse(s).toGregorian()` formatted to ISO. The common range of the
+64 BENCHMARK dates is BS 2000-01-01 to 2090-12-30 (AD 1943-04-14 to 2034-04-13). Every package in
+the table documents a BS or AD range that covers those dates. [benchmarks.md](benchmarks.md) cites
+the README or code line for each range; a disagreement on a date inside the package's own range is a
+mismatch, not an out-of-range result.
 
 ## Correctness and bugs seen in sources or issues
 
