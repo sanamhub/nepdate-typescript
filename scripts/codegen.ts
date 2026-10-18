@@ -96,8 +96,11 @@ function packMonthLengths(years: number[][]): string {
 
 function calendarSource(years: number[][]): string {
   return `${HEADER}
+/** The first BS year in the tables. */
 export const MIN_YEAR = ${MIN_YEAR};
+/** The last BS year in the tables. */
 export const MAX_YEAR = ${MAX_YEAR};
+/** Days from 1970-01-01 to BS 1901-01-01 (AD 1844-04-11). */
 export const EPOCH_UNIX_DAYS = ${EPOCH_UNIX_DAYS};
 
 /** The ${years.length * 12} month lengths from MIN_YEAR, 2 bits each (length - 29), base64. */

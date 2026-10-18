@@ -6,6 +6,8 @@ const TOKEN: unique symbol = Symbol("DateRange");
 /**
  * An inclusive range of BS dates, never empty. It has a length, `contains` and iteration only;
  * set operations, splitting and working days are not ported (D-09): iterate and filter instead.
+ * @example
+ * for (const date of DateRange.month(2081, 4)) date.toJSON();
  */
 export class DateRange implements Iterable<NepaliDate> {
   /** The first day of the range. */

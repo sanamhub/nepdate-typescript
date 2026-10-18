@@ -30,6 +30,21 @@ jobs:
       - run: npm ci
       - run: npm run ci
 
+  # Temporal is built in from Node 26, so this job runs the Temporal-shaped interop test instead of
+  # skipping it. No polyfill is installed (ADR-0004, T4).
+  temporal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - run: npm ci
+      - run: npx vitest run test/temporal.test.ts --root packages/nepdate --coverage.enabled=false
+
   # The edge functions (fromJSDate, toJSDate, today) must give the same core results in every zone
   # (ADR-0004). Kiritimati is UTC+14, the far side of the date line from Los Angeles.
   time-zones:

@@ -5,7 +5,7 @@ version (ADR-0005); an entry that concerns only one package starts with its name
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.0] - 2026-10-18
 
 ### Added
 

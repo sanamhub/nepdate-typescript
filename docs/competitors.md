@@ -2,7 +2,7 @@
 
 Checked 2026-09-25 against the npm registry and downloads API, bundlephobia, GitHub and published
 sources (read, not run); rechecked 2026-10-08 (weekly downloads for 2026-09-28 to 2026-10-04 where
-the bulk downloads API returns them, and `world-calendars` added). Used by task T5-02 (benchmarks).
+the bulk downloads API returns them, and `world-calendars` added). Used by the benchmark suite.
 No package covers BS 1901–2199; the widest real tables start at 1970. Sizes are bundlephobia
 min / gzip.
 
@@ -76,7 +76,7 @@ Temporal adapter), `nepali-calendar-toolkit` (React bundle). Abandoned: `nepali-
 
 ## Name
 
-The npm names `nepdate` and `nepdate-patro` must be checked before T0 (human task, T0-06);
+The npm names `nepdate` and `nepdate-patro` must be checked before the first release;
 fallback `@sanamhub/nepdate` and `@sanamhub/nepdate-patro`.
 
 ## Sources
@@ -88,4 +88,4 @@ opensource-nepal/node-nepali-datetime, sbmdkl/nepali-date-converter,
 SandipGhimire/Nepali-Date-Library-NodeJS, Inicrea-Technologies-Pvt-Ltd/bikram-sambat,
 plotly/world-calendars (all on GitHub); `https://api.npmjs.org/downloads/point/2026-09-28:2026-10-04/<names>`
 for the 2026-10-08 recheck. On 2026-10-07 the registry returned "Not found" for `nepdate` and
-`nepdate-patro`, so both names were free then (T0-06 still checks again).
+`nepdate-patro`, so both names were free then. Check them again before the first release.

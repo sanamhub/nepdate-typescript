@@ -15,7 +15,11 @@ import {
   TITHI_IDS,
 } from "./tables.gen.js";
 
-/** A tithi or event name in both languages. Frozen and shared. */
+/**
+ * A tithi or event name in both languages. Frozen and shared.
+ * @example
+ * const name: Named = { np: "पञ्चमी", en: "Panchami" };
+ */
 export interface Named {
   /** Nepali (Devanagari) form. */
   readonly np: string;
@@ -23,7 +27,11 @@ export interface Named {
   readonly en: string;
 }
 
-/** What the patro knows about one BS day (PATRO §2). Frozen and shared. */
+/**
+ * What the patro knows about one BS day (PATRO §2). Frozen and shared.
+ * @example
+ * const empty: CalendarInfo = { tithi: null, isPublicHoliday: false, events: [] };
+ */
 export interface CalendarInfo {
   /** The tithi of the day, or `null` when the day has no tithi data. */
   readonly tithi: Named | null;

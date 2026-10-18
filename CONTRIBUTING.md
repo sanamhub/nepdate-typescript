@@ -21,7 +21,7 @@ npm ci
 npm run ci
 ```
 
-The last line reads `ci: 9/9 gates passed`.
+The last line reads `ci: 10/10 gates passed`.
 
 - Zero runtime `dependencies` in both packages; `nepdate` never imports `nepdate-patro`.
 - No export beyond [`docs/API.md`](docs/API.md).
@@ -31,7 +31,7 @@ The last line reads `ci: 9/9 gates passed`.
 ## Commits and PRs
 
 - [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with the
-  task ID first when there is one (`feat(nepdate): T1-03 serial conversion`).
+  task ID first when the change follows one (`feat(nepdate): serial conversion`).
 - One task per PR. Fill in the PR template, including "What to look at first".
 - Prose, comments and commit messages follow
   [`.claude/skills/writing-style/SKILL.md`](.claude/skills/writing-style/SKILL.md): no em dashes,

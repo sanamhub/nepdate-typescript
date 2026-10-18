@@ -7,3 +7,4 @@ packages/*/LICENSE
 packages/*/NOTICE
 packages/nepdate/README.md
 *.tgz
+.readme-check/
