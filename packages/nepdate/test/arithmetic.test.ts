@@ -62,6 +62,14 @@ describe("addMonths and addYears (T2-02)", () => {
         `${row.bs} + ${n} spill`,
       ).toBe(row.overflow);
     }
+    // The year-rollover branch of spill: Chaitra 1914 has 31 days, Baisakh 1915 has 30.
+    expect(NepaliDate.of(1914, 12, 31).addMonths(1, "spill").toJSON()).toBe("1915-02-01");
+    // The serial must agree with the fields, not only the printed JSON.
+    expect(
+      NepaliDate.of(2081, 4, 32)
+        .addMonths(8, "spill")
+        .equals(NepaliDate.of(2082, 1, 1)),
+    ).toBe(true);
   });
 
   test("ALGORITHM §8 examples", () => {
@@ -100,6 +108,9 @@ describe("addMonths and addYears (T2-02)", () => {
     const d = NepaliDate.of(2199, 5, 32);
     expect(d.addMonths(7).equals(NepaliDate.MAX)).toBe(true);
     expect(kindOf(() => d.addMonths(7, "spill"))).toBe("out-of-range");
+    expect(() => d.addMonths(7, "spill")).toThrow(
+      "2199-5-32 + 7 months is outside BS 1901-01-01..2199-12-30",
+    );
     expect(d.addMonths(6, "spill").equals(NepaliDate.of(2199, 12, 2))).toBe(true);
   });
 

@@ -43,6 +43,18 @@ test("fromJSDate and toJSDate round-trip in both zones", () => {
   const date = of(2081, 4, 15);
   expect(NepaliDate.fromJSDate(date.toJSDate("utc"), "utc").toJSON()).toBe("2081-04-15");
   expect(NepaliDate.fromJSDate(date.toJSDate("local"), "local").toJSON()).toBe("2081-04-15");
+  // toJSDate("local") is local midnight, not UTC midnight.
+  expect(date.toJSDate("local").getTime()).toBe(new Date(2024, 6, 30).getTime());
+  // A local instant whose UTC date is different separates the two zone branches.
+  const instant = new Date(2024, 6, 30, 0, 30);
+  const local = {
+    year: instant.getFullYear(),
+    month: instant.getMonth() + 1,
+    day: instant.getDate(),
+  };
+  expect(NepaliDate.fromJSDate(instant, "local").toJSON()).toBe(
+    NepaliDate.fromGregorian(local).toJSON(),
+  );
 });
 
 test("today() rejects a clock outside the supported range", () => {

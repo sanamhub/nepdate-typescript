@@ -67,6 +67,13 @@ describe("format pattern (T3-03)", () => {
     expect(d.format("d")).toBe("2081/04/15");
     expect(d.format("D")).toBe("Shrawan 15, 2081");
     expect(d.format("s")).toBe("2081-04-15");
+    expect(d.format("'abc'")).toBe("abc");
+    expect(d.format("'abc")).toBe("abc");
+    expect(d.format("''")).toBe("");
+    expect(d.format("yy")).toBe("81");
+    expect(d.format("yyyy'x'MM")).toBe("2081x04");
+    expect(d.format("yyyy\\")).toBe("2081");
+    expect(d.format("\\")).toBe("");
   });
 
   test("format-pattern.tsv (451 rows), skipping only D-04 rows", () => {

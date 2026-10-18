@@ -37,6 +37,7 @@ describe("DateRange (T2-05)", () => {
     expect(DateRange.of(a, a).length).toBe(1);
     expect([...DateRange.of(a, a)]).toEqual([a]);
     expect(kindOf(() => DateRange.of(b, a))).toBe("out-of-range");
+    expect(() => DateRange.of(b, a)).toThrow("the range ends before it starts");
   });
 
   test("the whole calendar is one range", () => {
@@ -50,5 +51,8 @@ describe("DateRange (T2-05)", () => {
   test("the constructor can't be called from JavaScript", () => {
     const Ctor = DateRange as unknown as new (...args: unknown[]) => unknown;
     expect(() => new Ctor(NepaliDate.MIN, NepaliDate.MAX)).toThrow(TypeError);
+    expect(() => new Ctor(NepaliDate.MIN, NepaliDate.MAX)).toThrow(
+      "use DateRange.of, DateRange.month or DateRange.year",
+    );
   });
 });
