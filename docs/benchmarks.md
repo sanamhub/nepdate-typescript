@@ -84,6 +84,19 @@ Negative control: six busy Node processes were started on the logical CPUs, then
 retried six times, recorded 92.7% load and 149.6 ns/op, and was marked `LOADED`. The gate kept that
 row out of the verdicts, as it is meant to.
 
+| Check | Limit | Measured | Verdict |
+|---|---:|---:|---|
+| B1 ADR target | < 30 ns | 31.9 | final miss |
+| B1 3× C# | < 60.00 ns | 31.9 | pending (C# row loaded) |
+| B2 ADR target | < 30 ns | 37.4 | pending (row loaded) |
+| B2 3× C# | < 72.75 ns | 37.4 | pending (row loaded) |
+| B3 ADR target | < 20 ns | 21.2 | pending (row loaded) |
+| B4 ADR target | < 20 ns | 28.7 | pending (row loaded) |
+| B5 ADR target | < 153 ns | 280.2 | pending (row loaded) |
+| B6 ADR target | < 64 ns | 244.9 | pending (row loaded) |
+| B7 ADR target | < 10 ns | 19.5 | pending (row loaded) |
+| B7 3× C# | < 191.31 ns | 19.5 | pending (row loaded) |
+
 The 3× limits from this machine's C# column are 60.00 ns for B1, 72.75 ns for B2 and 191.31 ns for
 B7. The hub-machine limits that ADR-0002 §10 prints (39.9, 55.9 and 143.8 ns) came from the old hub
 column and are not used here. ADR-0002 now records the same-machine limits; its decisions and
