@@ -185,7 +185,8 @@ single ten-minute batch inconclusive.
 Median B1 alone 35.6 ns/op, median after competitors 34.9 ns/op, median paired difference -1.9%,
 limit 10%. No order effect was detected. Pair 1 is the noisiest pair and the only one where the after
 run was much slower; its load also rose from 16% to 73%, so it is not evidence of state leaking
-between processes.
+between processes. Every one of the ten runs was above the 15% load limit, so this is an
+observation, not a verdict, until it is repeated on a quiet run.
 
 ## Bundle sizes
 
