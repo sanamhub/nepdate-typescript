@@ -68,15 +68,17 @@ AC:
 - Add `tsconfig.tools.json` at the root, extending `tsconfig.base.json`, `noEmit`, `types: ["node"]`,
   `allowImportingTsExtensions`, and `include: ["bench/**/*.ts", "scripts/**/*.ts"]`. Override only
   the declaration-only options and the two index checks that the tool code does not satisfy today.
-- Gate 1 runs `npx tsc -p tsconfig.tools.json` after Biome and `node --test bench/report.test.ts`.
-  The gate name changes to say so.
+- Gate 9 runs `npm ci --prefix bench`, then `npx tsc -p tsconfig.tools.json` and
+  `node --test bench/report.test.ts`, after both packages are built. The bench package is separate
+  from the root workspaces and its type imports need the built packages, so it cannot run in gate 1
+  before the builds. The gate name changes to say so.
 - Move the BenchmarkDotNet CSV reader out of `bench/dotnet.ts` into `bench/dotnet-report.ts` with
   `parseReportText`, `parseReport`, `parseCsvLine` and `scaled` exported.
 - `bench/report.test.ts` covers a `ns` cell, a `μs` cell, a `KB` allocation cell, a quoted method
   name with a comma, a `-` allocation cell and an unknown unit that throws.
 
 AC:
-- `npx tsc -p tsconfig.tools.json` passes; a deliberate type error in a bench file makes gate 1 fail
+- `npx tsc -p tsconfig.tools.json` passes; a deliberate type error in a bench file makes gate 9 fail
   and is reverted.
 - `node --test bench/report.test.ts` passes with the six cases.
 - `bench/dotnet.ts` still runs `--csv` on the T6 report and prints the same eight rows.
@@ -123,7 +125,7 @@ The implementation agent stops after T7-05. The reviewer checks:
 - [ ] The static release-workflow test passes and its negative fixture reports every rule.
 - [ ] The tag-on-main check is in `publish`, and the first-release token step unsets an empty
       `NODE_AUTH_TOKEN`.
-- [ ] `tsconfig.tools.json` is in gate 1 and the parser test has the six cases.
+- [ ] `tsconfig.tools.json` is in gate 9 and the parser test has the six cases.
 - [ ] The quiet pass is recorded, or the page says the machine never became quiet and every row is
       LOADED.
 - [ ] B1 and B6 have profiles and a decision; no target changed.
