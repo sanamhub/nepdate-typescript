@@ -44,7 +44,7 @@ async function during<T>(body: () => Promise<T>): Promise<{ value: T; load: numb
 async function waitForQuiet(): Promise<LoadSample> {
   if (process.argv.includes("--no-wait")) {
     const sample = await sampleLoad();
-    return { ...sample, attempts: 1, loaded: sample.all > LOAD_LIMIT };
+    return { ...sample, attempts: 1, loaded: sample.all >= LOAD_LIMIT };
   }
   let attempts = 0;
   let sample = { core: 0, all: 0 };
@@ -52,8 +52,8 @@ async function waitForQuiet(): Promise<LoadSample> {
     if (attempts > 0) await delay(LOAD_WAIT_MS);
     sample = await sampleLoad();
     attempts++;
-  } while (sample.all > LOAD_LIMIT && attempts <= LOAD_RETRIES);
-  return { ...sample, attempts, loaded: sample.all > LOAD_LIMIT };
+  } while (sample.all >= LOAD_LIMIT && attempts <= LOAD_RETRIES);
+  return { ...sample, attempts, loaded: sample.all >= LOAD_LIMIT };
 }
 
 function argument(name: string): string {

@@ -35,7 +35,8 @@ test("a background sample above 15% marks the row LOADED", () => {
   assert.equal(decideLoaded(20, 5), true);
 });
 
-test("15% exactly is quiet; 15.1% is loaded", () => {
-  assert.equal(decideLoaded(15, 15), false);
-  assert.equal(decideLoaded(15, 15.1), true);
+test("15% exactly is loaded; 14.9% is quiet", () => {
+  assert.equal(decideLoaded(14.9, 14.9), false);
+  assert.equal(decideLoaded(15, 14.9), true);
+  assert.equal(decideLoaded(14.9, 15), true);
 });

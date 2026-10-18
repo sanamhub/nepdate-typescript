@@ -2,10 +2,10 @@
 
 Operations B1 to B8 of [`shared/spec/BENCHMARK.md`](https://github.com/sanamhub/nepdate/blob/main/spec/BENCHMARK.md),
 run on 2026-10-18. Every row runs in a fresh process pinned to logical CPU 2. Before each
-TypeScript measurement the child samples the all-CPU load; if it is above 15% it waits 5 s and
+TypeScript measurement the child samples the all-CPU load; if it is at or above 15% it waits 5 s and
 retries, five times. During the row it samples the mean busy share of every CPU except CPU 2,
 because the benchmark keeps CPU 2 busy by design. A row is marked `LOADED` when either figure is
-above 15%, and a loaded row is kept out of target verdicts. [ADR-0008](adr/0008-during-row-background-load.md)
+at or above 15%, and a loaded row is kept out of target verdicts. [ADR-0008](adr/0008-during-row-background-load.md)
 records the during-row rule. The C# column was measured on this machine in the same session, not
 copied from the hub.
 
@@ -66,7 +66,7 @@ job runs the .NET 8 column too; only the .NET 10 rows are used here.
 Time is nanoseconds per single operation. B8 is one whole month grid. Bytes are mitata's heap delta
 under `--expose-gc`, marked approximate; B5 and B6 are "not measured" because V8 rope strings make
 the figure unreliable (BENCHMARK §4). The C# time and bytes are BenchmarkDotNet's mean and allocated
-bytes per operation. `LOADED` means the row ran above 15% all-CPU load and is excluded from target
+bytes per operation. `LOADED` means the row ran at or above 15% load and is excluded from target
 verdicts.
 
 | Op | Operation | `nepdate` ns/op | load | core 2 | bytes/op | status | C# .NET 10 ns/op | C# load | C# bytes | target |

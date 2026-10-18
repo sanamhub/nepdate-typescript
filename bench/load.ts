@@ -67,9 +67,12 @@ export function meanBusy(
   return count === 0 ? 0 : sumBusy / count;
 }
 
-/** A row is quiet only when both load figures are at most the limit. */
+/**
+ * A row is quiet only when both load figures are below the limit; a figure at the limit is loaded,
+ * the same boundary as the Python port (ADR-0008).
+ */
 export function decideLoaded(allLoad: number, backgroundLoad: number, limit = 15): boolean {
-  return allLoad > limit || backgroundLoad > limit;
+  return allLoad >= limit || backgroundLoad >= limit;
 }
 
 /** Busy percentage of all CPUs over `windowMs`, 0 to 100. */
