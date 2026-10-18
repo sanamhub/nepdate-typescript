@@ -14,3 +14,5 @@ ADR.
 | [0006](0006-same-machine-csharp-column-and-load-gate.md) | Same-machine C# column and the load gate | Accepted |
 | [0007](0007-mutation-testing.md) | Mutation testing | Accepted |
 | [0008](0008-during-row-background-load.md) | During-row background load | Accepted |
+| [0009](0009-oldest-node-in-ci.md) | Test the oldest supported Node | Accepted |
+| [0010](0010-api-snapshot-and-examples.md) | Public API snapshot and runnable examples | Accepted |

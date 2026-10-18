@@ -13,7 +13,7 @@ Two npm packages, released together with the same version:
   as a peer dependency.
 
 Pure TypeScript, no WASM and no time zone guessing. BS 1901-01-01 to 2199-12-30 (AD 1844-04-11 to
-2143-04-15). Node 22.12+, Deno, Bun and current browsers.
+2143-04-15). Node 22.12.0 and later (the floor is tested in CI), Deno, Bun and current browsers.
 
 ## Quick start (Node, Bun, bundlers)
 

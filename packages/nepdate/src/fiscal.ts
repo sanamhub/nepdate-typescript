@@ -8,7 +8,7 @@ import { DateRange } from "./range.js";
 /**
  * A quarter of the fiscal year: Q1 is Shrawan to Ashoj, Q4 is Baishakh to Ashad.
  * @example
- * const quarter: Quarter = 1;
+ * NepaliDate.of(2082, 4, 1).quarter(); // => 1
  */
 export type Quarter = 1 | 2 | 3 | 4;
 
@@ -24,7 +24,7 @@ function first(year: number, month: number): NepaliDate {
  * A Nepali fiscal year, 1 Shrawan to the end of Ashad of the next BS year (ALGORITHM §8b).
  * FY 2082/83 is `new FiscalYear(2082)`.
  * @example
- * new FiscalYear(2082).label(); // "2082/83"
+ * new FiscalYear(2082).label(); // => "2082/83"
  */
 export class FiscalYear {
   /** The BS year in which the fiscal year starts. */
@@ -45,7 +45,11 @@ export class FiscalYear {
     this.startYear = startYear;
   }
 
-  /** The fiscal year that contains `date`. */
+  /**
+   * The fiscal year that contains `date`.
+   * @example
+   * FiscalYear.containing(NepaliDate.of(2082, 4, 1)).label(); // => "2082/83"
+   */
   static containing(date: NepaliDate): FiscalYear {
     return new FiscalYear(date.month >= 4 ? date.year : date.year - 1);
   }

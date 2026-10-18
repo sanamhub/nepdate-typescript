@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkExamples } from "./examples.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const errors: string[] = [];
@@ -127,11 +128,28 @@ for (const file of docFiles) {
   checkLinks(file, text);
 }
 
+// ---- Runnable TSDoc examples (T9-03) ----
+
+let examplesRun = 0;
+let assertionsRun = 0;
+let skippedChecks = "";
+try {
+  const examples = checkExamples();
+  examplesRun = examples.examples;
+  assertionsRun = examples.assertions;
+  if (examples.skipped.length > 0) {
+    skippedChecks = `, ${examples.skipped.length} allow-listed result comparison(s) skipped (${examples.skipped.join(", ")})`;
+  }
+  for (const message of examples.errors) fail(message);
+} catch (error) {
+  fail(`examples: ${error instanceof Error ? error.message : String(error)}`);
+}
+
 for (const message of errors) console.error(`docs-check: ${message}`);
 if (errors.length > 0) {
   console.error(`docs-check: ${errors.length} problem(s)`);
   process.exit(1);
 }
 console.log(
-  `docs-check: ${blocksRun} README blocks ran, ${docFiles.length} files scanned, declarations documented`,
+  `docs-check: ${blocksRun} README blocks ran, ${docFiles.length} files scanned, declarations documented, ${examplesRun} examples ran with ${assertionsRun} // => assertions${skippedChecks}`,
 );

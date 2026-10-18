@@ -14,8 +14,6 @@ import { MONTH_START, MONTHS, YEAR_START } from "./tables.js";
 
 /**
  * What `addMonths` does when the day doesn't exist in the target month (ALGORITHM §8).
- * @example
- * NepaliDate.of(2081, 4, 32).addMonths(1, "spill");
  */
 export type Overflow = "clamp" | "spill";
 
@@ -72,7 +70,7 @@ let create: (year: number, month: number, day: number, serial: number) => Nepali
 /**
  * The calendar breakdown between two dates (ALGORITHM §8a).
  * @example
- * NepaliDate.of(2080, 1, 1).diff(NepaliDate.of(2081, 2, 15));
+ * NepaliDate.of(2080, 1, 1).diff(NepaliDate.of(2081, 2, 15)).totalDays; // => 410
  */
 export interface DateDiff {
   /** True when the other date is before this one. */
@@ -133,7 +131,7 @@ export function fromSerial(serial: number): NepaliDate {
  * {@link NepaliDate.of} or {@link NepaliDate.fromGregorian}. Months are 1-based.
  * @example
  * const date = NepaliDate.of(2081, 2, 15);
- * date.toJSON(); // "2081-02-15"
+ * date.toJSON(); // => "2081-02-15"
  */
 export class NepaliDate {
   // Runs before MIN and MAX below, which need `create`.
@@ -167,6 +165,8 @@ export class NepaliDate {
    * The BS date `year`-`month`-`day`.
    * @throws {NepDateError} `"not-an-integer"` if an argument is not a safe integer, else the first
    * failing check: `"out-of-range"` (year outside 1901..2199), `"invalid-month"`, `"invalid-day"`.
+   * @example
+   * NepaliDate.of(2081, 2, 15).toJSON(); // => "2081-02-15"
    */
   static of(year: number, month: number, day: number): NepaliDate {
     checkIntegers(year, month, day);
@@ -193,6 +193,8 @@ export class NepaliDate {
    * `Temporal.PlainDate`.
    * @throws {NepDateError} `"not-an-integer"`, `"invalid-gregorian"` (no such Gregorian date) or
    * `"out-of-range"` (outside AD 1844-04-11..2143-04-15), checked in that order.
+   * @example
+   * NepaliDate.fromGregorian({ year: 2024, month: 5, day: 28 }).toJSON(); // => "2081-02-15"
    */
   static fromGregorian(date: GregorianDate): NepaliDate {
     const { year, month, day } = date;
@@ -223,6 +225,8 @@ export class NepaliDate {
    * not a calendar day (API.md).
    * @throws {NepDateError} as {@link NepaliDate.fromGregorian}: `"not-an-integer"` for an invalid
    * `Date`, `"out-of-range"` outside AD 1844-04-11..2143-04-15.
+   * @example
+   * NepaliDate.fromJSDate(new Date(Date.UTC(2024, 4, 28)), "utc").toJSON(); // => "2081-02-15"
    */
   static fromJSDate(date: Date, zone: "utc" | "local"): NepaliDate {
     if (zone === "utc") {
@@ -244,6 +248,8 @@ export class NepaliDate {
    * `Intl.DateTimeFormat` so the machine's own zone never matters.
    * @throws {NepDateError} `"out-of-range"` when the clock is outside AD 1844-04-11..2143-04-15.
    * @throws {RangeError} from `Intl` when `timeZone` is not a known zone.
+   * @example
+   * NepaliDate.today("Asia/Kathmandu");
    */
   static today(timeZone: string = "Asia/Kathmandu"): NepaliDate {
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -267,13 +273,19 @@ export class NepaliDate {
    * The BS date parsed strictly from `year month day`, in that order (PARSING §1). Accepts ASCII
    * and Devanagari digits, mixed, and the separators `- / . _ \ space । |`.
    * @throws {NepDateError} a parse kind, or `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
+   * @example
+   * NepaliDate.parse("2081-02-15").toJSON(); // => "2081-02-15"
    */
   static parse(s: string): NepaliDate {
     const [year, month, day] = strictParts(s);
     return NepaliDate.of(year, month, day);
   }
 
-  /** `parse`, or `null` instead of throwing. */
+  /**
+   * `parse`, or `null` instead of throwing.
+   * @example
+   * NepaliDate.tryParse("2081-13-01"); // => null
+   */
   static tryParse(s: string): NepaliDate | null {
     try {
       return NepaliDate.parse(s);
@@ -288,6 +300,8 @@ export class NepaliDate {
    * month-name list with case-insensitive Latin matching. The input is matched as given: there is
    * no Unicode normalisation and no joiner removal.
    * @throws {NepDateError} a parse kind, or `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
+   * @example
+   * NepaliDate.parseLenient("15 Jestha 2081").toJSON(); // => "2081-02-15"
    */
   static parseLenient(s: string): NepaliDate {
     try {
