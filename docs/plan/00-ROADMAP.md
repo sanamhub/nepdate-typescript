@@ -25,6 +25,7 @@ Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit (today
 | T7 | `T7-release-quiet.md` | release smoke job, workflow static tests and token fallback, tool type-check, quiet benchmark pass, B1/B6 profiles |
 | T8 | `T8-mutation.md` | mutation testing and triage, release and weekly mutation gates, committed bench JSON, packed smoke gate |
 | T9 | `T9-api-minnode.md` | tested Node 22.12 floor, public API snapshot gate, runnable TSDoc examples |
+| T10 | `T10-release-gates.md` | patro data freshness, release-check, tarball rehearsal, post-publish verification |
 
 ## Checkpoints
 
