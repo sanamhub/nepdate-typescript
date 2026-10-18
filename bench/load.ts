@@ -1,7 +1,7 @@
 // Machine load for the benchmark report (BENCHMARK §5). Two figures matter: the busy share of the
-// logical CPU the benchmark is pinned to, and the busy share of all CPUs. The first decides whether a
-// row is quiet enough for a target verdict; the second is reported next to it so a reader can see
-// what else was running. Neither is the process's own CPU time.
+// logical CPU the benchmark is pinned to, and the busy share of all CPUs. The all-CPU figure decides
+// whether a row is quiet enough for a target verdict (ADR-0006); the core figure is reported next to
+// it. Neither is the process's own CPU time.
 
 import { cpus } from "node:os";
 

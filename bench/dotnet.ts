@@ -106,8 +106,17 @@ function parseReport(csvPath: string): RowResult[] {
   const mean = column("Mean");
   const allocated = column("Allocated");
 
-  const number = (text: string): number =>
-    Number.parseFloat(text.replaceAll(",", "").replace(/[^0-9.-]/g, ""));
+  // BenchmarkDotNet prints a unit with every cell and picks it per column ("20.00 ns",
+  // "3,745.69 ns", or "1.079 μs" when a column's values are larger), so the unit is read, not assumed.
+  const scaled = (text: string, units: Record<string, number>): number => {
+    const match = /^\s*(-?[\d,]*\.?\d+)\s*(\S+)\s*$/.exec(text);
+    if (match === null) return Number.NaN;
+    const factor = units[match[2] as string];
+    if (factor === undefined) throw new Error(`unknown unit in "${text}"`);
+    return Number.parseFloat((match[1] as string).replaceAll(",", "")) * factor;
+  };
+  const TIME = { ns: 1, μs: 1e3, µs: 1e3, us: 1e3, ms: 1e6, s: 1e9 };
+  const BYTES = { B: 1, KB: 1024, MB: 1024 * 1024 };
   const rows: RowResult[] = [];
   for (const line of lines.slice(1)) {
     const fields = parseCsvLine(line);
@@ -115,8 +124,10 @@ function parseReport(csvPath: string): RowResult[] {
     const methodName = (fields[method] as string).replace(/^'|'$/g, "");
     const name = OP_NAMES[methodName];
     if (name === undefined) continue;
-    const ns = number(fields[mean] as string);
-    const bytes = number(fields[allocated] as string);
+    const ns = scaled(fields[mean] as string, TIME);
+    // "-" means BenchmarkDotNet measured no allocation column for the row.
+    const bytes =
+      fields[allocated] === "-" ? Number.NaN : scaled(fields[allocated] as string, BYTES);
     if (!Number.isFinite(ns)) throw new Error(`no mean in ${line}`);
     rows.push({
       impl: "C# NepDate 2.0.7 (.NET 10)",
