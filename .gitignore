@@ -8,3 +8,5 @@ packages/*/NOTICE
 packages/nepdate/README.md
 *.tgz
 .readme-check/
+reports/
+.stryker-tmp/

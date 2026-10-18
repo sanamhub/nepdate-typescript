@@ -28,8 +28,9 @@ AC:
   `vitest.config.ts` and the package test directory.
 - Scope: every `.ts` file under the two `src/` trees, excluding `*.gen.ts` and any path ADR-0004
   excludes from coverage. Nothing else is mutated.
-- `concurrency: 4`; the Stryker temp and incremental directories are under
-  `D:\devcache\stryker\`; the JSON reports go to `reports/mutation/`.
+- `concurrency` is at most 4; the committed value is 2, because four Vitest workers on this
+  machine hit a V8 out-of-memory crash in the property test. The Stryker temp and incremental
+  directories are under `D:\devcache\stryker\`; the JSON reports go to `reports/mutation/`.
 - Add `npm run mutation` to run both configs in order, after a build so the patro tests resolve
   `nepdate`.
 - Add `docs/adr/0007-mutation-testing.md`: the tool and pins, the scope and exclusions, the score
@@ -38,7 +39,7 @@ AC:
 
 AC:
 - `npm run mutation -- --help` or a scoped `npx stryker run <config> --mutate <one file>` starts and
-  uses the vitest runner, concurrency 4 and the D: temp directory.
+  uses the vitest runner, the configured concurrency and the D: temp directory.
 - The config's `mutate` list contains both sources and neither generated table; a dry run reports
   the expected file count and no generated file.
 - ADR-0007 states the tool, pins, scope, score formula, equivalent rule, floor rule and run
