@@ -8,6 +8,7 @@ import { checkMembers } from "./tarball-check.ts";
 interface TestMember {
   readonly name: string;
   readonly data: Buffer;
+  readonly type?: string;
 }
 
 function packageJson(fields: Record<string, unknown> = {}): TestMember {
@@ -128,4 +129,55 @@ test("a missing package.json fails", () => {
     PATRO,
   );
   assert.deepEqual(errors, ["package/package.json is missing"]);
+});
+
+test("an install lifecycle script in the packed manifest fails", () => {
+  for (const name of ["preinstall", "install", "postinstall", "prepare", "prepublishOnly"]) {
+    const members = allowed().map((member) =>
+      member.name === "package/package.json"
+        ? packageJson({ scripts: { build: "tsc", [name]: "node evil.js" } })
+        : member,
+    );
+    const errors = checkMembers(members, PATRO);
+    assert.deepEqual(errors, [
+      `package.json has the install lifecycle script ${name}, expected none`,
+    ]);
+  }
+});
+
+test("ordinary scripts in the packed manifest pass", () => {
+  const members = allowed().map((member) =>
+    member.name === "package/package.json"
+      ? packageJson({ scripts: { build: "tsc", test: "vitest" } })
+      : member,
+  );
+  assert.deepEqual(checkMembers(members, PATRO), []);
+});
+
+test("a symlink member fails", () => {
+  const errors = checkMembers(
+    [...allowed(), { name: "package/dist/link.js", data: Buffer.alloc(0), type: "2" }],
+    PATRO,
+  );
+  assert.deepEqual(errors, [
+    "member package/dist/link.js has tar type 2, expected a regular file or directory",
+  ]);
+});
+
+test("a pax header member fails", () => {
+  const errors = checkMembers(
+    [...allowed(), { name: "package/PaxHeader/index.js", data: Buffer.from("x"), type: "x" }],
+    PATRO,
+  );
+  assert.match(errors[0] as string, /has tar type x/);
+});
+
+test("a path that climbs out of dist fails", () => {
+  const errors = checkMembers(
+    [...allowed(), { name: "package/dist/../src/index.ts", data: Buffer.from("x") }],
+    PATRO,
+  );
+  assert.deepEqual(errors, [
+    "member package/dist/../src/index.ts has a relative path segment, expected a plain path",
+  ]);
 });

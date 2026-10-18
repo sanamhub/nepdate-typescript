@@ -78,8 +78,8 @@ be used. For 0.1.0 only:
 
 ## What the workflow jobs do
 
-`release.yml` has five jobs. The default permission is `contents: read`; only `publish` gets
-`contents: write` and `id-token: write`.
+`release.yml` has six jobs. The default permission is `contents: read`; only `publish` gets
+`id-token: write`, and only `github-release` gets `contents: write`.
 
 `pack` runs on a runner with no secrets:
 
@@ -92,12 +92,14 @@ be used. For 0.1.0 only:
 6. `scripts/release-check.ts` checks both manifests, the peer range, the empty `[Unreleased]`
    section and the changelog section, and names the expected value on every failure.
 7. `scripts/data-status.ts` reads the built patro tables and blocks the release when fewer than
-   183 days of public holiday data remain. Tithi and event warnings are printed and copied into the
-   release notes.
+   183 days of public holiday data remain. Tithi and event warnings are printed in the job log;
+   copy them into the release notes by hand.
 8. Build both packages, `npm pack` each one into `release-tarballs`, and run
    `scripts/tarball-check.ts --sums release-tarballs/SHA256SUMS`. The check allows only `dist/`,
    `LICENSE`, `NOTICE`, `README.md` and `package.json` in each tarball, checks the version and peer
-   range, and rejects `devDependencies` or runtime dependencies. Then run `publint` and `attw` on
+   range, and rejects `devDependencies`, runtime dependencies, install lifecycle scripts
+   (`preinstall`, `install`, `postinstall`, `prepare` and the publish and pack hooks), tar members
+   that are not regular files or directories, and paths with `.` or `..` segments. Then run `publint` and `attw` on
    each tarball and upload the directory including `SHA256SUMS` for seven days. The job output
    carries the version to `smoke`.
 
@@ -117,7 +119,7 @@ be used. For 0.1.0 only:
 blocks the release.
 
 `publish` runs only when `github.event_name == 'push'` and the ref starts with `refs/tags/v`. It needs
-both `pack` and `smoke`:
+`pack`, `smoke` and `mutation`, and has `contents: read` and `id-token: write`:
 
 1. Wait for the `production` environment reviewer.
 2. Check out the tag with full history, then refuse a commit that is not on `origin/main`:
@@ -133,13 +135,17 @@ both `pack` and `smoke`:
    `npm view <name>@X.Y.Z version`; if the version already exists the step is skipped, so a
    half-finished release can be re-run without publishing twice. Publishing uses OIDC trusted
    publishing and `--provenance --access public`; the token fallback is above.
-6. Create the GitHub Release `vX.Y.Z` from the changelog section and attach both tarballs.
 
 `verify` needs `publish`. It has `contents: read`, no `id-token` and no environment. It creates a
 clean temporary project and installs `nepdate@X.Y.Z` and `nepdate-patro@X.Y.Z` from the public
 registry. A failed install is retried every 30 seconds for up to 10 minutes. It then runs the README
 quick start (`NepaliDate.of(2081, 2, 15)`, `toGregorian`, `toJSON`, `long`) and one `info()` call
 that checks Republic Day. A failed verify job means the release is not done.
+
+`github-release` needs `publish` and `verify` and is the only job with `contents: write`. It checks
+out the tag, downloads the tarballs, runs `sha256sum -c SHA256SUMS` again, and creates the GitHub
+Release `vX.Y.Z` from the changelog section with both tarballs attached. Because it waits for
+`verify`, a failed verify leaves no release page for packages that are about to be deprecated.
 
 If `verify` fails, do not publish the same files again and do not use a different build under the
 same version. Deprecate both packages with a reason, fix the cause on `main`, and publish the next

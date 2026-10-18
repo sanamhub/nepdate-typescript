@@ -11,6 +11,9 @@ import { gunzipSync } from "node:zlib";
 interface Member {
   readonly name: string;
   readonly data: Buffer;
+  // The tar typeflag: "0" (or "" in old tars) is a regular file, "5" a directory. Anything else
+  // (links, pax headers that override the name) is rejected rather than interpreted.
+  readonly type?: string;
 }
 
 interface ExpectedManifest {
@@ -20,6 +23,21 @@ interface ExpectedManifest {
 }
 
 const ALLOWED_FILES = new Set(["package.json", "LICENSE", "NOTICE", "README.md"]);
+
+// npm runs these scripts from the consumer's install; a packed manifest must not carry any of them.
+// Other script names (build, test) stay in the manifest and are never run by an install.
+const LIFECYCLE_SCRIPTS = new Set([
+  "preinstall",
+  "install",
+  "postinstall",
+  "prepare",
+  "preprepare",
+  "postprepare",
+  "prepublish",
+  "prepublishOnly",
+  "prepack",
+  "postpack",
+]);
 
 function readString(header: Buffer, offset: number, length: number): string {
   const field = header.subarray(offset, offset + length);
@@ -42,6 +60,7 @@ export function tarMembers(path: string): Member[] {
     members.push({
       name: prefix === "" ? name : `${prefix}/${name}`,
       data: buffer.subarray(dataStart, dataStart + size),
+      type: readString(header, 156, 1),
     });
     offset = dataStart + Math.ceil(size / 512) * 512;
   }
@@ -79,6 +98,12 @@ function manifestErrors(member: Member, expected: ExpectedManifest): string[] {
   if (manifest.devDependencies !== undefined) {
     errors.push(`package.json has devDependencies, expected none`);
   }
+  const scripts = manifest.scripts as Record<string, string> | undefined;
+  for (const name of Object.keys(scripts ?? {}).sort()) {
+    if (LIFECYCLE_SCRIPTS.has(name)) {
+      errors.push(`package.json has the install lifecycle script ${name}, expected none`);
+    }
+  }
   for (const field of ["dependencies", "optionalDependencies"]) {
     const value = manifest[field] as Record<string, string> | undefined;
     if (value !== undefined && Object.keys(value).length > 0) {
@@ -92,7 +117,18 @@ export function checkMembers(members: readonly Member[], expected: ExpectedManif
   const errors: string[] = [];
   let manifest: Member | undefined;
   for (const member of members) {
-    if (member.name.endsWith("/")) continue;
+    const type = member.type ?? "0";
+    if (type !== "0" && type !== "" && type !== "5") {
+      errors.push(
+        `member ${member.name} has tar type ${type}, expected a regular file or directory`,
+      );
+      continue;
+    }
+    if (member.name.split("/").some((part) => part === ".." || part === ".")) {
+      errors.push(`member ${member.name} has a relative path segment, expected a plain path`);
+      continue;
+    }
+    if (type === "5" || member.name.endsWith("/")) continue;
     if (!member.name.startsWith("package/")) {
       errors.push(`unexpected member ${member.name}, expected package/ prefix`);
       continue;

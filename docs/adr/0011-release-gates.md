@@ -36,7 +36,11 @@ same problems in their ports. This ADR applies their rules to npm.
    `package/package.json`. A source, test or script path, or a map outside `dist/`, fails. The
    `package.json` in the tarball must name the release version, must carry the patro peer range
    `~X.Y.Z`, and must not carry `devDependencies`, `dependencies` or `optionalDependencies`. The core
-   tarball must not carry a patro peer.
+   tarball must not carry a patro peer. The packed manifest may keep its `scripts` field, but an
+   install lifecycle script (`preinstall`, `install`, `postinstall`, `prepare`, `preprepare`,
+   `postprepare`, `prepublish`, `prepublishOnly`, `prepack`, `postpack`) fails, because npm would run
+   it on a consumer's machine. A tar member that is not a regular file or directory (a link, or a pax
+   header that could rename the next member) fails, and so does a path with a `.` or `..` segment.
 
    The patro source manifest no longer lists `nepdate` in `devDependencies`. The npm workspace still
    links the local core for development and tests. This supersedes only the devDependency sentence
@@ -57,6 +61,11 @@ same problems in their ports. This ADR applies their rules to npm.
    When verification fails, the release is not done. Do not publish the same files again and do not
    use a different build for the same version. Deprecate both packages, fix the cause on `main`, and
    publish the next patch version of both. `docs/runbooks/release.md` carries the commands.
+
+6. **The GitHub Release waits for verify.** A `github-release` job with `needs: [publish, verify]`
+   is the only job with `contents: write`; `publish` has `contents: read` and `id-token: write`. It
+   runs `sha256sum -c SHA256SUMS` on the downloaded tarballs before `gh release create`. A failed
+   verify therefore leaves no release page, as in the Python port (P11).
 
 ## Consequences
 

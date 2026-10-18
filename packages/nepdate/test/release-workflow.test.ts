@@ -71,6 +71,33 @@ export function verifyProblems(text: string): string[] {
   return found;
 }
 
+// The GitHub release waits for verify, so a failed verify leaves no release page behind.
+export function githubReleaseProblems(text: string): string[] {
+  const lines = text.split(/\r?\n/).filter((line) => !line.trimStart().startsWith("#"));
+  const found: string[] = [];
+  const release = job(lines, "github-release").join("\n");
+  if (release === "") {
+    found.push("release workflow must have a github-release job");
+    return found;
+  }
+  const needs = /needs:\s*\[(.*?)\]/.exec(release);
+  const names = needs === null ? [] : (needs[1] as string).split(",").map((name) => name.trim());
+  if (!names.includes("verify")) found.push("github-release must need verify");
+  if (!release.includes("permissions:\n      contents: write")) {
+    found.push("github-release must set contents: write");
+  }
+  if (release.includes("id-token")) found.push("github-release must not request id-token");
+  if (release.includes("npm publish")) found.push("github-release must not publish to npm");
+  if (!release.includes("gh release create")) {
+    found.push("github-release must create the GitHub release");
+  }
+  const checksumAt = release.indexOf("sha256sum -c SHA256SUMS");
+  if (checksumAt < 0 || checksumAt > release.indexOf("gh release create")) {
+    found.push("github-release must verify the tarball checksums first");
+  }
+  return found;
+}
+
 export function problems(text: string): string[] {
   // A rule must be met by live YAML: a commented-out key or step does not count.
   const lines = text.split(/\r?\n/).filter((line) => !line.trimStart().startsWith("#"));
@@ -111,8 +138,14 @@ export function problems(text: string): string[] {
   if (!publish.includes("environment: production")) {
     found.push("publish must use the production environment");
   }
-  if (!publish.includes("contents: write") || !publish.includes("id-token: write")) {
-    found.push("publish needs contents: write and id-token: write");
+  if (!publish.includes("contents: read") || !publish.includes("id-token: write")) {
+    found.push("publish needs contents: read and id-token: write");
+  }
+  if (publish.includes("contents: write")) {
+    found.push("publish must not have contents: write");
+  }
+  if (publish.includes("gh release")) {
+    found.push("publish must not create the GitHub release");
   }
   if (!publish.includes("github.event_name == 'push'") || !publish.includes("refs/tags/v")) {
     found.push("publish must run only on a tag push");
@@ -205,6 +238,7 @@ export function problems(text: string): string[] {
   }
   if (!/^\s{2}pack:/m.test(text)) found.push("release workflow must have a pack job");
   found.push(...verifyProblems(text));
+  found.push(...githubReleaseProblems(text));
   return found;
 }
 
@@ -292,6 +326,7 @@ jobs:
       "check the tarball contents",
       "upload the tarballs",
       "verify job",
+      "github-release job",
     ]) {
       expect(
         found.some((candidate) => candidate.includes(message)),
@@ -338,5 +373,35 @@ jobs:
     const bad = SHIPPED.slice(0, start) + block;
     expect(bad).not.toEqual(SHIPPED);
     expect(problems(bad)).toContain("verify must not request id-token");
+  });
+
+  it("reports a GitHub release that does not need verify", () => {
+    const wrong = SHIPPED.replace(
+      "  github-release:\n    needs: [publish, verify]",
+      "  github-release:\n    needs: [publish]",
+    );
+    expect(wrong).not.toEqual(SHIPPED);
+    expect(problems(wrong)).toContain("github-release must need verify");
+  });
+
+  it("reports a GitHub release created in the publish job", () => {
+    const moved = SHIPPED.replace(
+      "      - name: Publish nepdate\n",
+      '      - name: Release early\n        run: gh release create "v$VERSION"\n      - name: Publish nepdate\n',
+    );
+    expect(moved).not.toEqual(SHIPPED);
+    expect(problems(moved)).toContain("publish must not create the GitHub release");
+  });
+
+  it("reports contents: write on publish", () => {
+    const start = SHIPPED.indexOf("  publish:");
+    const end = SHIPPED.indexOf("  verify:");
+    const block = SHIPPED.slice(start, end).replace(
+      "      contents: read\n",
+      "      contents: write\n",
+    );
+    const bad = SHIPPED.slice(0, start) + block + SHIPPED.slice(end);
+    expect(bad).not.toEqual(SHIPPED);
+    expect(problems(bad)).toContain("publish must not have contents: write");
   });
 });
