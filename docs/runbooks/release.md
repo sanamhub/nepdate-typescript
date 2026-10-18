@@ -54,7 +54,14 @@ be used. For 0.1.0 only:
 1. Create one granular access token: read and write, all packages, expires in one day. Store it as
    `NPM_TOKEN` in the `production` environment. Do not paste it anywhere else.
 2. Push the tag and approve the environment. The workflow publishes both packages with the token and
-   `--provenance`.
+   `--provenance`. Both publish steps receive `NODE_AUTH_TOKEN` from `secrets.NPM_TOKEN`; when the
+   secret is empty they unset it before `npm publish`, so npm uses OIDC trusted publishing instead of
+   an empty token. `actions/setup-node@v7` no longer writes a dummy token, and its trusted-publishing
+   example passes no token
+   ([v7 notes](https://github.com/actions/setup-node#whats-new-in-v7),
+   [OIDC example](https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#publishing-to-npm-with-trusted-publisher-oidc)).
+   The empty-token rule is what makes the two paths safe to keep in one workflow: a real token for
+   the first publish, OIDC after the secret is deleted.
 3. On npmjs.com, for `nepdate`: Settings, Trusted publishing, repository
    `sanamhub/nepdate-typescript`, workflow `release.yml`, environment `production`. Then enable
    "Require 2FA and disallow tokens".
@@ -64,7 +71,7 @@ be used. For 0.1.0 only:
 
 ## What the workflow jobs do
 
-`release.yml` has two jobs. The default permission is `contents: read`; only `publish` gets
+`release.yml` has three jobs. The default permission is `contents: read`; only `publish` gets
 `contents: write` and `id-token: write`.
 
 `pack` runs on a runner with no secrets:
@@ -78,21 +85,34 @@ be used. For 0.1.0 only:
 6. `scripts/release-check.ts` checks both manifests, the peer range, the dev range and the changelog
    section.
 7. Build both packages, `npm pack` each one into `release-tarballs`, run `publint` and `attw` on each
-   tarball, and upload the artifact for seven days.
+   tarball, and upload the artifact for seven days. The job output carries the version to `smoke`.
 
-`publish` runs only when `github.event_name == 'push'` and the ref starts with `refs/tags/v`:
+`smoke` needs `pack`. It has `contents: read`, no environment and no secret:
+
+1. Check out the tag, download the `release-tarballs` artifact, and set up Node 24.
+2. Create a clean project, install only `nepdate-X.Y.Z.tgz`, and run the README core example.
+   `scripts/smoke.ts --mode core` reads the example from `README.md`, runs it, and fails if
+   `node_modules/nepdate-patro` exists.
+3. Create a second clean project, install both tarballs, and run the README patro example.
+   `--mode patro` also checks `coverage()` reports BS 2077-01-01 to 2084-08-20.
+4. No registry login is used. A broken README example fails this job, so the published npm page and
+   the tarballs are checked against the same text.
+
+`publish` runs only when `github.event_name == 'push'` and the ref starts with `refs/tags/v`. It needs
+both `pack` and `smoke`:
 
 1. Wait for the `production` environment reviewer.
-2. Download the tarballs from `pack`. The tag commit is checked out again for the changelog.
-3. Set up Node with the npm registry, read the version and run `release-check` again.
-4. Publish `nepdate`, then `nepdate-patro`. Each step first runs
+2. Check out the tag with full history, then refuse a commit that is not on `origin/main`:
+   `git fetch --no-tags origin main` and `git merge-base --is-ancestor "$COMMIT_SHA" origin/main`.
+   The SHA comes from `${{ github.sha }}` through `env`, never from a `run:` expression. A tag on a
+   side branch stops here, before any tarball is downloaded.
+3. Download the tarballs from `pack`. The tag commit is checked out again for the changelog.
+4. Set up Node with the npm registry, read the version and run `release-check` again.
+5. Publish `nepdate`, then `nepdate-patro`. Each step first runs
    `npm view <name>@X.Y.Z version`; if the version already exists the step is skipped, so a
    half-finished release can be re-run without publishing twice. Publishing uses OIDC trusted
-   publishing and `--provenance --access public`.
-5. Create the GitHub Release `vX.Y.Z` from the changelog section and attach both tarballs.
-
-There is no smoke job in the workflow today. ADR-0005 asks for one. Run the two smoke installs below
-by hand until the job is added, and open an issue for the gap before the release is announced.
+   publishing and `--provenance --access public`; the token fallback is above.
+6. Create the GitHub Release `vX.Y.Z` from the changelog section and attach both tarballs.
 
 ## Verify on npm
 
@@ -131,11 +151,13 @@ peer. A local `npm pack` before publishing is not evidence about the registry.
 
 ## Smoke installs
 
-Core only: a clean project installs `nepdate@X.Y.Z`, runs the README core example, and has no
-`node_modules/nepdate-patro`. Both packages: a second clean project installs `nepdate@X.Y.Z` and
-`nepdate-patro@X.Y.Z`, runs the README patro example, and checks `coverage()` reports BS 2077-01-01
-to 2084-08-20. If Deno is available, run the `npm:nepdate@X.Y.Z` example from the README. Record the
-Node, npm and Deno versions in the release notes.
+The `smoke` job runs the two installs on every release. Run them again by hand only if the job was
+skipped or a tarball was rebuilt outside the workflow. Core only: a clean project installs
+`nepdate@X.Y.Z`, runs the README core example, and has no `node_modules/nepdate-patro`. Both
+packages: a second clean project installs both versions, runs the README patro example, and checks
+`coverage()` reports BS 2077-01-01 to 2084-08-20. If Deno is available, run the
+`npm:nepdate@X.Y.Z` example from the README. Record the Node, npm and Deno versions in the release
+notes.
 
 ## Rollback
 
