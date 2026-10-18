@@ -171,8 +171,14 @@ export function coverageErrors(
     }
   }
   for (const entry of allowList) {
-    if (!labels.has(entry.label)) {
+    const declaration = declarations.find((candidate) => candidate.label === entry.label);
+    if (declaration === undefined || !labels.has(entry.label)) {
       errors.push(`allow-list entry ${entry.label} has no example`);
+    } else if (declaration.examples.every((example) => example.includes(RESULT_MARKER))) {
+      // Once every example of an entry has a result, the entry hides nothing and must go.
+      errors.push(
+        `allow-list entry ${entry.label} is stale: every example has a ${RESULT_MARKER} result`,
+      );
     }
   }
   return errors;

@@ -27,9 +27,24 @@ export const PACKAGES: readonly PackageSource[] = [
   { name: "nepdate-patro", entry: "packages/nepdate-patro/dist/index.d.ts" },
 ];
 
+const printer = ts.createPrinter({ removeComments: true });
+
 function canonical(node: ts.Node): string {
+  // Printed without comments, so a TSDoc line on an option property does not change the surface.
   // A trailing semicolon before a closing brace is optional, so drop it and compare the type shape.
-  return node.getText().replace(/\s+/g, " ").trim().replace(/;\s*}/g, " }");
+  return printer
+    .printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/;\s*}/g, " }");
+}
+
+// A declaration kind the reader does not know would otherwise vanish from the surface, so an
+// added export could never fail the gate. Fail loudly instead and extend the reader.
+function unsupported(node: ts.Node, where: string): never {
+  throw new Error(
+    `api-surface: unsupported ${ts.SyntaxKind[node.kind]} in ${where}: ${node.getText().slice(0, 80)}`,
+  );
 }
 
 function hasModifier(node: ts.Node, kind: ts.SyntaxKind): boolean {
@@ -42,17 +57,9 @@ function isExported(node: ts.Node): boolean {
   return hasModifier(node, ts.SyntaxKind.ExportKeyword);
 }
 
+// Private members are not surface. Protected members are, because a subclass can call them.
 function isHidden(node: ts.Node): boolean {
-  if (!ts.canHaveModifiers(node)) return false;
-  return (
-    ts
-      .getModifiers(node)
-      ?.some(
-        (modifier) =>
-          modifier.kind === ts.SyntaxKind.PrivateKeyword ||
-          modifier.kind === ts.SyntaxKind.ProtectedKeyword,
-      ) ?? false
-  );
+  return hasModifier(node, ts.SyntaxKind.PrivateKeyword);
 }
 
 function parameterText(parameter: ts.ParameterDeclaration): string {
@@ -93,7 +100,9 @@ function classMember(member: ts.ClassElement): string | undefined {
   const named = member as ts.NamedDeclaration;
   if (named.name !== undefined && ts.isPrivateIdentifier(named.name)) return undefined;
   const name = ts.isConstructorDeclaration(member) ? "constructor" : (named.name?.getText() ?? "");
-  const staticPrefix = hasModifier(member, ts.SyntaxKind.StaticKeyword) ? "static " : "";
+  const staticPrefix = `${hasModifier(member, ts.SyntaxKind.ProtectedKeyword) ? "protected " : ""}${
+    hasModifier(member, ts.SyntaxKind.StaticKeyword) ? "static " : ""
+  }`;
 
   if (ts.isConstructorDeclaration(member)) {
     return signature(name, member.parameters, undefined, undefined);
@@ -105,8 +114,9 @@ function classMember(member: ts.ClassElement): string | undefined {
     return `${staticPrefix}${readonly}${name}${optional}${type}`;
   }
   if (ts.isMethodDeclaration(member)) {
+    const optional = member.questionToken === undefined ? "" : "?";
     return `${staticPrefix}${signature(
-      name,
+      `${name}${optional}`,
       member.parameters,
       member.type,
       member.typeParameters,
@@ -121,7 +131,8 @@ function classMember(member: ts.ClassElement): string | undefined {
   if (ts.isIndexSignatureDeclaration(member)) {
     return `[${member.parameters.map(parameterText).join(", ")}]: ${canonical(member.type)}`;
   }
-  return undefined;
+  if (ts.isSemicolonClassElement(member)) return undefined;
+  return unsupported(member, "a class");
 }
 
 function declarationEntries(declaration: ts.Node): string[] {
@@ -171,11 +182,25 @@ function declarationEntries(declaration: ts.Node): string[] {
             member.typeParameters,
           )}`,
         );
+      } else {
+        unsupported(member, `interface ${declaration.name.text}`);
       }
     }
     return entries;
   }
-  return [];
+  if (ts.isVariableDeclaration(declaration) && ts.isIdentifier(declaration.name)) {
+    const list = declaration.parent;
+    const keyword =
+      ts.isVariableDeclarationList(list) && (list.flags & ts.NodeFlags.Const) !== 0
+        ? "const"
+        : "let";
+    const type = declaration.type === undefined ? "" : `: ${canonical(declaration.type)}`;
+    return [`export ${keyword} ${declaration.name.text}${type}`];
+  }
+  if (ts.isVariableStatement(declaration)) {
+    return declaration.declarationList.declarations.flatMap(declarationEntries);
+  }
+  return unsupported(declaration, "the exports");
 }
 
 function sourceEntries(checker: ts.TypeChecker, sourceFile: ts.SourceFile): string[] {
@@ -185,8 +210,13 @@ function sourceEntries(checker: ts.TypeChecker, sourceFile: ts.SourceFile): stri
   for (const exported of checker.getExportsOfModule(moduleSymbol)) {
     const symbol =
       (exported.flags & ts.SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(exported) : exported;
-    const declaration = symbol.declarations?.find((candidate) => !ts.isExportSpecifier(candidate));
-    if (declaration !== undefined) entries.push(...declarationEntries(declaration));
+    // Every declaration counts, so each overload of a function is its own entry.
+    const declarations = (symbol.declarations ?? []).filter(
+      (candidate) => !ts.isExportSpecifier(candidate),
+    );
+    if (declarations.length === 0)
+      unsupported(exported.declarations?.[0] ?? sourceFile, "the exports");
+    for (const declaration of declarations) entries.push(...declarationEntries(declaration));
   }
   return entries;
 }

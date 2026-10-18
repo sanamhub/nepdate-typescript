@@ -116,3 +116,20 @@ test("checkExamples reports a missing example before running anything", () => {
     file.cleanup();
   }
 });
+
+test("an allow-list entry whose examples all have results is stale", () => {
+  const result = coverageErrors(
+    declarations(
+      [
+        "/**",
+        " * @example",
+        ' * monthName(2); // => "Jestha"',
+        " */",
+        "export declare function monthName(month: number): string;",
+      ].join("\n"),
+    ),
+    [{ label: "nepdate:monthName" }],
+  );
+  assert.equal(result.length, 1);
+  assert.match(result[0] as string, /allow-list entry nepdate:monthName is stale/);
+});

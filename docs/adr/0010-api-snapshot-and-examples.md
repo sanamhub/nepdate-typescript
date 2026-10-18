@@ -27,10 +27,16 @@ compares the contract's declarations with it. The other runs every public exampl
    - exported classes, their `extends` and `implements` clauses, and every public static or instance
      member (properties, getters, methods, constructors);
    - exported interfaces and their members;
-   - exported type aliases, including enum-like unions.
+   - exported type aliases, including enum-like unions;
+   - exported `const` and `let` bindings;
+   - every overload of a function as its own entry.
 
-   Private and protected members, `#private` fields and private constructors are not public surface
-   and are left out. A class member is qualified with its class, for example
+   Private members, `#private` fields and private constructors are not public surface and are left
+   out. Protected members are kept, prefixed `protected`, because a subclass can call them. Types
+   are printed without comments, so a TSDoc line inside an option type does not change an entry.
+   Any other declaration kind (an enum, a namespace, an interface call signature) makes the reader
+   throw, so a new kind of export cannot silently drop out of the surface; the reader is extended
+   first. A class member is qualified with its class, for example
    `NepaliDate static of(...): NepaliDate` or `DateDiff readonly days: number`, so two classes with
    the same member name cannot collapse into one snapshot line.
 
@@ -54,7 +60,9 @@ compares the contract's declarations with it. The other runs every public exampl
    checks README blocks, declaration comments and prose; the snapshot needs the built `dist/` trees
    and a separate committed artifact, so it gets its own numbered gate. `scripts/api-surface.test.ts`
    is in the gate 9 Node test list and covers a rename, a signature change, an undocumented
-   addition, a documented addition with a stale snapshot, and a name only in prose.
+   addition, a documented addition with a stale snapshot, a name only in prose, a changed class
+   method, a removed getter, a changed factory return type, overloads, an exported `const`, an
+   unsupported export kind and a protected member.
 
 ### Runnable examples
 
@@ -74,7 +82,8 @@ compares the contract's declarations with it. The other runs every public exampl
 8. **One commented allow-list.** `scripts/examples.ts` exports the only exception:
    `nepdate:NepaliDate.today`, because the clock makes its result non-deterministic. Each entry has
    a reason comment. No other declaration may be allow-listed without changing that file and its
-   test. The `today` example still runs; only its result comparison is skipped.
+   test. The `today` example still runs; only its result comparison is skipped. An entry whose
+   examples all gained a `// =>` result is stale and fails the gate.
 
 9. **Values come from the hub data.** The examples for `info`, `coverage` and `publicHolidays` use
    days from `shared/data/patro/`, not invented tithi, holiday or event values.

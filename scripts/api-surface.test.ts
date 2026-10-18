@@ -111,3 +111,80 @@ test("snapshotText is sorted, deduplicated and round-trips", () => {
     fixture: ["export function a(): void", "export function z(): void"],
   });
 });
+
+const CLASS_BASE = [
+  "export declare class NepaliDate {",
+  "  readonly year: number;",
+  "  get weekday(): number;",
+  "  addDays(n: number): NepaliDate;",
+  "  static of(year: number, month: number, day: number): NepaliDate;",
+  "}",
+].join("\n");
+const classLive = liveSurface(CLASS_BASE);
+
+test("a changed method signature on a class fails against the stale snapshot", () => {
+  const changed = liveSurface(
+    CLASS_BASE.replace("addDays(n: number): NepaliDate", "addDays(n: bigint): NepaliDate"),
+  );
+  const result = staleSnapshotErrors(changed, classLive);
+  assert.equal(result.length, 1);
+  assert.match(result[0] as string, /missing NepaliDate addDays\(n: bigint\): NepaliDate/);
+  assert.match(result[0] as string, /stale NepaliDate addDays\(n: number\): NepaliDate/);
+});
+
+test("a removed getter fails against the stale snapshot", () => {
+  const removed = liveSurface(CLASS_BASE.replace("  get weekday(): number;\n", ""));
+  const result = staleSnapshotErrors(removed, classLive);
+  assert.equal(result.length, 1);
+  assert.match(result[0] as string, /stale NepaliDate get weekday\(\): number/);
+});
+
+test("a static factory that changes its return type fails", () => {
+  const changed = liveSurface(
+    CLASS_BASE.replace(
+      "static of(year: number, month: number, day: number): NepaliDate",
+      "static of(year: number, month: number, day: number): NepaliDate | null",
+    ),
+  );
+  assert.equal(staleSnapshotErrors(changed, classLive).length, 1);
+});
+
+test("every overload of a function is its own entry", () => {
+  const live = liveSurface(
+    [
+      "export declare function pick(value: string): string;",
+      "export declare function pick(value: number): number;",
+    ].join("\n"),
+  );
+  assert.deepEqual(live.nepdate, [
+    "export function pick(value: number): number",
+    "export function pick(value: string): string",
+  ]);
+});
+
+test("an exported const is part of the surface", () => {
+  const live = liveSurface("export declare const LIMIT: number;");
+  assert.deepEqual(live.nepdate, ["export const LIMIT: number"]);
+});
+
+test("an export kind the reader does not know fails loudly instead of vanishing", () => {
+  assert.throws(
+    () => liveSurface("export declare enum Mode { A, B }"),
+    /unsupported EnumDeclaration/,
+  );
+});
+
+test("a TSDoc comment inside an option type does not change the surface", () => {
+  const plain = liveSurface(
+    "export declare function f(opts?: { readonly pad?: boolean }): string;",
+  );
+  const commented = liveSurface(
+    "export declare function f(opts?: {\n  /** Pad with zeros. */\n  readonly pad?: boolean;\n}): string;",
+  );
+  assert.deepEqual(commented, plain);
+});
+
+test("a protected member is part of the surface", () => {
+  const live = liveSurface("export declare class Base {\n  protected step(): void;\n}");
+  assert.deepEqual(live.nepdate, ["Base protected step(): void", "export class Base"]);
+});
