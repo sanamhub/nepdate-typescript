@@ -104,7 +104,7 @@ AD 1943-04-14 (BS 2000-01-01) and is timed on the other 63. `LOADED` rows are ob
 verdicts; agreement does not depend on load.
 
 | Package | B1 ns/op | B1 load | B1 status | B1 agrees | B2 ns/op | B2 load | B2 status | B2 agrees | First in-range mismatch |
-|---|---:|---:|---|---:|---:|---|---|---|
+|---|---:|---:|---|---|---:|---:|---|---|---|
 | `nepali-date-converter@3.4.0` | 12673.9 | 47% | LOADED | no | 23619.7 | 73% | LOADED | no | B1 BS 2086-07-23 off 1; B2 AD 2029-11-08 off 1 |
 | `bikram-sambat@1.8.1` | 3828.8 | 56% | LOADED | no | 1959.6 | 34% | LOADED | no | B1 BS 2088-01-04 off 1; B2 AD 2031-04-19 off 1 |
 | `bikram-sambat-js@1.0.3` | 13765.0 | 13% | final | no | 12894.5 | 13% | final | no | B1 BS 2088-01-04 off 1; B2 AD 1956-04-08 off 1 |

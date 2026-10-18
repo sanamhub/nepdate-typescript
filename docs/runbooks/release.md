@@ -54,14 +54,16 @@ be used. For 0.1.0 only:
 1. Create one granular access token: read and write, all packages, expires in one day. Store it as
    `NPM_TOKEN` in the `production` environment. Do not paste it anywhere else.
 2. Push the tag and approve the environment. The workflow publishes both packages with the token and
-   `--provenance`. Both publish steps receive `NODE_AUTH_TOKEN` from `secrets.NPM_TOKEN`; when the
-   secret is empty they unset it before `npm publish`, so npm uses OIDC trusted publishing instead of
-   an empty token. `actions/setup-node@v7` no longer writes a dummy token, and its trusted-publishing
-   example passes no token
+   `--provenance`. Both publish steps receive `NODE_AUTH_TOKEN` from `secrets.NPM_TOKEN` and unset
+   it when the secret is empty, so no empty token is configured. `npm publish` (npm 11.5.1 or later)
+   tries OIDC trusted publishing first, using the job's `id-token: write`, and uses a token it
+   obtains that way in place of any configured one; only when the exchange fails does it fall back
+   to `NODE_AUTH_TOKEN`. For the first publish there is no trusted publisher yet, so the exchange
+   fails and the token is used. After steps 3 and 4 OIDC wins even while the secret still exists,
+   which is why step 5 deletes it rather than relying on it being ignored. `actions/setup-node@v7`
+   no longer writes a dummy token
    ([v7 notes](https://github.com/actions/setup-node#whats-new-in-v7),
    [OIDC example](https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#publishing-to-npm-with-trusted-publisher-oidc)).
-   The empty-token rule is what makes the two paths safe to keep in one workflow: a real token for
-   the first publish, OIDC after the secret is deleted.
 3. On npmjs.com, for `nepdate`: Settings, Trusted publishing, repository
    `sanamhub/nepdate-typescript`, workflow `release.yml`, environment `production`. Then enable
    "Require 2FA and disallow tokens".

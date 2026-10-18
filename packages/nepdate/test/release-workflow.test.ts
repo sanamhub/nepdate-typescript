@@ -35,7 +35,8 @@ function count(text: string, needle: string): number {
 }
 
 export function problems(text: string): string[] {
-  const lines = text.split(/\r?\n/);
+  // A rule must be met by live YAML: a commented-out key or step does not count.
+  const lines = text.split(/\r?\n/).filter((line) => !line.trimStart().startsWith("#"));
   const found: string[] = [];
 
   const permissionsAt = lines.indexOf("permissions:");
@@ -142,6 +143,12 @@ describe("release workflow", () => {
   it("reports a missing main check", () => {
     const withoutCheck = SHIPPED.replace(/^.*merge-base --is-ancestor.*$/gm, "");
     expect(problems(withoutCheck)).toContain("publish must verify the tag is on origin/main");
+  });
+
+  it("does not accept a rule that is only met inside a comment", () => {
+    const commented = SHIPPED.replace(/^(\s*)fetch-depth: 0$/m, "$1# fetch-depth: 0");
+    expect(commented).not.toEqual(SHIPPED);
+    expect(problems(commented)).toContain("publish checkout must fetch full history");
   });
 
   it("reports every other rule in one negative example", () => {

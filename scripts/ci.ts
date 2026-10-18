@@ -129,7 +129,9 @@ const gates: [name: string, body: () => void][] = [
       patroSize();
       // The bench package is separate from the root workspaces, and its type imports need the
       // built packages, so install it here, after both builds.
-      run("npm ci --prefix bench");
+      // --ignore-scripts: the competitors are third-party code; none needs an install script today
+      // (the lockfile has no hasInstallScript entry), and a future bump must not run one here.
+      run("npm ci --prefix bench --ignore-scripts --no-audit --no-fund");
       run("npx tsc -p tsconfig.tools.json");
       run("node --test bench/report.test.ts");
     },
