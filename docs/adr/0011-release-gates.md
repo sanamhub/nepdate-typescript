@@ -37,9 +37,10 @@ same problems in their ports. This ADR applies their rules to npm.
    `package.json` in the tarball must name the release version, must carry the patro peer range
    `~X.Y.Z`, and must not carry `devDependencies`, `dependencies` or `optionalDependencies`. The core
    tarball must not carry a patro peer. The packed manifest may keep its `scripts` field, but an
-   install lifecycle script (`preinstall`, `install`, `postinstall`, `prepare`, `preprepare`,
-   `postprepare`, `prepublish`, `prepublishOnly`, `prepack`, `postpack`) fails, because npm would run
-   it on a consumer's machine. A tar member that is not a regular file or directory (a link, or a pax
+   install lifecycle script (`preinstall`, `install`, `postinstall`, and `prepare` with its pre and
+   post hooks) fails, because npm would run it on a consumer's machine. Pack hooks such as the
+   existing `prepack` that copies LICENSE and NOTICE run only where the tarball is made and stay
+   allowed. A tar member that is not a regular file or directory (a link, or a pax
    header that could rename the next member) fails, and so does a path with a `.` or `..` segment.
 
    The patro source manifest no longer lists `nepdate` in `devDependencies`. The npm workspace still

@@ -24,19 +24,16 @@ interface ExpectedManifest {
 
 const ALLOWED_FILES = new Set(["package.json", "LICENSE", "NOTICE", "README.md"]);
 
-// npm runs these scripts from the consumer's install; a packed manifest must not carry any of them.
-// Other script names (build, test) stay in the manifest and are never run by an install.
+// npm runs these scripts when a consumer installs the package (prepare also for git and directory
+// installs), so a packed manifest must not carry any of them. Pack and publish hooks such as
+// prepack run only on the maintainer's machine and stay allowed.
 const LIFECYCLE_SCRIPTS = new Set([
   "preinstall",
   "install",
   "postinstall",
-  "prepare",
   "preprepare",
+  "prepare",
   "postprepare",
-  "prepublish",
-  "prepublishOnly",
-  "prepack",
-  "postpack",
 ]);
 
 function readString(header: Buffer, offset: number, length: number): string {

@@ -132,7 +132,7 @@ test("a missing package.json fails", () => {
 });
 
 test("an install lifecycle script in the packed manifest fails", () => {
-  for (const name of ["preinstall", "install", "postinstall", "prepare", "prepublishOnly"]) {
+  for (const name of ["preinstall", "install", "postinstall", "prepare"]) {
     const members = allowed().map((member) =>
       member.name === "package/package.json"
         ? packageJson({ scripts: { build: "tsc", [name]: "node evil.js" } })
@@ -148,7 +148,7 @@ test("an install lifecycle script in the packed manifest fails", () => {
 test("ordinary scripts in the packed manifest pass", () => {
   const members = allowed().map((member) =>
     member.name === "package/package.json"
-      ? packageJson({ scripts: { build: "tsc", test: "vitest" } })
+      ? packageJson({ scripts: { build: "tsc", test: "vitest", prepack: "npm run build" } })
       : member,
   );
   assert.deepEqual(checkMembers(members, PATRO), []);

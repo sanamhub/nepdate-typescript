@@ -98,7 +98,7 @@ be used. For 0.1.0 only:
    `scripts/tarball-check.ts --sums release-tarballs/SHA256SUMS`. The check allows only `dist/`,
    `LICENSE`, `NOTICE`, `README.md` and `package.json` in each tarball, checks the version and peer
    range, and rejects `devDependencies`, runtime dependencies, install lifecycle scripts
-   (`preinstall`, `install`, `postinstall`, `prepare` and the publish and pack hooks), tar members
+   (`preinstall`, `install`, `postinstall`, and `prepare` with its hooks), tar members
    that are not regular files or directories, and paths with `.` or `..` segments. Then run `publint` and `attw` on
    each tarball and upload the directory including `SHA256SUMS` for seven days. The job output
    carries the version to `smoke`.
