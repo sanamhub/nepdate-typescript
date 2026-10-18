@@ -120,7 +120,7 @@ jobs:
           node ../scripts/smoke.ts --mode patro --project "$PWD"
 
   # Mutation testing (ADR-0007). The release is blocked when the score is below the floor or a
-  # survivor has no equivalent entry. This runs after the packed smoke job, before publish.
+  # survivor has no equivalent entry. It needs pack, runs beside the smoke job, and gates publish.
   mutation:
     needs: pack
     runs-on: ubuntu-latest

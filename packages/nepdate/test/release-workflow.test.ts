@@ -172,7 +172,7 @@ describe("release workflow", () => {
   });
 
   it("reports a missing mutation job", () => {
-    const without = SHIPPED.replace(/^  mutation:[\s\S]*?^  publish:/m, "  publish:");
+    const without = SHIPPED.replace(/^ {2}mutation:[\s\S]*?^ {2}publish:/m, "  publish:");
     expect(without).not.toEqual(SHIPPED);
     expect(problems(without)).toContain("release workflow must have a mutation job");
   });
