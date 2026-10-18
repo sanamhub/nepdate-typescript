@@ -23,6 +23,7 @@ Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit (today
 | T5 | `T5-docs-bench-release.md` | docs, benchmarks vs competitors, release workflow for both packages, 0.1.0 |
 | T6 | `T6-bench.md` | one process per measurement, same-machine C#, in-range agreement, load discipline, release runbook |
 | T7 | `T7-release-quiet.md` | release smoke job, workflow static tests and token fallback, tool type-check, quiet benchmark pass, B1/B6 profiles |
+| T8 | `T8-mutation.md` | mutation testing and triage, release and weekly mutation gates, committed bench JSON, packed smoke gate |
 
 ## Checkpoints
 
