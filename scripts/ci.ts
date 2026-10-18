@@ -169,7 +169,7 @@ const gates: [name: string, body: () => void][] = [
       // (the lockfile has no hasInstallScript entry), and a future bump must not run one here.
       run("npm ci --prefix bench --ignore-scripts --no-audit --no-fund");
       run("npx tsc -p tsconfig.tools.json");
-      run("node --test bench/report.test.ts bench/load.test.ts");
+      run("node --test bench/report.test.ts bench/load.test.ts scripts/mutation-check.test.ts");
     },
   ],
   ["docs", () => run("node scripts/docs-check.ts")],

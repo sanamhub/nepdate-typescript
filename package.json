@@ -11,6 +11,7 @@
     "codegen": "node scripts/codegen.ts",
     "mutation": "npm run build && stryker run stryker.core.conf.mjs && stryker run stryker.patro.conf.mjs",
     "mutation:force": "npm run build && stryker run stryker.core.conf.mjs --force && stryker run stryker.patro.conf.mjs --force",
+    "mutation:check": "node scripts/mutation-check.ts --core reports/mutation/core.json --patro reports/mutation/patro.json --floor docs/mutation/floor.json --equivalent docs/mutation/equivalent.md",
     "ci": "node scripts/ci.ts"
   },
   "devDependencies": {
