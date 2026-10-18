@@ -7,7 +7,7 @@ const TOKEN: unique symbol = Symbol("DateRange");
  * An inclusive range of BS dates, never empty. It has a length, `contains` and iteration only;
  * set operations, splitting and working days are not ported (D-09): iterate and filter instead.
  * @example
- * for (const date of DateRange.month(2081, 4)) date.toJSON();
+ * DateRange.month(2081, 4).length; // => 32
  */
 export class DateRange implements Iterable<NepaliDate> {
   /** The first day of the range. */
@@ -24,6 +24,8 @@ export class DateRange implements Iterable<NepaliDate> {
   /**
    * The days from `start` to `end`, both included.
    * @throws {NepDateError} `"out-of-range"` if `end` is before `start`.
+   * @example
+   * DateRange.of(NepaliDate.of(2081, 1, 1), NepaliDate.of(2081, 1, 3)).length; // => 3
    */
   static of(start: NepaliDate, end: NepaliDate): DateRange {
     if (serialOf(end) < serialOf(start)) {
@@ -35,6 +37,8 @@ export class DateRange implements Iterable<NepaliDate> {
   /**
    * Every day of BS month `year`-`month`.
    * @throws {NepDateError} as `NepaliDate.of(year, month, 1)`.
+   * @example
+   * DateRange.month(2081, 1).length; // => 31
    */
   static month(year: number, month: number): DateRange {
     const first = NepaliDate.of(year, month, 1);
@@ -44,6 +48,8 @@ export class DateRange implements Iterable<NepaliDate> {
   /**
    * Every day of BS year `year`, 1 Baishakh to the end of Chaitra.
    * @throws {NepDateError} as `NepaliDate.of(year, 1, 1)`.
+   * @example
+   * DateRange.year(2081).length; // => 366
    */
   static year(year: number): DateRange {
     return new DateRange(

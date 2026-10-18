@@ -18,7 +18,7 @@ import {
 /**
  * A tithi or event name in both languages. Frozen and shared.
  * @example
- * const name: Named = { np: "पञ्चमी", en: "Panchami" };
+ * info(NepaliDate.of(2081, 2, 15)).events[0]?.en; // => "Republic Day"
  */
 export interface Named {
   /** Nepali (Devanagari) form. */
@@ -30,7 +30,7 @@ export interface Named {
 /**
  * What the patro knows about one BS day (PATRO §2). Frozen and shared.
  * @example
- * const empty: CalendarInfo = { tithi: null, isPublicHoliday: false, events: [] };
+ * info(NepaliDate.of(2081, 2, 15)).isPublicHoliday; // => true
  */
 export interface CalendarInfo {
   /** The tithi of the day, or `null` when the day has no tithi data. */

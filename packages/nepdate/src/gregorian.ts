@@ -5,7 +5,7 @@
 /**
  * A proleptic Gregorian date. A `Temporal.PlainDate` has this shape.
  * @example
- * const date: GregorianDate = { year: 2024, month: 7, day: 30 };
+ * NepaliDate.of(2081, 2, 15).toGregorian(); // => { year: 2024, month: 5, day: 28 }
  */
 export interface GregorianDate {
   readonly year: number;
