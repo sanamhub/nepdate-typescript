@@ -46,6 +46,25 @@ describe("strict parse messages and Devanagari boundaries", () => {
 });
 
 describe("lenient parse edges", () => {
+  // T8 review: inputs that reach the lenient-only branches; strict parse rejects each one first.
+  test.each([
+    ["2081 1", "unrecognized", "unrecognized input"],
+    ["Kartik Magh 2080 1 15", "unrecognized", "unrecognized input"],
+    ["Kartik Kartik 2080 1 15", "unrecognized", "unrecognized input"],
+    ["15 Kartik 2080+", "unrecognized", "unrecognized input"],
+    ["2080 Kartik 015", "ambiguous", "ambiguous input"],
+  ])("%s reaches the lenient failure", (input, kind, message) => {
+    expect(messageOf(() => NepaliDate.parseLenient(input))).toEqual({ kind, message });
+  });
+
+  test("a trailing dot in a numeric chunk is an empty piece and is skipped", () => {
+    expect(NepaliDate.parseLenient("15. Kartik 2080").toJSON()).toBe("2080-07-15");
+  });
+
+  test("the last Devanagari digit is a digit in lenient input", () => {
+    expect(NepaliDate.parseLenient("१९ Kartik २०८०").toJSON()).toBe("2080-07-19");
+  });
+
   test.each([
     ["foo", "unrecognized", "unrecognized input"],
     ["Kartik Magh 2080", "unrecognized", "unrecognized input"],
