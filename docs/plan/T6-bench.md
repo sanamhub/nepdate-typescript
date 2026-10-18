@@ -19,16 +19,17 @@ package API, no feature and no target.
   `node --expose-gc bench/measure.ts`, pinned to logical CPU 2 with
   `cmd /c start "" /affinity 4 /wait /b`, and collect the JSON. `--json` prints only the collected
   array; the default prints the human table.
-- `bench/order.ts` measures B1 five times alone, runs every competitor row, then measures B1 five
-  times again. It prints both groups with medians, ranges, loads and PIDs and says whether the
-  medians differ by more than 10%.
+- `bench/order.ts` runs five pairs. Each pair measures B1 alone, runs every competitor agreement
+  pass in its own fresh process, then measures B1 again. Pairing controls the slow load drift that
+  made a single long batch inconclusive. It prints the pairs, both medians, the median paired
+  difference, the loads and the PIDs, and says whether the paired difference is more than 10%.
 
 AC:
 - `node bench/own.ts --json` returns eight rows with eight different PIDs; `node bench/own.ts`
   prints one line per operation.
 - `node bench/compare.ts --json` returns eighteen rows with eighteen different PIDs;
   `node bench/compare.ts --check` still prints agreement without measuring.
-- `node bench/order.ts` prints the two B1 groups side by side and a verdict. The check is reported
+- `node bench/order.ts` prints the five pairs, both medians and a verdict. The check is reported
   even when it fails.
 
 ## T6-02 Same-machine C#
@@ -80,9 +81,11 @@ AC:
 
 - `bench/load.ts` adds `coreLoad(index, windowMs)`, the busy share of one logical CPU. The existing
   `machineLoad` stays as the all-CPU figure.
-- Before every TypeScript measurement the child samples core 2, the CPU it is pinned to, and the
-  all-CPU figure. If core 2 is over 15% busy, it waits 5 s and retries, up to 5 times. After the
-  sixth sample it records the row with `loaded: true` and still measures it.
+- Before every TypeScript measurement the child samples the all-CPU figure and core 2, the CPU it
+  is pinned to. If the all-CPU figure is over 15% busy, it waits 5 s and retries, up to 5 times.
+  After the sixth sample it records the row with `loaded: true` and still measures it. The gate is
+  all-CPU because the machine was measured at 35% to 76% while core 2 was often below 15%, and the
+  loaded all-CPU runs were 35% slower; core 2 alone would call those runs final.
 - A row marked `loaded` is excluded from every target verdict. `docs/benchmarks.md` has a verdict
   table that says `final` or `pending a quiet run` for each target. No target is relaxed.
 - The C# run records core 2 load before and after the job (not during, because BenchmarkDotNet
@@ -93,8 +96,8 @@ AC:
   `loaded` where it applies.
 - The verdict table marks a target `final` only when both the TypeScript row and the C# row it is
   compared with are not loaded; otherwise it says `pending a quiet run`.
-- Negative control: a busy loop pinned to core 2 makes a B1 child report `loaded: true`, six
-  attempts, and the page keeps that row out of the verdicts.
+- Negative control: busy loops on six logical CPUs put the all-CPU figure over 15% and make a B1
+  child report `loaded: true` with six attempts, and the page keeps that row out of the verdicts.
 
 ## T6-05 Release runbook
 

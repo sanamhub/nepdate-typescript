@@ -80,6 +80,10 @@ B5 and B6 are well above their limits, and B4 is below 20 ns only because it ran
 cannot be judged. The earlier quiet phase checkpoints had B1 about 27 ns, B2 about 24 ns and B7 about
 6.8 ns; those are not verdicts for this session.
 
+Negative control: six busy Node processes were started on the logical CPUs, then B1 was run. It
+retried six times, recorded 92.7% load and 149.6 ns/op, and was marked `LOADED`. The gate kept that
+row out of the verdicts, as it is meant to.
+
 The 3× limits from this machine's C# column are 60.00 ns for B1, 72.75 ns for B2 and 191.31 ns for
 B7. The hub-machine limits that ADR-0002 §10 prints (39.9, 55.9 and 143.8 ns) came from the old hub
 column and are not used here. ADR-0002 now records the same-machine limits; its decisions and
