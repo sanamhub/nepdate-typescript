@@ -1,6 +1,6 @@
 // Tests for the mutation check (T8-04): a passing report, a below-floor report, an untriaged
-// survivor and an untriaged static survivor. Each case writes a small Stryker-shaped report and
-// runs the CLI.
+// survivor, an untriaged static survivor and stale equivalent entries. Each case writes a small
+// Stryker-shaped report and runs the CLI.
 
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
@@ -121,4 +121,35 @@ test("a static survivor is measured and needs an equivalent entry", () => {
   });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /packages\/nepdate\/src\/a\.ts#11/);
+});
+
+test("an equivalent entry for a killed mutant fails", () => {
+  const result = run({
+    ...PASSING,
+    equivalent: `${PASSING.equivalent}| \`packages/nepdate/src/a.ts#2\` | \`a\` -> \`b\` | Wrong. |\n`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /killed or missing from the report/);
+  assert.match(result.stderr, /packages\/nepdate\/src\/a\.ts#2/);
+});
+
+test("an equivalent entry for a mutant missing from the report fails", () => {
+  const result = run({
+    ...PASSING,
+    equivalent: `${PASSING.equivalent}| \`packages/nepdate/src/a.ts#99\` | \`a\` -> \`b\` | Moved. |\n`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /packages\/nepdate\/src\/a\.ts#99/);
+});
+
+test("an equivalent entry for a mutant that timed out is not flagged", () => {
+  const result = run({
+    ...PASSING,
+    core: report("packages/nepdate/src/a.ts", [
+      mutant("1", "Killed"),
+      mutant("2", "Killed"),
+      mutant("10", "Timeout"),
+    ]),
+  });
+  assert.equal(result.status, 0, result.stderr);
 });
