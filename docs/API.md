@@ -48,8 +48,8 @@ export class NepaliDate {
 
   toString(): string;                                        // "YYYY/MM/DD"
   toJSON(): string;                                          // "YYYY-MM-DD" (D-11)
-  short(opts?: { order?: DateOrder; separator?: Separator; pad?: boolean; lang?: Lang }): string; // defaults: "ymd", "/", true, "en"
-  long(opts?: { weekday?: boolean; year?: boolean; pad?: boolean; lang?: Lang }): string;
+  short(opts?: { readonly order?: DateOrder; readonly separator?: Separator; readonly pad?: boolean; readonly lang?: Lang }): string; // defaults: "ymd", "/", true, "en"
+  long(opts?: { readonly weekday?: boolean; readonly year?: boolean; readonly pad?: boolean; readonly lang?: Lang }): string;
   format(pattern: string, lang?: Lang): string;              // FORMATTING §5
   // No valueOf: `a < b` would silently compare strings. Use compare() or daysUntil().
 }
@@ -63,7 +63,11 @@ export function toNepaliDigits(n: number, minWidth?: number): string;
 export type ErrorKind =
   | "out-of-range" | "invalid-month" | "invalid-day" | "invalid-gregorian" | "not-an-integer"
   | "invalid-character" | "wrong-group-count" | "number-too-long" | "ambiguous" | "unrecognized";
-export class NepDateError extends RangeError { readonly kind: ErrorKind }
+export class NepDateError extends RangeError {
+  readonly kind: ErrorKind;
+  readonly name: "NepDateError";
+  constructor(kind: ErrorKind, message: string);
+}
 
 export interface DateDiff { readonly negative: boolean; readonly years: number; readonly months: number; readonly days: number; readonly totalDays: number }
 
