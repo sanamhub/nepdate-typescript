@@ -48,13 +48,12 @@ AC:
 
 - `scripts/release-check.ts` fails when the `## [Unreleased]` section has non-blank content before
   the next version heading. A missing `[Unreleased]` heading stays valid, as in Python P11.
-- Every failure names what was expected, not only what was found. The existing version, peer,
-  dev-range and changelog failures are reworded to include `expected`; the new failure says the
-  section must be empty.
+- Every failure names what was expected. The existing version, peer and changelog failures are
+  reworded to include `expected`; the new failure says the section must be empty.
 - Add one negative control per check to `packages/nepdate/test/release-check.test.ts`: core version,
-  patro version, peer range, dev range, missing changelog section and a non-empty `[Unreleased]`.
-  Every negative case asserts the expected value appears in the message. A passing fixture with an
-  empty `[Unreleased]` is also tested.
+  patro version, peer range, missing changelog section and a non-empty `[Unreleased]`. Every
+  negative case asserts the expected value appears in the message. A passing fixture with an empty
+  `[Unreleased]` is also tested.
 - Update `docs/runbooks/release.md` to name the empty `[Unreleased]` precondition and the expected
   values.
 

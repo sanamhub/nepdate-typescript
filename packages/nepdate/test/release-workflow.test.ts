@@ -34,6 +34,43 @@ function count(text: string, needle: string): number {
   return text.split(needle).length - 1;
 }
 
+export function verifyProblems(text: string): string[] {
+  const lines = text.split(/\r?\n/).filter((line) => !line.trimStart().startsWith("#"));
+  const found: string[] = [];
+  const verify = job(lines, "verify").join("\n");
+  if (verify === "") {
+    found.push("release workflow must have a verify job");
+    return found;
+  }
+  if (!verify.includes("needs: publish")) found.push("verify must need publish");
+  if (!verify.includes("permissions:\n      contents: read")) {
+    found.push("verify must set contents: read");
+  }
+  if (verify.includes("id-token")) found.push("verify must not request id-token");
+  if (!verify.includes("runs-on: ubuntu-latest")) found.push("verify must run on ubuntu-latest");
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: this is workflow text, not a template.
+  if (!verify.includes("VERSION: ${{ needs.publish.outputs.version }}")) {
+    found.push("verify must read the publish version");
+  }
+  if (!verify.includes('"nepdate@$VERSION"') || !verify.includes('"nepdate-patro@$VERSION"')) {
+    found.push("verify must install both exact versions");
+  }
+  if (!verify.includes("SECONDS + 600") || !verify.includes("sleep")) {
+    found.push("verify must retry the install for up to 10 minutes");
+  }
+  if (
+    !verify.includes("NepaliDate.of(2081, 2, 15)") ||
+    !verify.includes("toGregorian") ||
+    !verify.includes("toJSON") ||
+    !verify.includes(".long(") ||
+    !verify.includes("info(date)")
+  ) {
+    found.push("verify must run the README quick start and info()");
+  }
+  if (verify.includes("secrets.")) found.push("verify must not read a secret");
+  return found;
+}
+
 export function problems(text: string): string[] {
   // A rule must be met by live YAML: a commented-out key or step does not count.
   const lines = text.split(/\r?\n/).filter((line) => !line.trimStart().startsWith("#"));
@@ -113,6 +150,23 @@ export function problems(text: string): string[] {
   ) {
     found.push("publish must need pack, smoke and mutation");
   }
+  if (publish.includes("npm pack")) {
+    found.push("publish must not rebuild the tarballs");
+  }
+  const checksumAt = publish.indexOf("sha256sum -c SHA256SUMS");
+  if (checksumAt < 0) {
+    found.push("publish must verify the tarball checksums before publishing");
+  } else if (firstPublish >= 0 && checksumAt > firstPublish) {
+    found.push("publish must verify the tarball checksums before publishing");
+  }
+
+  const pack = job(lines, "pack").join("\n");
+  if (!pack.includes("scripts/tarball-check.ts") || !pack.includes("--sums")) {
+    found.push("pack must check the tarball contents and write SHA256SUMS");
+  }
+  if (!pack.includes("path: release-tarballs/") || !pack.includes("name: release-tarballs")) {
+    found.push("pack must upload the tarballs and SHA256SUMS");
+  }
 
   const mutation = job(lines, "mutation").join("\n");
   if (mutation === "") {
@@ -150,6 +204,7 @@ export function problems(text: string): string[] {
     }
   }
   if (!/^\s{2}pack:/m.test(text)) found.push("release workflow must have a pack job");
+  found.push(...verifyProblems(text));
   return found;
 }
 
@@ -234,11 +289,54 @@ jobs:
       "both README examples",
       "install the patro tarball",
       "use scripts/smoke.ts",
+      "check the tarball contents",
+      "upload the tarballs",
+      "verify job",
     ]) {
       expect(
         found.some((candidate) => candidate.includes(message)),
         message,
       ).toBe(true);
     }
+  });
+
+  it("reports a missing tarball check", () => {
+    const without = SHIPPED.replace(/^.*scripts\/tarball-check\.ts.*$/gm, "");
+    expect(without).not.toEqual(SHIPPED);
+    expect(problems(without)).toContain(
+      "pack must check the tarball contents and write SHA256SUMS",
+    );
+  });
+
+  it("reports a publish job that rebuilds the tarballs", () => {
+    const rebuilt = SHIPPED.replace(
+      "      - name: Verify the checked tarballs",
+      "      - name: Rebuild\n        run: npm pack -w nepdate\n      - name: Verify the checked tarballs",
+    );
+    expect(rebuilt).not.toEqual(SHIPPED);
+    expect(problems(rebuilt)).toContain("publish must not rebuild the tarballs");
+  });
+
+  it("reports a missing verify job", () => {
+    const without = SHIPPED.replace(/^ {2}verify:[\s\S]*$/m, "");
+    expect(without).not.toEqual(SHIPPED);
+    expect(problems(without)).toContain("release workflow must have a verify job");
+  });
+
+  it("reports a verify job with the wrong needs", () => {
+    const wrong = SHIPPED.replace("  verify:\n    needs: publish", "  verify:\n    needs: pack");
+    expect(wrong).not.toEqual(SHIPPED);
+    expect(problems(wrong)).toContain("verify must need publish");
+  });
+
+  it("reports an id-token permission on verify", () => {
+    const start = SHIPPED.indexOf("  verify:");
+    const block = SHIPPED.slice(start).replace(
+      "    permissions:\n      contents: read",
+      "    permissions:\n      contents: read\n      id-token: write",
+    );
+    const bad = SHIPPED.slice(0, start) + block;
+    expect(bad).not.toEqual(SHIPPED);
+    expect(problems(bad)).toContain("verify must not request id-token");
   });
 });

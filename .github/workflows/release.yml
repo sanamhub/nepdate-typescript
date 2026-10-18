@@ -53,6 +53,9 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: node scripts/release-check.ts "$VERSION"
+      - name: Data status
+        # Fails a release with fewer than 183 days of public holiday data left.
+        run: node scripts/data-status.ts
       - name: Build
         run: npm run build
       - name: Pack both packages
@@ -60,6 +63,14 @@ jobs:
           mkdir -p release-tarballs
           npm pack -w nepdate --pack-destination release-tarballs
           npm pack -w nepdate-patro --pack-destination release-tarballs
+      - name: Check the tarball contents and write SHA256SUMS
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: >-
+          node scripts/tarball-check.ts
+          --version "$VERSION"
+          --dir release-tarballs
+          --sums release-tarballs/SHA256SUMS
       - name: Check both tarballs
         run: |
           for tarball in release-tarballs/*.tgz; do
@@ -70,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-tarballs
-          path: release-tarballs/*.tgz
+          path: release-tarballs/
           if-no-files-found: error
           retention-days: 7
 
@@ -152,6 +163,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     env:
       EVENT_NAME: ${{ github.event_name }}
       REF_NAME: ${{ github.ref_name }}
@@ -193,6 +206,8 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: node scripts/release-check.ts "$VERSION"
+      - name: Verify the checked tarballs
+        run: cd release-tarballs && sha256sum -c SHA256SUMS
       - name: Publish nepdate
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -225,3 +240,66 @@ jobs:
         run: |
           node -e 'const fs = require("node:fs"); const version = process.env.VERSION; const text = fs.readFileSync("CHANGELOG.md", "utf8"); const start = text.indexOf("## [" + version + "]"); if (start < 0) { console.error("no changelog section for " + version); process.exit(1); } const rest = text.slice(start); const next = rest.indexOf("\n## [", 3); fs.writeFileSync("RELEASE_NOTES.md", (next < 0 ? rest : rest.slice(0, next)).trim() + "\n");'
           gh release create "v$VERSION" release-tarballs/*.tgz --title "v$VERSION" --notes-file RELEASE_NOTES.md --verify-tag
+
+  # Post-publish verification (ADR-0011): install both exact versions from the public registry and
+  # run the README quick start plus one info() call. No secret, no id-token, no checkout.
+  verify:
+    needs: publish
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Install the published packages with retries
+        env:
+          VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/verify-packages"
+          cd "$RUNNER_TEMP/verify-packages"
+          npm init -y >/dev/null
+          deadline=$((SECONDS + 600))
+          while true; do
+            if npm install --no-audit --no-fund "nepdate@$VERSION" "nepdate-patro@$VERSION"; then
+              break
+            fi
+            now=$SECONDS
+            if [ "$now" -ge "$deadline" ]; then
+              echo "verify: install failed after 10 minutes" >&2
+              exit 1
+            fi
+            pause=$((deadline - now))
+            if [ "$pause" -gt 30 ]; then pause=30; fi
+            echo "verify: install failed, retrying in ${pause}s" >&2
+            sleep "$pause"
+          done
+      - name: Run the README quick start and one info() call
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/verify-packages"
+          node --input-type=module - <<'JS'
+          import { NepaliDate } from "nepdate";
+          import { info } from "nepdate-patro";
+
+          const date = NepaliDate.of(2081, 2, 15);
+          const gregorian = date.toGregorian();
+          if (gregorian.year !== 2024 || gregorian.month !== 5 || gregorian.day !== 28) {
+            throw new Error(`verify: toGregorian returned ${JSON.stringify(gregorian)}`);
+          }
+          if (date.toJSON() !== "2081-02-15") {
+            throw new Error(`verify: toJSON returned ${date.toJSON()}`);
+          }
+          if (date.long({ weekday: true }) !== "Tuesday, Jestha 15, 2081") {
+            throw new Error(`verify: long returned ${date.long({ weekday: true })}`);
+          }
+          const day = info(date);
+          if (!day.isPublicHoliday || day.events[0]?.en !== "Republic Day") {
+            throw new Error("verify: info did not return Republic Day");
+          }
+          console.log("verify: README quick start and one patro lookup passed");
+          JS

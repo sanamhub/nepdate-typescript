@@ -136,7 +136,9 @@ const gates: [name: string, body: () => void][] = [
       run("npm ci --prefix bench --ignore-scripts --no-audit --no-fund");
       run("npx tsc -p tsconfig.tools.json");
       run("node --test bench/report.test.ts bench/load.test.ts scripts/mutation-check.test.ts");
-      run("node --test scripts/api-surface.test.ts scripts/examples.test.ts");
+      run(
+        "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/tarball-check.test.ts",
+      );
     },
   ],
   ["docs", () => run("node scripts/docs-check.ts")],

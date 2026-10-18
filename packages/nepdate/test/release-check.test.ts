@@ -20,7 +20,6 @@ interface Fixture {
   readonly coreVersion?: string;
   readonly patroVersion?: string;
   readonly peer?: string;
-  readonly dev?: string;
   readonly changelog?: string;
 }
 
@@ -41,28 +40,40 @@ function fixture(options: Fixture = {}): string {
     join(dir, "packages/nepdate-patro/package.json"),
     manifest(options.patroVersion ?? "0.1.0", {
       peerDependencies: { nepdate: options.peer ?? "~0.1.0" },
-      devDependencies: { nepdate: options.dev ?? "0.1.0" },
     }),
   );
-  writeFileSync(join(dir, "CHANGELOG.md"), options.changelog ?? "# Changelog\n\n## [0.1.0]\n");
+  writeFileSync(
+    join(dir, "CHANGELOG.md"),
+    options.changelog ?? "# Changelog\n\n## [Unreleased]\n\n## [0.1.0]\n",
+  );
   return dir;
 }
 
-function check(dir: string): { status: number | null; stdout: string; stderr: string } {
-  const result = spawnSync(process.execPath, [SCRIPT, "0.1.0"], { cwd: dir, encoding: "utf8" });
+function check(
+  dir: string,
+  version = "0.1.0",
+): { status: number | null; stdout: string; stderr: string } {
+  const result = spawnSync(process.execPath, [SCRIPT, version], { cwd: dir, encoding: "utf8" });
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
-test("release-check accepts matching manifests, peer range and changelog", () => {
+test("release-check accepts matching manifests, peer range, empty [Unreleased] and changelog", () => {
   const result = check(fixture());
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("0.1.0 agrees");
+  expect(result.stdout).toContain("empty [Unreleased]");
 });
 
-test("release-check fails when the two version fields differ", () => {
+test("release-check fails when the core version differs", () => {
+  const result = check(fixture({ coreVersion: "0.0.9" }));
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("nepdate version 0.0.9, expected 0.1.0");
+});
+
+test("release-check fails when the patro version differs", () => {
   const result = check(fixture({ patroVersion: "0.1.1" }));
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain("nepdate-patro version 0.1.1 is not 0.1.0");
+  expect(result.stderr).toContain("nepdate-patro version 0.1.1, expected 0.1.0");
 });
 
 test("release-check fails when the peer range is not ~X.Y.Z", () => {
@@ -74,7 +85,28 @@ test("release-check fails when the peer range is not ~X.Y.Z", () => {
 test("release-check fails when the changelog has no section for the version", () => {
   const result = check(fixture({ changelog: "# Changelog\n" }));
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain('CHANGELOG.md has no "## [0.1.0]" section');
+  expect(result.stderr).toContain('has no "## [0.1.0]" section, expected one for 0.1.0');
+});
+
+test("release-check fails when [Unreleased] has entries", () => {
+  const result = check(
+    fixture({
+      changelog: "# Changelog\n\n## [Unreleased]\n\n- Still to release.\n\n## [0.1.0]\n",
+    }),
+  );
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("entries under [Unreleased], expected an empty section");
+});
+
+test("release-check accepts a changelog without an [Unreleased] heading", () => {
+  const result = check(fixture({ changelog: "# Changelog\n\n## [0.1.0]\n" }));
+  expect(result.status).toBe(0);
+});
+
+test("release-check fails when the version argument is not X.Y.Z", () => {
+  const result = check(fixture(), "0.1");
+  expect(result.status).toBe(2);
+  expect(result.stderr).toContain("expected a strict X.Y.Z version");
 });
 
 function tagVersion(ref: string): { status: number | null; stdout: string; stderr: string } {
