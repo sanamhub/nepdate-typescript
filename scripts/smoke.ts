@@ -91,7 +91,7 @@ const block =
     : blocks.find((candidate) => candidate.code.includes("nepdate-patro"));
 if (block === undefined) throw new Error(`README has no ${mode} TypeScript example`);
 
-const example = join(project, "example.mts");
+const example = join(project, "example.mjs");
 writeFileSync(example, `${block.code}\n`);
 console.log(`smoke: ${mode} example is README ts block ${block.index}`);
 runNode(example, project, `${mode} example`);
@@ -102,7 +102,7 @@ if (mode === "core") {
   }
   console.log(`smoke: core ${packageVersion(project, "nepdate")} ok, no nepdate-patro`);
 } else {
-  const coverage = join(project, "coverage-check.mts");
+  const coverage = join(project, "coverage-check.mjs");
   const expected = coverageRange();
   writeFileSync(
     coverage,

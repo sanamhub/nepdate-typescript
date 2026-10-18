@@ -78,7 +78,7 @@ AC:
 - Add `scripts/api-surface.test.ts` with negative controls: a renamed export, a changed signature,
   an undocumented addition, a documented addition with a stale snapshot, and a name only in prose.
   Add it to the gate 9 Node test list.
-- ADR-0009 records the snapshot format, the exact-match rule, the `--write` rule and gate 12.
+- ADR-0010 records the snapshot format, the exact-match rule, the `--write` rule and gate 12.
 
 AC:
 - `node scripts/api-check.ts` passes on the committed snapshot and `docs/API.md`; it also passes
@@ -91,7 +91,7 @@ AC:
   all five.
 - `node --test scripts/api-surface.test.ts` passes in gate 9.
 - `npm run ci` runs gate 12 and ends with `ci: 12/12 gates passed`.
-- ADR-0009 records the gate and the update rule.
+- ADR-0010 records the gate and the update rule.
 
 ## T9-03 Runnable examples
 
@@ -114,7 +114,7 @@ AC:
 - Add `scripts/examples.test.ts` with negative controls: a new export without an example fails, an
   example with a wrong `// =>` value fails, and an example with no result comment does not count.
   Add it to the gate 9 Node test list.
-- ADR-0009 records the `// =>` rule, the allow-list and the docs-gate extension.
+- ADR-0010 records the `// =>` rule, the allow-list and the docs-gate extension.
 
 AC:
 - The docs gate prints the number of examples run and the number of `// =>` assertions checked, and
@@ -125,7 +125,7 @@ AC:
 - `node --test scripts/examples.test.ts` passes with all three negative controls.
 - The example count before and after the task is recorded in PROGRESS.
 - `npm run ci` passes at `ci: 12/12 gates passed`.
-- ADR-0009 records the example rule and the allow-list.
+- ADR-0010 records the example rule and the allow-list.
 
 ## Checkpoint
 
