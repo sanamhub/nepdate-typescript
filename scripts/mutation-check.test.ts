@@ -103,8 +103,5 @@ test("equivalentIds reads table cells and bullets", () => {
       "| Mutant | Diff | Proof |",
     ].join("\n"),
   );
-  assert.deepEqual([...ids].sort(), [
-    "packages/nepdate/src/a.ts#1",
-    "packages/nepdate/src/b.ts#2",
-  ]);
+  assert.deepEqual([...ids].sort(), ["packages/nepdate/src/a.ts#1", "packages/nepdate/src/b.ts#2"]);
 });

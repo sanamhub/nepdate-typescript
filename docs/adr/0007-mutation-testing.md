@@ -42,9 +42,10 @@ mutate generated tables or files that the coverage rule leaves out.
    input can observe the change. "Hard to test" is not a proof. The check script rejects a survivor
    that is in neither place. A real bug found by a survivor is a finding, not an equivalent entry.
 
-5. **Floor.** The floor is the score after T8-03 triage, rounded down to a whole percentage. It is
-   stored in `docs/mutation/floor.json` and repeated in this ADR. A report below the floor, or a
-   survivor without an equivalent entry, fails `scripts/mutation-check.ts` and blocks a release.
+5. **Floor.** The floor is the score after T8-03 triage, rounded down to a whole percentage. The
+   measured score is 94.86%, so the floor is **94**. It is stored in `docs/mutation/floor.json` and
+   repeated in this ADR. A report below the floor, or a survivor without an equivalent entry, fails
+   `scripts/mutation-check.ts` and blocks a release.
 
 6. **Where it runs.** `npm run mutation` runs both configs after a build. Concurrency is 2, which
    keeps two Vitest runners inside the memory of the shared machine; the first attempt at 4 hit a

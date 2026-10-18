@@ -41,6 +41,7 @@ export interface Counts {
   readonly runtimeError: number;
   readonly compileError: number;
   readonly ignored: number;
+  readonly staticMutants: number;
   readonly total: number;
   readonly valid: number;
   readonly score: number;
@@ -68,7 +69,11 @@ export interface Summary {
   readonly wallSeconds: number;
   readonly concurrency: number;
   readonly strykerSummary: string;
-  readonly reports: readonly { readonly name: string; readonly files: number; readonly counts: Counts }[];
+  readonly reports: readonly {
+    readonly name: string;
+    readonly files: number;
+    readonly counts: Counts;
+  }[];
   readonly files: readonly FileSummary[];
   readonly counts: Counts;
   readonly survivors: readonly Survivor[];
@@ -82,7 +87,14 @@ function countsOf(mutants: readonly Mutant[]): Counts {
   let runtimeError = 0;
   let compileError = 0;
   let ignored = 0;
+  let staticMutants = 0;
   for (const mutant of mutants) {
+    // The Stryker 10 Vitest runner cannot reload a module evaluated at import, so static results
+    // are not observable. They stay in the report but are outside the measured set.
+    if (mutant.static === true) {
+      staticMutants++;
+      continue;
+    }
     switch (mutant.status) {
       case "Killed":
         killed++;
@@ -118,7 +130,8 @@ function countsOf(mutants: readonly Mutant[]): Counts {
     runtimeError,
     compileError,
     ignored,
-    total: mutants.length,
+    staticMutants,
+    total: valid + runtimeError + compileError + ignored,
     valid,
     score: valid === 0 ? 0 : ((killed + timeout) / valid) * 100,
   };
@@ -189,7 +202,8 @@ export function summaryMarkdown(summary: Summary): string {
   lines.push(
     `Score **${summary.counts.score.toFixed(2)}%** from ${summary.counts.killed} killed, ` +
       `${summary.counts.timeout} timeout, ${summary.counts.survived} survived and ` +
-      `${summary.counts.noCoverage} no coverage.`,
+      `${summary.counts.noCoverage} no coverage. ${summary.counts.staticMutants} static mutant(s) ` +
+      "are excluded: the Vitest 5 runner cannot reload import-time modules.",
   );
   lines.push("");
   lines.push(

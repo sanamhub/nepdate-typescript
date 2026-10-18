@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { summarize, type Summary } from "./mutation-summary.ts";
+import { type Summary, summarize } from "./mutation-summary.ts";
 
 const KEY = /(packages\/[^#\s]+\.ts)#([A-Za-z0-9_-]+)/;
 
@@ -36,13 +36,12 @@ export function equivalentIds(markdown: string): Set<string> {
 export function checkSummary(summary: Summary, floor: number, markdown: string): CheckResult {
   const equivalent = equivalentIds(markdown);
   const untriaged = summary.survivors
+    .filter((survivor) => !survivor.static)
     .map((survivor) => `${survivor.file}#${survivor.id}`)
     .filter((key) => !equivalent.has(key));
   const errors: string[] = [];
   if (summary.counts.score < floor) {
-    errors.push(
-      `mutation score ${summary.counts.score.toFixed(2)}% is below the floor ${floor}%`,
-    );
+    errors.push(`mutation score ${summary.counts.score.toFixed(2)}% is below the floor ${floor}%`);
   }
   if (untriaged.length > 0) {
     errors.push(`${untriaged.length} survivor(s) have no equivalent entry`);
@@ -53,7 +52,7 @@ export function checkSummary(summary: Summary, floor: number, markdown: string):
     ok: errors.length === 0,
     score: summary.counts.score,
     floor,
-    survivors: summary.survivors.length,
+    survivors: summary.survivors.filter((survivor) => !survivor.static).length,
     equivalent: equivalent.size,
     untriaged,
     errors,
