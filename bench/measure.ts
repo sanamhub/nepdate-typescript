@@ -128,7 +128,10 @@ if (impl === "nepdate") {
   if (opDef === undefined) throw new Error(`no own implementation for ${op}`);
 
   const load = await waitForQuiet();
-  const stats = await measure(opDef.run, { heap: () => process.memoryUsage().heapUsed });
+  const noHeap = process.argv.includes("--no-heap");
+  const stats = noHeap
+    ? await measure(opDef.run)
+    : await measure(opDef.run, { heap: () => process.memoryUsage().heapUsed });
   const heap = (stats as { heap?: { avg: number } }).heap;
   const row: RowResult = {
     impl,

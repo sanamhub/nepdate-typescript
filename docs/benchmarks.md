@@ -75,7 +75,8 @@ verdicts.
 
 B1 is 0.9 ns above the 30 ns target and B6 is 1.9 ns above the 64 ns target. B5 is 21.5 ns above
 153. B2 and B7 meet their targets at 26.7 and 5.6 ns. B3 and B4 are loaded and decide nothing. The
-earlier loaded pass had B1 31.9, B5 280.2 and B6 244.9; this quiet pass replaces those observations.
+earlier pass had B1 31.9 at 12%, B5 280.2 at 66% and B6 244.9 at 91%; this pass re-measured all
+three.
 
 The C# run was loaded at a median 77%, so it is slower than the 13.29 to 47.93 ns hub column that
 the earlier page used. Its 3× limits, 97.65 ns for B1, 151.92 ns for B2 and 403.29 ns for B7, are printed only to show
@@ -173,6 +174,32 @@ loads 43% and 64%. Every pair ran above 15%, so this is an observation, not a ve
 inconclusive: the after run is slower in four pairs and faster in one, and the load moves with it.
 It does not show state leaking between processes, and it does not clear the harness either. It needs
 a quiet repeat.
+
+## B1 and B6 profiles
+
+Two quiet `--cpu-prof` runs, pinned to CPU 2 with `--no-heap` so the heap probe does not dominate the
+sample. The files are under `D:\devcache\profiles`.
+
+| Op | Run | ns/op | all-CPU load | profile |
+|---|---|---:|---:|---|
+| B1 | pid 29344 | 31.9 | 11.7% | `CPU.20261018.102628.29344.0.001.cpuprofile` |
+| B6 | pid 31876 | 72.2 | 13.2% | `CPU.20261018.102821.31876.0.001.cpuprofile` |
+
+B1 self time: the `run` loop in `bench/own-core.ts` 34.0%, idle 20.7%, generated code 11.6%,
+`of` in `dist/date.js` 9.3%, a V8 wasm frame 5.4%, garbage collector 4.6%, `civilFromDays` 1.0%,
+module loading 1.1%. `run` is the wrapper loop and the inlined `toGregorian` body; the profile does
+not separate the inlined frame from the loop.
+
+B6 self time: the `run` loop 36.3%, idle 21.9%, generated code 11.2%, `of` 6.7%, garbage collector
+6.0%, module loading 4.0%, `parse` 0.7%, table `build` 0.6%. The parse body is inlined into `run`;
+the visible split is the result construction in `of`, the collector and the loop itself. The
+profile cannot say how much of `run` is tokenising and how much is object construction.
+
+Decision: report both misses, do not change the hot path on this evidence. B1 is 0.9 ns over its 30
+ns target and B6 is 1.9 ns over 64; B6 is already below the 90 ns prototype. A sub-nanosecond change
+from these profiles would be guesswork, and the profiles show no single function with a large,
+isolated share that the loop does not dominate. The owner can decide whether to chase it. No code
+changed, so the exhaustive and fuzz tests remain as they were, green.
 
 ## Bundle sizes
 
