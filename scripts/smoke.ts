@@ -9,7 +9,7 @@
 // with `npm pack` and `npm install <tarball>`.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -52,6 +52,26 @@ function packageVersion(project: string, name: string): string {
   return typeof manifest.version === "string" ? manifest.version : "unknown";
 }
 
+// The expected range comes from the generated tables' source data. A literal here would hide a
+// data change from the smoke check.
+function coverageRange(): { start: string; end: string } {
+  const dir = join(ROOT, "shared", "data", "patro");
+  const years = readdirSync(dir)
+    .filter((name) => /^\d{4}\.json$/.test(name))
+    .sort();
+  if (years.length === 0) throw new Error(`no patro year files under ${dir}`);
+  const days = (name: string): Record<string, unknown> => {
+    const data = JSON.parse(readFileSync(join(dir, name), "utf8")) as {
+      days?: Record<string, unknown>;
+    };
+    return data.days ?? {};
+  };
+  const first = Object.keys(days(years[0] as string)).sort();
+  const last = Object.keys(days(years.at(-1) as string)).sort();
+  if (first.length === 0 || last.length === 0) throw new Error("a patro year file has no days");
+  return { start: first[0] as string, end: last.at(-1) as string };
+}
+
 const mode = argument("mode");
 const project = resolve(argument("project"));
 const readme = resolve(process.env.SMOKE_README ?? join(ROOT, "README.md"));
@@ -83,6 +103,7 @@ if (mode === "core") {
   console.log(`smoke: core ${packageVersion(project, "nepdate")} ok, no nepdate-patro`);
 } else {
   const coverage = join(project, "coverage-check.mts");
+  const expected = coverageRange();
   writeFileSync(
     coverage,
     [
@@ -90,9 +111,10 @@ if (mode === "core") {
       "const range = coverage();",
       "const start = range.start.toJSON();",
       "const end = range.end.toJSON();",
-      'if (start !== "2077-01-01" || end !== "2084-08-20") {',
+      `const expected = ${JSON.stringify(expected)};`,
+      "if (start !== expected.start || end !== expected.end) {",
       // biome-ignore lint/suspicious/noTemplateCurlyInString: this is generated code.
-      "  console.error(`smoke: coverage ${start}..${end}, expected 2077-01-01..2084-08-20`);",
+      "  console.error(`smoke: coverage ${start}..${end}, expected ${expected.start}..${expected.end}`);",
       "  process.exit(1);",
       "}",
       // biome-ignore lint/suspicious/noTemplateCurlyInString: this is generated code.
@@ -105,6 +127,6 @@ if (mode === "core") {
     `smoke: patro ${packageVersion(project, "nepdate-patro")} with core ${packageVersion(
       project,
       "nepdate",
-    )} ok`,
+    )} ok, data range ${expected.start}..${expected.end}`,
   );
 }
