@@ -76,8 +76,9 @@ limit of 60.00 ns. The C# row is `LOADED`, however, so the B1 3× verdict is pen
 
 The other TypeScript rows are loaded and say nothing final about a target. The raw numbers still
 show the shape: B2 and B7 are above their 30 ns and 10 ns targets on this run, B3 is just above 20,
-B5 and B6 are well above their limits, and B4 is below 20 ns only because it ran at 52% load and
-cannot be judged. The earlier quiet phase checkpoints had B1 about 27 ns, B2 about 24 ns and B7 about
+B4 is at 28.7 ns against 20, and B5 and B6 are well above their limits. B6 at 244.9 ns is about
+eight times the C# row and far from the ADR-0002 prototype (90 ns, p50 42), which is more than load
+explains; it needs a profile on a quiet run. The earlier quiet phase checkpoints had B1 about 27 ns, B2 about 24 ns and B7 about
 6.8 ns; those are not verdicts for this session.
 
 Negative control: six busy Node processes were started on the logical CPUs, then B1 was run. It
@@ -98,15 +99,16 @@ row out of the verdicts, as it is meant to.
 | B7 3× C# | < 191.31 ns | 19.5 | pending (row loaded) |
 
 The 3× limits from this machine's C# column are 60.00 ns for B1, 72.75 ns for B2 and 191.31 ns for
-B7. The hub-machine limits that ADR-0002 §10 prints (39.9, 55.9 and 143.8 ns) came from the old hub
-column and are not used here. ADR-0002 now records the same-machine limits; its decisions and
-targets are unchanged.
+B7, from a C# run at 66% load. A loaded C# run is slower, so these limits are more lenient than a
+quiet run would give, and under [ADR-0006](adr/0006-same-machine-csharp-column-and-load-gate.md)
+they pass or fail nothing. The hub-machine limits that ADR-0002 §10 prints (39.9, 55.9 and
+143.8 ns) came from another machine and are history only. The ADR-0002 targets are unchanged.
 
 ## Competitors
 
 Each row is B1 or B2 for the package in [competitors.md](competitors.md), in the order of that file,
 not a ranking. `n` is the number of dates measured: 64 except `nepali-datetime` B2, which throws on
-BS 2000-01-01 and is timed on the other 63. A package that disagrees is listed with its number and
+AD 1943-04-14 (BS 2000-01-01) and is timed on the other 63. A package that disagrees is listed with its number and
 never ranked above one that agrees. The load is the all-CPU figure sampled before the measurement;
 `core 2` is in the row detail printed by `bench/compare.ts`.
 
@@ -123,8 +125,16 @@ never ranked above one that agrees. The load is the all-CPU figure sampled befor
 | `world-calendars@1.0.4` | 974.2 | 11% | no | 1042.9 | 12% | no | B1 BS 2033-03-07 off by 9; B2 AD 1976-06-20 off by 8 |
 
 The two `world-calendars` timings are the only competitor rows measured below 15% load, so those two
-numbers are final for what they measure. The agreement verdicts do not depend on load: every one of
-the nine disagrees somewhere inside its own documented range.
+numbers are final for what they measure. The agreement results do not depend on load: every one of
+the nine differs from `shared/data` somewhere inside its own documented range.
+
+A difference is not proof that the other package is wrong. Most first mismatches are in BS 2085 to
+2090, near the end of the tables, and `shared/data/known-questions.json` lists open questions on the
+year lengths of BS 2087 to 2090 and the new year of BS 2088. The `bikram-sambat-js` B2 mismatch at
+AD 1956-04-08 and the `world-calendars` offsets of 8 and 9 days from BS 2033 are not near those
+years. ADR-0002 asks `nepdate` to be faster than every competitor that agrees with the data; no
+package agrees on all 64 dates, so that clause has no row to apply to in this session. Every
+competitor row is still slower than `nepdate` B1 and B2.
 
 ## Agreement and ranges
 
@@ -154,8 +164,8 @@ directions everywhere.
 The earlier page reported every B2 row as a mismatch at AD 1943-04-14 and called it "before the
 table". That was a harness error, not package behaviour: it compared the returned BS date with the
 AD expected date. The corrected comparison uses the BS expected date and the package's month
-offset, and the first B2 mismatches are now in the projection years, plus the
-`nepali-datetime` throw at its own start date. The old B2 statement is withdrawn.
+offset. The first B2 mismatches are now the ones listed in the competitor table, plus the
+`nepali-datetime` throw at AD 1943-04-14, its own documented start date. The old B2 statement is withdrawn.
 
 ## Order dependence
 

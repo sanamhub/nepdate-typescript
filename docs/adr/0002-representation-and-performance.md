@@ -142,11 +142,6 @@ Formatting and parsing:
     Also faster than every competitor in `docs/competitors.md` that agrees with the data. A miss is
     reported to the human with a `--cpu-prof` profile, not fixed by guessing.
 
-    Updated 2026-10-18: the C# column is now measured on the reference machine in the same session
-    as the TypeScript rows (`docs/benchmarks.md`). The 3× limits computed from that column are
-    60.00 ns for B1, 72.75 ns for B2 and 191.31 ns for B7. The hub-machine limits printed above
-    (39.9, 55.9 and 143.8 ns) are historical and are no longer used for a verdict.
-
 ## Consequences
 
 - No time-zone dependence in any conversion; `fromJSDate(d, "utc" | "local")` makes the caller choose.
