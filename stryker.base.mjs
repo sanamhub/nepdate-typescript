@@ -23,10 +23,11 @@ export function strykerConfig(pkg, name) {
       related: false,
     },
     concurrency: 2,
-    // The Vitest 5 runner does not reload a module that was evaluated at import time, so a static
-    // mutant can survive even when it breaks the import (stryker-js#6210 family). Ignoring static
-    // mutants is the only honest option; the load-time behaviour is covered by the normal tests.
-    ignoreStatic: true,
+    // Static mutants (hit while a module is imported) are measured. The runner drops a test file
+    // that fails at import instead of counting a failure, so each package has
+    // test/entry-load.test.ts, which imports the entry inside a test; an import-time throw is then
+    // a failed test. Static mutants run the whole suite, which makes them the slow part of a run.
+    ignoreStatic: false,
     tempDirName: join(TEMP_ROOT, `${name}-tmp`),
     cleanTempDir: "always",
     incremental: true,

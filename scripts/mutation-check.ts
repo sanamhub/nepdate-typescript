@@ -36,7 +36,6 @@ export function equivalentIds(markdown: string): Set<string> {
 export function checkSummary(summary: Summary, floor: number, markdown: string): CheckResult {
   const equivalent = equivalentIds(markdown);
   const untriaged = summary.survivors
-    .filter((survivor) => !survivor.static)
     .map((survivor) => `${survivor.file}#${survivor.id}`)
     .filter((key) => !equivalent.has(key));
   const errors: string[] = [];
@@ -52,7 +51,7 @@ export function checkSummary(summary: Summary, floor: number, markdown: string):
     ok: errors.length === 0,
     score: summary.counts.score,
     floor,
-    survivors: summary.survivors.filter((survivor) => !survivor.static).length,
+    survivors: summary.survivors.length,
     equivalent: equivalent.size,
     untriaged,
     errors,

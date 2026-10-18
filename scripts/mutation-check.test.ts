@@ -1,5 +1,6 @@
-// Tests for the mutation check (T8-04): a passing report, a below-floor report and an untriaged
-// survivor. Each case writes a small Stryker-shaped report and runs the CLI.
+// Tests for the mutation check (T8-04): a passing report, a below-floor report, an untriaged
+// survivor and an untriaged static survivor. Each case writes a small Stryker-shaped report and
+// runs the CLI.
 
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
@@ -104,4 +105,20 @@ test("equivalentIds reads table cells and bullets", () => {
     ].join("\n"),
   );
   assert.deepEqual([...ids].sort(), ["packages/nepdate/src/a.ts#1", "packages/nepdate/src/b.ts#2"]);
+});
+
+test("a static survivor is measured and needs an equivalent entry", () => {
+  const staticSurvivor = { ...mutant("11", "Survived"), static: true };
+  const result = run({
+    ...PASSING,
+    core: report("packages/nepdate/src/a.ts", [
+      mutant("1", "Killed"),
+      mutant("2", "Killed"),
+      mutant("10", "Survived"),
+      staticSurvivor,
+    ]),
+    floor: 0,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /packages\/nepdate\/src\/a\.ts#11/);
 });

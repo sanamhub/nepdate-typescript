@@ -89,12 +89,8 @@ function countsOf(mutants: readonly Mutant[]): Counts {
   let ignored = 0;
   let staticMutants = 0;
   for (const mutant of mutants) {
-    // The Stryker 10 Vitest runner cannot reload a module evaluated at import, so static results
-    // are not observable. They stay in the report but are outside the measured set.
-    if (mutant.static === true) {
-      staticMutants++;
-      continue;
-    }
+    // Static mutants are measured like every other mutant (ADR-0007); the count is informational.
+    if (mutant.static === true) staticMutants++;
     switch (mutant.status) {
       case "Killed":
         killed++;
@@ -202,8 +198,8 @@ export function summaryMarkdown(summary: Summary): string {
   lines.push(
     `Score **${summary.counts.score.toFixed(2)}%** from ${summary.counts.killed} killed, ` +
       `${summary.counts.timeout} timeout, ${summary.counts.survived} survived and ` +
-      `${summary.counts.noCoverage} no coverage. ${summary.counts.staticMutants} static mutant(s) ` +
-      "are excluded: the Vitest 5 runner cannot reload import-time modules.",
+      `${summary.counts.noCoverage} no coverage, including ${summary.counts.staticMutants} static ` +
+      "mutant(s).",
   );
   lines.push("");
   lines.push(
