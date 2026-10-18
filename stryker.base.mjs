@@ -23,6 +23,10 @@ export function strykerConfig(pkg, name) {
       related: false,
     },
     concurrency: 2,
+    // The Vitest 5 runner does not reload a module that was evaluated at import time, so a static
+    // mutant can survive even when it breaks the import (stryker-js#6210 family). Ignoring static
+    // mutants is the only honest option; the load-time behaviour is covered by the normal tests.
+    ignoreStatic: true,
     tempDirName: join(TEMP_ROOT, `${name}-tmp`),
     cleanTempDir: "always",
     incremental: true,

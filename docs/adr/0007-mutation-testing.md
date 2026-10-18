@@ -24,12 +24,18 @@ mutate generated tables or files that the coverage rule leaves out.
 2. **Scope.** Only `packages/nepdate/src/**/*.ts` and `packages/nepdate-patro/src/**/*.ts` are
    mutated. `*.gen.ts` files are excluded: `scripts/codegen.ts` owns them and the codegen gate
    checks them. ADR-0004 excludes no other path from coverage, so no other path is excluded here.
-   Tests, bench code, scripts, docs and the shared data are not mutated.
+   Tests, bench code, scripts, docs and the shared data are not mutated. Static mutants are outside
+   the measured set (`ignoreStatic: true`): the Stryker 10 Vitest runner does not reload a module
+   evaluated at import time under Vitest 5, so it reported a constructor mutant as survived even
+   when the mutant made the import throw. The runner records those skipped mutants as survived, so
+   the summary and the check filter the `static` flag; the normal suite still covers the load-time
+   behaviour. The measured set is the 1,146 non-static mutants.
 
 3. **Score.** The score is Stryker's mutation score:
    `(killed + timeout) / (killed + timeout + survived + no coverage) * 100`.
    Runtime errors, compile errors, ignored mutants and pending mutants are not part of the
-   denominator. The score is reported before and after triage.
+   denominator. The score is reported before and after triage. The 1,510 total from the first run
+   includes the 364 static mutants that are now ignored; the measured set is 1,146.
 
 4. **Equivalent mutants.** A survivor is either killed by a new test or listed in
    `docs/mutation/equivalent.md` with its mutant id, the source diff and a one-line proof that no

@@ -27,7 +27,9 @@ AC:
   `stryker.patro.conf.json` for `packages/nepdate-patro/src/`. Each names its package's
   `vitest.config.ts` and the package test directory.
 - Scope: every `.ts` file under the two `src/` trees, excluding `*.gen.ts` and any path ADR-0004
-  excludes from coverage. Nothing else is mutated.
+  excludes from coverage. Nothing else is mutated. Static mutants are ignored, because the Stryker
+  10 Vitest runner does not reload a module evaluated at import time under Vitest 5; the first run
+  showed a constructor mutant reported survived even when it broke the import.
 - `concurrency` is at most 4; the committed value is 2, because four Vitest workers on this
   machine hit a V8 out-of-memory crash in the property test. The Stryker temp and incremental
   directories are under `D:\devcache\stryker\`; the JSON reports go to `reports/mutation/`.
