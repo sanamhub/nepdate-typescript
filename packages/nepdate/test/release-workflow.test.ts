@@ -8,8 +8,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, it } from "vitest";
+import { expressionProblems, pinProblems } from "./workflow-rules.js";
 import {
-  actionUses,
   envValue,
   isMapping,
   type Job,
@@ -20,7 +20,6 @@ import {
   needsOf,
   parseWorkflow,
   permissionMap,
-  runScripts,
   type Step,
   step,
   stepIndex,
@@ -39,7 +38,6 @@ const WORKFLOW = join(ROOT, ".github", "workflows", "release.yml");
 const TEXT = readFileSync(WORKFLOW, "utf8");
 const SHIPPED = parseWorkflow(TEXT);
 const EXPRESSION = "${{";
-const PIN = /^[^@\s]+@[0-9a-f]{40}$/;
 
 function expression(name: string): string {
   return `${EXPRESSION} ${name} }}`;
@@ -103,27 +101,6 @@ function triggerProblems(workflow: Workflow): string[] {
   const dryRun = isMapping(inputs) ? inputs["dry-run"] : undefined;
   if (!isMapping(dryRun) || dryRun.type !== "boolean" || dryRun.default !== true) {
     found.push("workflow_dispatch must define a boolean dry-run input that defaults to true");
-  }
-  return found;
-}
-
-function pinProblems(workflow: Workflow): string[] {
-  const found: string[] = [];
-  for (const action of actionUses(workflow)) {
-    if (action.startsWith("./")) continue;
-    if (!PIN.test(action)) found.push(`action ${action} is not pinned by a 40-character SHA`);
-  }
-  return found;
-}
-
-function expressionProblems(workflow: Workflow): string[] {
-  const found: string[] = [];
-  for (const script of runScripts(workflow)) {
-    if (script.text.includes(EXPRESSION)) {
-      found.push(
-        `${script.job} step "${script.step}" puts an ${EXPRESSION} expression inside run; pass it through env`,
-      );
-    }
   }
   return found;
 }

@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { expressionProblems, pinProblems } from "./workflow-rules.js";
 import {
   actionUses,
   job,
@@ -24,8 +25,6 @@ import {
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const WORKFLOW = join(ROOT, ".github", "workflows", "mutation.yml");
 const PARSED = parseWorkflow(readFileSync(WORKFLOW, "utf8"));
-const EXPRESSION = "${{";
-const PIN = /^[^@\s]+@[0-9a-f]{40}$/;
 
 function runHas(name: string, ...needles: string[]): boolean {
   const value = step(PARSED, "mutation", name);
@@ -70,20 +69,20 @@ describe("weekly mutation workflow", () => {
   it("pins every action by SHA and reads no secret", () => {
     const actions = actionUses(PARSED);
     expect(actions).toHaveLength(3);
-    for (const action of actions) {
-      expect(action).toMatch(PIN);
-    }
+    expect(pinProblems(PARSED)).toEqual([]);
     const values = stringValues(PARSED);
     expect(values.some((text) => text.includes("secrets."))).toBe(false);
     const upload = step(PARSED, "mutation", "Upload the reports");
     expect(upload).toBeDefined();
     expect(upload?.if).toBe("always()");
-    expect(upload?.uses).toMatch(PIN);
   });
 
   it("keeps expressions out of every run script", () => {
-    for (const script of runScripts(PARSED)) {
-      expect(script.text.includes(EXPRESSION), `${script.job} ${script.step}`).toBe(false);
+    const scripts = runScripts(PARSED);
+    expect(scripts.length).toBeGreaterThan(0);
+    const found = expressionProblems(PARSED);
+    for (const script of scripts) {
+      expect(found, `${script.job} ${script.step}`).toEqual([]);
     }
   });
 });
