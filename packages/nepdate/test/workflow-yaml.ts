@@ -1,7 +1,7 @@
 // The workflow tests read GitHub Actions YAML as a parsed tree, not as text, so a comment, an
 // indentation change or a step moved to another job cannot satisfy a rule by accident.
 
-import { parse } from "yaml";
+import { parseAllDocuments } from "yaml";
 
 export type Mapping = Record<string, unknown>;
 export type Workflow = Mapping;
@@ -18,8 +18,29 @@ export function isMapping(value: unknown): value is Mapping {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+// YAML 1.2 keeps `on` a string key and `<<` a plain key, as GitHub Actions reads them. A duplicate
+// key, a second document or an unresolved tag is an error here, never a last-wins value or a
+// warning on stderr, so a rule cannot pass on a value the runner would read differently.
 export function parseWorkflow(text: string): Workflow {
-  const value: unknown = parse(text);
+  const documents = parseAllDocuments(text, {
+    version: "1.2",
+    merge: false,
+    uniqueKeys: true,
+    prettyErrors: false,
+    logLevel: "silent",
+  });
+  if (!Array.isArray(documents) || documents.length !== 1) {
+    throw new Error("workflow YAML must hold exactly one document");
+  }
+  const document = documents[0];
+  if (document === undefined) throw new Error("workflow YAML must hold exactly one document");
+  const issues = [...document.errors, ...document.warnings];
+  if (issues.length > 0) {
+    throw new Error(
+      `workflow YAML is not clean: ${issues.map((issue) => issue.message).join("; ")}`,
+    );
+  }
+  const value: unknown = document.toJS({ maxAliasCount: 100 });
   if (!isMapping(value)) throw new Error("workflow must parse to a mapping");
   return value;
 }

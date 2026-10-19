@@ -9,6 +9,7 @@ import {
   actionUses,
   job,
   jobPermissions,
+  jobsOf,
   parseWorkflow,
   runScripts,
   step,
@@ -48,6 +49,10 @@ describe("weekly mutation workflow", () => {
     expect(trigger(PARSED, "pull_request")).toBeUndefined();
   });
 
+  it("has only the mutation job", () => {
+    expect(Object.keys(jobsOf(PARSED))).toEqual(["mutation"]);
+  });
+
   it("grants only contents: read and uses no environment", () => {
     expect(workflowPermissions(PARSED)).toEqual({ contents: "read" });
     expect(jobPermissions(PARSED, "mutation")).toBeUndefined();
@@ -63,7 +68,9 @@ describe("weekly mutation workflow", () => {
   });
 
   it("pins every action by SHA and reads no secret", () => {
-    for (const action of actionUses(PARSED)) {
+    const actions = actionUses(PARSED);
+    expect(actions).toHaveLength(3);
+    for (const action of actions) {
       expect(action).toMatch(PIN);
     }
     const values = stringValues(PARSED);

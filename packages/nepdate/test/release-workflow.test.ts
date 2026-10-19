@@ -95,7 +95,7 @@ function triggerProblems(workflow: Workflow): string[] {
     found.push("release triggers must be exactly push and workflow_dispatch");
   }
   const push = trigger(workflow, "push");
-  if (!isMapping(push) || !isDeepStrictEqual(push.tags, ["v*"])) {
+  if (!isDeepStrictEqual(push, { tags: ["v*"] })) {
     found.push("push trigger must be exactly the v* tag");
   }
   const dispatch = trigger(workflow, "workflow_dispatch");
@@ -201,12 +201,17 @@ function environmentProblems(workflow: Workflow): string[] {
   return found;
 }
 
+const JOBS = ["pack", "smoke", "mutation", "publish", "verify", "github-release"];
+
 function jobProblems(workflow: Workflow): string[] {
   const found: string[] = [];
   for (const name of ["pack", "smoke", "mutation", "publish"]) {
     if (job(workflow, name) === undefined) {
       found.push(`release workflow must have a ${name} job`);
     }
+  }
+  for (const name of Object.keys(jobsOf(workflow))) {
+    if (!JOBS.includes(name)) found.push(`release workflow has an unexpected job: ${name}`);
   }
   return found;
 }
@@ -869,6 +874,20 @@ jobs:
     expect(requireJob(workflow, "publish").permissions).toEqual({ contents: "read" });
     expect(problems(workflow)).toContain("default permissions must be exactly contents: read");
     expect(problems(workflow)).toContain("publish needs contents: read and id-token: write");
+  });
+
+  it("reports a push trigger that also fires on a branch", () => {
+    const workflow = structuredClone(SHIPPED);
+    const push = trigger(workflow, "push");
+    if (!isMapping(push)) throw new Error("push trigger must be a mapping");
+    push.branches = ["main"];
+    expect(problems(workflow)).toContain("push trigger must be exactly the v* tag");
+  });
+
+  it("reports a job outside the release path", () => {
+    const workflow = structuredClone(SHIPPED);
+    jobsOf(workflow).extra = { "runs-on": "ubuntu-latest", steps: [{ run: "true" }] };
+    expect(problems(workflow)).toContain("release workflow has an unexpected job: extra");
   });
 
   it("reports the tarball check after the upload", () => {
