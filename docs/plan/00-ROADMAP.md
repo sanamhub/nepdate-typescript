@@ -27,6 +27,7 @@ Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit (today
 | T9 | `T9-api-minnode.md` | tested Node 22.12 floor, public API snapshot gate, runnable TSDoc examples |
 | T10 | `T10-release-gates.md` | patro data freshness, release-check, tarball rehearsal, post-publish verification |
 | T11 | `T11-workflow-yaml.md` | workflow tests parse the YAML instead of matching text |
+| T12 | `T12-workflow-coverage.md` | parsed tests for every workflow, shared pin and expression rules |
 
 ## Checkpoints
 
