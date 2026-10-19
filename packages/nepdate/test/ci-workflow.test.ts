@@ -114,6 +114,9 @@ function triggerProblems(workflow: Workflow): string[] {
   if (!isDeepStrictEqual(trigger(workflow, "push"), { branches: ["main"] })) {
     found.push("push trigger must be exactly the main branch");
   }
+  if (trigger(workflow, "pull_request") !== null) {
+    found.push("pull_request trigger must have no filters");
+  }
   if (trigger(workflow, "pull_request_target") !== undefined) {
     found.push("ci workflow must not use pull_request_target");
   }
@@ -142,10 +145,13 @@ function permissionProblems(workflow: Workflow): string[] {
   return found;
 }
 
+// Catches `secrets.X`, `secrets['X']` and a job-level `secrets:` block such as `secrets: inherit`.
 function secretProblems(workflow: Workflow): string[] {
-  return stringValues(workflow).some((text) => text.includes("secrets."))
-    ? ["ci workflow must not read a secret"]
-    : [];
+  const inValues = stringValues(workflow).some((text) => /\bsecrets\b/.test(text));
+  const inKeys = Object.values(jobsOf(workflow)).some(
+    (value) => isMapping(value) && value.secrets !== undefined,
+  );
+  return inValues || inKeys ? ["ci workflow must not read a secret"] : [];
 }
 
 function jobProblems(workflow: Workflow): string[] {
@@ -226,8 +232,11 @@ function timeoutProblems(workflow: Workflow): string[] {
     const timeout = value["timeout-minutes"];
     const hasSteps = Array.isArray(value.steps) && value.steps.length > 0;
     if (timeout === undefined) {
-      // A reusable-workflow job has no steps of its own; the called workflow owns its timeout.
-      if (hasSteps) found.push(`job ${name} must set a positive timeout-minutes`);
+      // GitHub does not allow timeout-minutes on a job that calls a reusable workflow; the called
+      // workflow owns its timeout. Any other job must set one.
+      if (hasSteps || typeof value.uses !== "string") {
+        found.push(`job ${name} must set a positive timeout-minutes`);
+      }
       continue;
     }
     if (typeof timeout !== "number" || timeout <= 0) {
@@ -262,6 +271,39 @@ describe("CI workflow", () => {
     expect(edited).not.toEqual(text);
     expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(
       "ci triggers must be exactly push and pull_request",
+    );
+  });
+
+  it("reports a pull_request filter", () => {
+    const text = readFileSync(WORKFLOW, "utf8");
+    const edited = text.replace("  pull_request:\n", "  pull_request:\n    branches: [main]\n");
+    expect(edited).not.toEqual(text);
+    expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(
+      "pull_request trigger must have no filters",
+    );
+  });
+
+  it("reports secrets passed to the reusable job", () => {
+    const text = readFileSync(WORKFLOW, "utf8");
+    const edited = text.replace(
+      "  shared-check:\n    permissions:\n      contents: read\n",
+      "  shared-check:\n    permissions:\n      contents: read\n    secrets: inherit\n",
+    );
+    expect(edited).not.toEqual(text);
+    expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(
+      "ci workflow must not read a secret",
+    );
+  });
+
+  it("reports a job with neither steps nor a timeout", () => {
+    const text = readFileSync(WORKFLOW, "utf8");
+    const edited = text.replace(
+      "      - run: npm run test:browser -w nepdate-patro\n",
+      "      - run: npm run test:browser -w nepdate-patro\n\n  idle:\n    runs-on: ubuntu-latest\n",
+    );
+    expect(edited).not.toEqual(text);
+    expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(
+      "job idle must set a positive timeout-minutes",
     );
   });
 

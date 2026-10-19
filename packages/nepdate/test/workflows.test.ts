@@ -43,10 +43,13 @@ export function workflowFiles(): string[] {
     .sort();
 }
 
+// A test file counts only if it exists and reads the workflow by its file name, so a map entry
+// cannot point at an unrelated test.
 export function coverageProblems(
   files: readonly string[],
   tests: Readonly<Record<string, string>>,
   hasTest: (name: string) => boolean,
+  testText: (name: string) => string = readTest,
 ): string[] {
   const found: string[] = [];
   for (const file of files) {
@@ -55,7 +58,13 @@ export function coverageProblems(
       found.push(`${file} has no dedicated test file`);
       continue;
     }
-    if (!hasTest(testFile)) found.push(`${file} points to a missing test file ${testFile}`);
+    if (!hasTest(testFile)) {
+      found.push(`${file} points to a missing test file ${testFile}`);
+      continue;
+    }
+    if (!testText(testFile).includes(`"${file}"`)) {
+      found.push(`${testFile} does not read ${file}`);
+    }
   }
   for (const [file, testFile] of Object.entries(tests)) {
     if (!files.includes(file)) found.push(`${file} test map entry is stale`);
@@ -81,6 +90,10 @@ export function sharedWorkflowProblems(
 
 function testExists(name: string): boolean {
   return existsSync(join(TEST_DIR, name));
+}
+
+function readTest(name: string): string {
+  return readFileSync(join(TEST_DIR, name), "utf8");
 }
 
 function replaceFirst(text: string, from: string, to: string): string {
@@ -117,6 +130,13 @@ describe("workflow coverage", () => {
   it("reports a workflow file with no dedicated test", () => {
     const found = coverageProblems([...FILES, "new.yml"], DEDICATED_TESTS, testExists);
     expect(found).toContain("new.yml has no dedicated test file");
+  });
+
+  it("reports a map entry whose test does not read the workflow", () => {
+    const tests = { ...DEDICATED_TESTS, "ci.yml": "mutation-workflow.test.ts" };
+    expect(coverageProblems(FILES, tests, testExists)).toContain(
+      "mutation-workflow.test.ts does not read ci.yml",
+    );
   });
 
   it("reports an unpinned action", () => {
