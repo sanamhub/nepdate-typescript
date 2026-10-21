@@ -7,7 +7,7 @@ version (ADR-0005); an entry that concerns only one package starts with its name
 
 ## [Unreleased]
 
-## [0.1.0-beta.1] - 2026-10-21
+## [0.1.0-beta.1] - 2026-10-22
 
 First public pre-release. The API may still change before 0.1.0.
 
