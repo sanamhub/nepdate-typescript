@@ -42,21 +42,24 @@ describe("date edges", () => {
   });
 
   test("fromJSDate reads the local fields and the UTC fields", () => {
-    let differing = 0;
-    for (const hour of [0, 23]) {
-      const instant = new Date(2024, 4, 28, hour, 30);
-      const local = NepaliDate.fromJSDate(instant, "local");
-      const utc = NepaliDate.fromJSDate(instant, "utc");
-      const localDay = [instant.getFullYear(), instant.getMonth(), instant.getDate()].join("-");
-      const utcDay = [instant.getUTCFullYear(), instant.getUTCMonth(), instant.getUTCDate()].join(
-        "-",
+    // On a UTC host the local and UTC days never differ, so the check would pass without testing
+    // anything. Node applies a TZ change at runtime; Kathmandu (+05:45) puts 00:30 local on the
+    // previous UTC day.
+    const saved = process.env.TZ;
+    process.env.TZ = "Asia/Kathmandu";
+    try {
+      const instant = new Date(2024, 4, 28, 0, 30);
+      expect(instant.toISOString()).toBe("2024-05-27T18:45:00.000Z");
+      expect(NepaliDate.fromJSDate(instant, "local").toJSON()).toBe(
+        NepaliDate.fromGregorian({ year: 2024, month: 5, day: 28 }).toJSON(),
       );
-      if (localDay !== utcDay) {
-        differing++;
-        expect(local.toJSON()).not.toBe(utc.toJSON());
-      }
+      expect(NepaliDate.fromJSDate(instant, "utc").toJSON()).toBe(
+        NepaliDate.fromGregorian({ year: 2024, month: 5, day: 27 }).toJSON(),
+      );
+    } finally {
+      if (saved === undefined) delete process.env.TZ;
+      else process.env.TZ = saved;
     }
-    expect(differing).toBeGreaterThan(0);
   });
 
   test("tryParse returns null for a date error and rethrows a type error", () => {
