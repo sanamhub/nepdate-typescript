@@ -137,6 +137,10 @@ jobs:
     needs: pack
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    # The floor and the equivalent list were measured under Nepal time. On a UTC runner the local
+    # and UTC Date constructors agree, so mutants that swap them in toJSDate survive there only.
+    env:
+      TZ: Asia/Kathmandu
     permissions:
       contents: read
     steps:
