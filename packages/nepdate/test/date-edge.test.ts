@@ -42,24 +42,29 @@ describe("date edges", () => {
   });
 
   test("fromJSDate reads the local fields and the UTC fields", () => {
-    // On a UTC host the local and UTC days never differ, so the check would pass without testing
-    // anything. Node applies a TZ change at runtime; Kathmandu (+05:45) puts 00:30 local on the
-    // previous UTC day.
-    const saved = process.env.TZ;
-    process.env.TZ = "Asia/Kathmandu";
-    try {
-      const instant = new Date(2024, 4, 28, 0, 30);
-      expect(instant.toISOString()).toBe("2024-05-27T18:45:00.000Z");
-      expect(NepaliDate.fromJSDate(instant, "local").toJSON()).toBe(
-        NepaliDate.fromGregorian({ year: 2024, month: 5, day: 28 }).toJSON(),
-      );
-      expect(NepaliDate.fromJSDate(instant, "utc").toJSON()).toBe(
-        NepaliDate.fromGregorian({ year: 2024, month: 5, day: 27 }).toJSON(),
-      );
-    } finally {
-      if (saved === undefined) delete process.env.TZ;
-      else process.env.TZ = saved;
+    // On a UTC host the local and UTC days of an instant are equal, and a runtime TZ change does
+    // not reach Vitest or Stryker worker threads. So the local fields come from a Date whose local
+    // getters read Kathmandu time (+05:45): the same instant is May 28 there and May 27 in UTC.
+    // The time-zones CI jobs still run the real local getters under three host zones.
+    const offset = (5 * 60 + 45) * 60 * 1000;
+    class KathmanduDate extends Date {
+      override getFullYear(): number {
+        return new Date(this.getTime() + offset).getUTCFullYear();
+      }
+      override getMonth(): number {
+        return new Date(this.getTime() + offset).getUTCMonth();
+      }
+      override getDate(): number {
+        return new Date(this.getTime() + offset).getUTCDate();
+      }
     }
+    const instant = new KathmanduDate(Date.UTC(2024, 4, 27, 18, 45));
+    expect(NepaliDate.fromJSDate(instant, "local").toJSON()).toBe(
+      NepaliDate.fromGregorian({ year: 2024, month: 5, day: 28 }).toJSON(),
+    );
+    expect(NepaliDate.fromJSDate(instant, "utc").toJSON()).toBe(
+      NepaliDate.fromGregorian({ year: 2024, month: 5, day: 27 }).toJSON(),
+    );
   });
 
   test("tryParse returns null for a date error and rethrows a type error", () => {
