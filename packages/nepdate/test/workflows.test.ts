@@ -129,6 +129,11 @@ describe("workflow coverage", () => {
     expect(found).toContain("new.yml has no dedicated test file");
   });
 
+  it("reports a deleted shared-sync workflow coming back without a test", () => {
+    const found = coverageProblems([...FILES, "shared-sync.yml"], DEDICATED_TESTS, testExists);
+    expect(found).toContain("shared-sync.yml has no dedicated test file");
+  });
+
   it("reports a map entry whose test does not read the workflow", () => {
     const tests = { ...DEDICATED_TESTS, "ci.yml": "mutation-workflow.test.ts" };
     expect(coverageProblems(FILES, tests, testExists)).toContain(
