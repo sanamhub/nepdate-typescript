@@ -42,21 +42,29 @@ describe("date edges", () => {
   });
 
   test("fromJSDate reads the local fields and the UTC fields", () => {
-    let differing = 0;
-    for (const hour of [0, 23]) {
-      const instant = new Date(2024, 4, 28, hour, 30);
-      const local = NepaliDate.fromJSDate(instant, "local");
-      const utc = NepaliDate.fromJSDate(instant, "utc");
-      const localDay = [instant.getFullYear(), instant.getMonth(), instant.getDate()].join("-");
-      const utcDay = [instant.getUTCFullYear(), instant.getUTCMonth(), instant.getUTCDate()].join(
-        "-",
-      );
-      if (localDay !== utcDay) {
-        differing++;
-        expect(local.toJSON()).not.toBe(utc.toJSON());
+    // On a UTC host the local and UTC days of an instant are equal, and a runtime TZ change does
+    // not reach Vitest or Stryker worker threads. So the local fields come from a Date whose local
+    // getters read Kathmandu time (+05:45): the same instant is May 28 there and May 27 in UTC.
+    // The time-zones CI jobs still run the real local getters under three host zones.
+    const offset = (5 * 60 + 45) * 60 * 1000;
+    class KathmanduDate extends Date {
+      override getFullYear(): number {
+        return new Date(this.getTime() + offset).getUTCFullYear();
+      }
+      override getMonth(): number {
+        return new Date(this.getTime() + offset).getUTCMonth();
+      }
+      override getDate(): number {
+        return new Date(this.getTime() + offset).getUTCDate();
       }
     }
-    expect(differing).toBeGreaterThan(0);
+    const instant = new KathmanduDate(Date.UTC(2024, 4, 27, 18, 45));
+    expect(NepaliDate.fromJSDate(instant, "local").toJSON()).toBe(
+      NepaliDate.fromGregorian({ year: 2024, month: 5, day: 28 }).toJSON(),
+    );
+    expect(NepaliDate.fromJSDate(instant, "utc").toJSON()).toBe(
+      NepaliDate.fromGregorian({ year: 2024, month: 5, day: 27 }).toJSON(),
+    );
   });
 
   test("tryParse returns null for a date error and rethrows a type error", () => {
