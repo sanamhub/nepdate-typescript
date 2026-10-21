@@ -28,6 +28,7 @@ Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit (today
 | T10 | `T10-release-gates.md` | patro data freshness, release-check, tarball rehearsal, post-publish verification |
 | T11 | `T11-workflow-yaml.md` | workflow tests parse the YAML instead of matching text |
 | T12 | `T12-workflow-coverage.md` | parsed tests for every workflow, shared pin and expression rules |
+| T13 | `T13-ci-without-hub-remote.md` | shared checksum gate, no cross-repo reusable workflows |
 
 ## Checkpoints
 

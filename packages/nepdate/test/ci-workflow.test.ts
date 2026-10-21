@@ -25,15 +25,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const WORKFLOW = join(ROOT, ".github", "workflows", "ci.yml");
 const PARSED = parseWorkflow(readFileSync(WORKFLOW, "utf8"));
 
-const EXPECTED_JOBS = [
-  "browser",
-  "ci",
-  "oldest-node",
-  "runtimes",
-  "shared-check",
-  "temporal",
-  "time-zones",
-];
+const EXPECTED_JOBS = ["browser", "ci", "oldest-node", "runtimes", "temporal", "time-zones"];
 const EXPECTED_OS = ["ubuntu-latest", "windows-latest", "macos-latest"];
 const EXPECTED_ZONES = ["America/Los_Angeles", "Asia/Kathmandu", "Pacific/Kiritimati"];
 const ADR_0009_OPTIONS = "--experimental-strip-types --disable-warning=ExperimentalWarning";
@@ -283,15 +275,27 @@ describe("CI workflow", () => {
     );
   });
 
-  it("reports secrets passed to the reusable job", () => {
+  it("reports a job-level secret", () => {
     const text = readFileSync(WORKFLOW, "utf8");
     const edited = text.replace(
-      "  shared-check:\n    permissions:\n      contents: read\n",
-      "  shared-check:\n    permissions:\n      contents: read\n    secrets: inherit\n",
+      "  ci:\n    strategy:",
+      "  ci:\n    secrets: inherit\n    strategy:",
     );
     expect(edited).not.toEqual(text);
     expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(
       "ci workflow must not read a secret",
+    );
+  });
+
+  it("reports an extra job", () => {
+    const text = readFileSync(WORKFLOW, "utf8");
+    const edited = text.replace(
+      "  ci:\n    strategy:",
+      "  shared-check:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n\n  ci:\n    strategy:",
+    );
+    expect(edited).not.toEqual(text);
+    expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(
+      `ci job set must be exactly ${EXPECTED_JOBS.join(", ")}`,
     );
   });
 

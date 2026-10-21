@@ -17,3 +17,4 @@ ADR.
 | [0009](0009-oldest-node-in-ci.md) | Test the oldest supported Node | Accepted |
 | [0010](0010-api-snapshot-and-examples.md) | Public API snapshot and runnable examples | Accepted |
 | [0011](0011-release-gates.md) | Release gates and post-publish verification | Accepted |
+| [0012](0012-ci-without-hub-remote.md) | CI without the hub remote | Accepted |
