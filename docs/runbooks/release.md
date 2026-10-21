@@ -40,6 +40,9 @@ because the workflow is green.
 
 ## Tag
 
+A pre-release such as `0.1.0-beta.1` follows the same steps with its own dated changelog section
+(`## [0.1.0-beta.1] - YYYY-MM-DD`); a stable section does not cover it and the other way round.
+
 ```
 git switch main
 git pull --ff-only
@@ -88,7 +91,9 @@ be used. For 0.1.0 only:
 3. Refuse a `workflow_dispatch` that is not a dry run. A dispatch can pack and check, never publish.
 4. `npm ci` and `npm run ci`.
 5. `scripts/release-version.ts` reads the version from the tag (push) or the core manifest
-   (dispatch), rejects anything that is not strict `X.Y.Z`, and writes it to the job output.
+   (dispatch), rejects anything that is not strict `X.Y.Z` or `X.Y.Z-PRERELEASE`, and writes the
+   version and its npm dist-tag to the job output: `latest` for a stable version, the first
+   pre-release identifier for a pre-release (`beta` for `0.1.0-beta.1`).
 6. `scripts/release-check.ts` checks both manifests, the peer range, the empty `[Unreleased]`
    section and the changelog section, and names the expected value on every failure.
 7. `scripts/data-status.ts` reads the built patro tables and blocks the release when fewer than
@@ -134,18 +139,25 @@ blocks the release.
    not run `npm pack`. Each step first runs
    `npm view <name>@X.Y.Z version`; if the version already exists the step is skipped, so a
    half-finished release can be re-run without publishing twice. Publishing uses OIDC trusted
-   publishing and `--provenance --access public`; the token fallback is above.
+   publishing and `--provenance --access public --tag "$DIST_TAG"`; the token fallback is above.
+   The `--tag` is required: npm moves `latest` to anything published without it, so a beta would
+   become what `npm install nepdate` installs. A static test fails if any `npm publish` lacks it.
 
-`verify` needs `publish`. It has `contents: read`, no `id-token` and no environment. It creates a
-clean temporary project and installs `nepdate@X.Y.Z` and `nepdate-patro@X.Y.Z` from the public
-registry. A failed install is retried every 30 seconds for up to 10 minutes. It then runs the README
-quick start (`NepaliDate.of(2081, 2, 15)`, `toGregorian`, `toJSON`, `long`) and one `info()` call
-that checks Republic Day. A failed verify job means the release is not done.
+`verify` needs `publish` and calls `verify-published.yml` with the published version. It has
+`contents: read`, no `id-token`, no environment and no checkout. On Linux, macOS and Windows, each
+with Node 22 and 24, it creates a clean project and installs `nepdate@X.Y.Z` and
+`nepdate-patro@X.Y.Z` exactly from the public registry, retrying every 30 seconds for up to 15
+minutes. It checks both installed versions, runs `npm audit signatures` (registry signatures and
+provenance), then the README quick start (`NepaliDate.of(2081, 2, 15)`, `toGregorian`, `toJSON`,
+`long`) and one `info()` call that checks Republic Day. A failed verify job means the release is not
+done. `verify-published.yml` can also be dispatched by hand with any published version.
 
 `github-release` needs `publish` and `verify` and is the only job with `contents: write`. It checks
 out the tag, downloads the tarballs, runs `sha256sum -c SHA256SUMS` again, and creates the GitHub
-Release `vX.Y.Z` from the changelog section with both tarballs attached. Because it waits for
-`verify`, a failed verify leaves no release page for packages that are about to be deprecated.
+Release `vX.Y.Z` with both tarballs attached. `scripts/release-notes.ts` writes the notes from the
+changelog section plus an install block for the exact version and a verification block. A version
+with a pre-release part becomes a GitHub pre-release. Because the job waits for `verify`, a failed
+verify leaves no release page for packages that are about to be deprecated.
 
 If `verify` fails, do not publish the same files again and do not use a different build under the
 same version. Deprecate both packages with a reason, fix the cause on `main`, and publish the next

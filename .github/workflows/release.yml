@@ -1,7 +1,8 @@
 name: release
 
-# One tag vX.Y.Z releases both packages with the same version (ADR-0005). A manual dispatch only
-# packs and checks the tarballs: publishing needs a tag push and the production environment.
+# One tag vX.Y.Z or vX.Y.Z-PRERELEASE releases both packages with the same version (ADR-0005). A
+# manual dispatch only packs and checks the tarballs: publishing needs a tag push and the
+# production environment. A pre-release goes to its own npm dist-tag, never to latest.
 on:
   push:
     tags: ["v*"]
@@ -207,9 +208,13 @@ jobs:
         run: node scripts/release-check.ts "$VERSION"
       - name: Verify the checked tarballs
         run: cd release-tarballs && sha256sum -c SHA256SUMS
+      # --tag is not optional: npm points latest at anything published without it, so a beta
+      # would become what `npm install nepdate` installs. release-version.ts gives a stable version
+      # latest and a pre-release its own tag (beta for 0.1.0-beta.1).
       - name: Publish nepdate
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
@@ -218,11 +223,12 @@ jobs:
           if npm view "nepdate@$VERSION" version >/dev/null 2>&1; then
             echo "nepdate@$VERSION is already on npm"
           else
-            npm publish "release-tarballs/nepdate-$VERSION.tgz" --provenance --access public
+            npm publish "release-tarballs/nepdate-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
           fi
       - name: Publish nepdate-patro
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
@@ -231,71 +237,21 @@ jobs:
           if npm view "nepdate-patro@$VERSION" version >/dev/null 2>&1; then
             echo "nepdate-patro@$VERSION is already on npm"
           else
-            npm publish "release-tarballs/nepdate-patro-$VERSION.tgz" --provenance --access public
+            npm publish "release-tarballs/nepdate-patro-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
           fi
 
-  # Post-publish verification (ADR-0011): install both exact versions from the public registry and
-  # run the README quick start plus one info() call. No secret, no id-token, no checkout.
+  # Post-publish verification (ADR-0011): verify-published.yml installs both exact versions from the
+  # public registry on Linux, macOS and Windows with Node 22 and 24, checks the registry signatures
+  # and runs the README quick start plus one info() call. Called, not triggered: a release created
+  # with GITHUB_TOKEN fires no event. It can also be dispatched by hand for any published version.
   verify:
     needs: publish
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
     permissions:
       contents: read
-    steps:
-      - name: Set up Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-      - name: Install the published packages with retries
-        env:
-          VERSION: ${{ needs.publish.outputs.version }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/verify-packages"
-          cd "$RUNNER_TEMP/verify-packages"
-          npm init -y >/dev/null
-          deadline=$((SECONDS + 600))
-          while true; do
-            if npm install --no-audit --no-fund "nepdate@$VERSION" "nepdate-patro@$VERSION"; then
-              break
-            fi
-            now=$SECONDS
-            if [ "$now" -ge "$deadline" ]; then
-              echo "verify: install failed after 10 minutes" >&2
-              exit 1
-            fi
-            pause=$((deadline - now))
-            if [ "$pause" -gt 30 ]; then pause=30; fi
-            echo "verify: install failed, retrying in ${pause}s" >&2
-            sleep "$pause"
-          done
-      - name: Run the README quick start and one info() call
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP/verify-packages"
-          node --input-type=module - <<'JS'
-          import { NepaliDate } from "nepdate";
-          import { info } from "nepdate-patro";
-
-          const date = NepaliDate.of(2081, 2, 15);
-          const gregorian = date.toGregorian();
-          if (gregorian.year !== 2024 || gregorian.month !== 5 || gregorian.day !== 28) {
-            throw new Error(`verify: toGregorian returned ${JSON.stringify(gregorian)}`);
-          }
-          if (date.toJSON() !== "2081-02-15") {
-            throw new Error(`verify: toJSON returned ${date.toJSON()}`);
-          }
-          if (date.long({ weekday: true }) !== "Tuesday, Jestha 15, 2081") {
-            throw new Error(`verify: long returned ${date.long({ weekday: true })}`);
-          }
-          const day = info(date);
-          if (!day.isPublicHoliday || day.events[0]?.en !== "Republic Day") {
-            throw new Error("verify: info did not return Republic Day");
-          }
-          console.log("verify: README quick start and one patro lookup passed");
-          JS
+    uses: ./.github/workflows/verify-published.yml
+    with:
+      version: ${{ needs.publish.outputs.version }}
 
   # The GitHub release appears only after verify has installed both versions from the registry, so a
   # failed verify leaves no release page for packages that are about to be deprecated (ADR-0011).
@@ -321,9 +277,20 @@ jobs:
           path: release-tarballs
       - name: Verify the checked tarballs
         run: cd release-tarballs && sha256sum -c SHA256SUMS
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # Notes come from the CHANGELOG section plus install and verification blocks, not from the
+      # commit log. A pre-release version becomes a GitHub pre-release, so it is never shown as
+      # the latest release.
       - name: Create the GitHub release
         env:
           VERSION: ${{ needs.publish.outputs.version }}
         run: |
-          node -e 'const fs = require("node:fs"); const version = process.env.VERSION; const text = fs.readFileSync("CHANGELOG.md", "utf8"); const start = text.indexOf("## [" + version + "]"); if (start < 0) { console.error("no changelog section for " + version); process.exit(1); } const rest = text.slice(start); const next = rest.indexOf("\n## [", 3); fs.writeFileSync("RELEASE_NOTES.md", (next < 0 ? rest : rest.slice(0, next)).trim() + "\n");'
-          gh release create "v$VERSION" release-tarballs/*.tgz --title "v$VERSION" --notes-file RELEASE_NOTES.md --verify-tag
+          set -euo pipefail
+          node scripts/release-notes.ts "$VERSION" > RELEASE_NOTES.md
+          prerelease=()
+          case "$VERSION" in *-*) prerelease=(--prerelease) ;; esac
+          gh release create "v$VERSION" release-tarballs/*.tgz --title "v$VERSION" \
+            --notes-file RELEASE_NOTES.md --verify-tag "${prerelease[@]}"

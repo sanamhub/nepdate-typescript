@@ -138,7 +138,7 @@ const gates: [name: string, body: () => void][] = [
       run("npx tsc -p tsconfig.tools.json");
       run("node --test bench/report.test.ts bench/load.test.ts scripts/mutation-check.test.ts");
       run(
-        "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/shared-sums.test.ts scripts/tarball-check.test.ts",
+        "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/release-notes.test.ts scripts/shared-sums.test.ts scripts/tarball-check.test.ts",
       );
     },
   ],

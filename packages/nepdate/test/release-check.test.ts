@@ -44,7 +44,7 @@ function fixture(options: Fixture = {}): string {
   );
   writeFileSync(
     join(dir, "CHANGELOG.md"),
-    options.changelog ?? "# Changelog\n\n## [Unreleased]\n\n## [0.1.0]\n",
+    options.changelog ?? "# Changelog\n\n## [Unreleased]\n\n## [0.1.0] - 2026-10-18\n",
   );
   return dir;
 }
@@ -85,13 +85,16 @@ test("release-check fails when the peer range is not ~X.Y.Z", () => {
 test("release-check fails when the changelog has no section for the version", () => {
   const result = check(fixture({ changelog: "# Changelog\n" }));
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain('has no "## [0.1.0]" section, expected one for 0.1.0');
+  expect(result.stderr).toContain(
+    'has no "## [0.1.0] - YYYY-MM-DD" section, expected one for 0.1.0',
+  );
 });
 
 test("release-check fails when [Unreleased] has entries", () => {
   const result = check(
     fixture({
-      changelog: "# Changelog\n\n## [Unreleased]\n\n- Still to release.\n\n## [0.1.0]\n",
+      changelog:
+        "# Changelog\n\n## [Unreleased]\n\n- Still to release.\n\n## [0.1.0] - 2026-10-18\n",
     }),
   );
   expect(result.status).toBe(1);
@@ -99,14 +102,52 @@ test("release-check fails when [Unreleased] has entries", () => {
 });
 
 test("release-check accepts a changelog without an [Unreleased] heading", () => {
-  const result = check(fixture({ changelog: "# Changelog\n\n## [0.1.0]\n" }));
+  const result = check(fixture({ changelog: "# Changelog\n\n## [0.1.0] - 2026-10-18\n" }));
   expect(result.status).toBe(0);
 });
 
 test("release-check fails when the version argument is not X.Y.Z", () => {
-  const result = check(fixture(), "0.1");
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("expected a strict X.Y.Z version");
+  for (const bad of ["0.1", "0.1.0+build.1", "0.1.0-", "0.1.0-beta.01"]) {
+    const result = check(fixture(), bad);
+    expect(result.status, bad).toBe(2);
+    expect(result.stderr).toContain("expected a strict X.Y.Z or X.Y.Z-PRERELEASE version");
+  }
+});
+
+test("release-check fails when the changelog section has no date", () => {
+  const result = check(fixture({ changelog: "# Changelog\n\n## [0.1.0]\n" }));
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('"## [0.1.0] - YYYY-MM-DD"');
+});
+
+function betaFixture(changelog: string): string {
+  return fixture({
+    coreVersion: "0.1.0-beta.1",
+    patroVersion: "0.1.0-beta.1",
+    peer: "~0.1.0-beta.1",
+    changelog,
+  });
+}
+
+test("release-check accepts a pre-release with its own dated section", () => {
+  const result = check(
+    betaFixture("# Changelog\n\n## [Unreleased]\n\n## [0.1.0-beta.1] - 2026-10-21\n"),
+    "0.1.0-beta.1",
+  );
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("0.1.0-beta.1 agrees");
+});
+
+test("release-check does not let a stable section stand in for a pre-release", () => {
+  const result = check(betaFixture("# Changelog\n\n## [0.1.0] - 2026-10-21\n"), "0.1.0-beta.1");
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('"## [0.1.0-beta.1] - YYYY-MM-DD"');
+});
+
+test("release-check does not let a pre-release section stand in for the stable version", () => {
+  const result = check(fixture({ changelog: "# Changelog\n\n## [0.1.0-beta.1] - 2026-10-21\n" }));
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('"## [0.1.0] - YYYY-MM-DD"');
 });
 
 function tagVersion(ref: string): { status: number | null; stdout: string; stderr: string } {
@@ -118,20 +159,41 @@ function tagVersion(ref: string): { status: number | null; stdout: string; stder
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
-test("release-version accepts a vX.Y.Z tag and prints the version", () => {
+test("release-version accepts a vX.Y.Z tag and prints the version and the latest dist-tag", () => {
   const result = tagVersion("v0.1.0");
   expect(result.status).toBe(0);
-  expect(result.stdout.trim()).toBe("version=0.1.0");
+  expect(result.stdout.trim().split(/\r?\n/)).toEqual(["version=0.1.0", "dist-tag=latest"]);
+});
+
+test("release-version gives a pre-release its own dist-tag, never latest", () => {
+  for (const [tag, expected] of [
+    ["v0.1.0-beta.1", "beta"],
+    ["v0.1.0-rc.2", "rc"],
+    ["v0.1.0-0.3", "next"],
+  ] as const) {
+    const result = tagVersion(tag);
+    expect(result.status, tag).toBe(0);
+    expect(result.stdout.trim().split(/\r?\n/), tag).toEqual([
+      `version=${tag.slice(1)}`,
+      `dist-tag=${expected}`,
+    ]);
+  }
+});
+
+test("release-version rejects build metadata", () => {
+  const result = tagVersion("v0.1.0+build.1");
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("is not a strict X.Y.Z or X.Y.Z-PRERELEASE version");
 });
 
 test("release-version rejects a partial tag", () => {
   const result = tagVersion("v0.1");
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain("is not a strict X.Y.Z version");
+  expect(result.stderr).toContain("is not a strict X.Y.Z or X.Y.Z-PRERELEASE version");
 });
 
 test("release-version rejects a leading zero", () => {
   const result = tagVersion("v01.2.3");
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain("is not a strict X.Y.Z version");
+  expect(result.stderr).toContain("is not a strict X.Y.Z or X.Y.Z-PRERELEASE version");
 });

@@ -1,0 +1,118 @@
+name: verify-published
+
+# Installs one published version of both packages from the public registry, the way a user does,
+# and checks it: the registry signatures and provenance, the README quick start and one patro
+# lookup. release.yml calls it after publishing (ADR-0011); it can also be dispatched by hand for
+# any version already on npm. No checkout, no secret, no token: only the registry is trusted here.
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Published version, for example 0.1.0-beta.1
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published version, for example 0.1.0-beta.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+      # The version reaches npm as an argument, so it is checked before any command uses it.
+      - name: Check the version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'; then
+            echo "verify: $VERSION is not X.Y.Z or X.Y.Z-PRERELEASE" >&2
+            exit 1
+          fi
+      # npm can take a few minutes to serve a new version from every region. The loop gives it 15.
+      - name: Install the published packages with retries
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/verify-packages"
+          cd "$RUNNER_TEMP/verify-packages"
+          npm init -y >/dev/null
+          deadline=$((SECONDS + 900))
+          while true; do
+            if npm install --no-audit --no-fund --save-exact "nepdate@$VERSION" "nepdate-patro@$VERSION"; then
+              break
+            fi
+            now=$SECONDS
+            if [ "$now" -ge "$deadline" ]; then
+              echo "verify: install failed after 15 minutes" >&2
+              exit 1
+            fi
+            pause=$((deadline - now))
+            if [ "$pause" -gt 30 ]; then pause=30; fi
+            echo "verify: install failed, retrying in ${pause}s" >&2
+            sleep "$pause"
+          done
+      - name: Check the installed versions
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/verify-packages"
+          for name in nepdate nepdate-patro; do
+            installed=$(node -p "require('./node_modules/$name/package.json').version")
+            if [ "$installed" != "$VERSION" ]; then
+              echo "verify: $name is $installed, expected $VERSION" >&2
+              exit 1
+            fi
+          done
+      # Checks the registry signature of every installed package and the provenance attestation of
+      # both of ours, so a tarball that did not come from this repository's workflow fails here.
+      - name: Check the registry signatures
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/verify-packages"
+          npm audit signatures
+      - name: Run the README quick start and one info() call
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/verify-packages"
+          node --input-type=module - <<'JS'
+          import { NepaliDate } from "nepdate";
+          import { info } from "nepdate-patro";
+
+          const date = NepaliDate.of(2081, 2, 15);
+          const gregorian = date.toGregorian();
+          if (gregorian.year !== 2024 || gregorian.month !== 5 || gregorian.day !== 28) {
+            throw new Error(`verify: toGregorian returned ${JSON.stringify(gregorian)}`);
+          }
+          if (date.toJSON() !== "2081-02-15") {
+            throw new Error(`verify: toJSON returned ${date.toJSON()}`);
+          }
+          if (date.long({ weekday: true }) !== "Tuesday, Jestha 15, 2081") {
+            throw new Error(`verify: long returned ${date.long({ weekday: true })}`);
+          }
+          const day = info(date);
+          if (!day.isPublicHoliday || day.events[0]?.en !== "Republic Day") {
+            throw new Error("verify: info did not return Republic Day");
+          }
+          console.log("verify: README quick start and one patro lookup passed");
+          JS
