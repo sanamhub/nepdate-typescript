@@ -110,3 +110,18 @@ export function topPermissionsProblems(workflow: Workflow): string[] {
     ? ["workflow must set top-level permissions"]
     : [];
 }
+
+// The hub has no GitHub remote yet, so a remote reusable workflow would stop the whole file at
+// startup (ADR-0012). A local reusable workflow would still resolve.
+export function remoteReusableProblems(workflow: Workflow): string[] {
+  const found: string[] = [];
+  for (const [jobName, jobValue] of Object.entries(jobsOf(workflow))) {
+    if (!isMapping(jobValue) || typeof jobValue.uses !== "string") continue;
+    if (!jobValue.uses.startsWith("./")) {
+      found.push(
+        `job ${jobName} calls a non-local reusable workflow; the hub has no GitHub remote (ADR-0012)`,
+      );
+    }
+  }
+  return found;
+}

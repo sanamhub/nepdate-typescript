@@ -10,6 +10,7 @@ import {
   expressionProblems,
   pinCommentProblems,
   pinProblems,
+  remoteReusableProblems,
   topPermissionsProblems,
 } from "./workflow-rules.js";
 import { parseWorkflow, type Workflow } from "./workflow-yaml.js";
@@ -24,7 +25,6 @@ export const DEDICATED_TESTS: Readonly<Record<string, string>> = {
   "ci.yml": "ci-workflow.test.ts",
   "mutation.yml": "mutation-workflow.test.ts",
   "release.yml": "release-workflow.test.ts",
-  "shared-sync.yml": "shared-sync-workflow.test.ts",
 };
 
 // No job needs persisted credentials. Every checkout only reads the repository.
@@ -83,6 +83,7 @@ export function sharedWorkflowProblems(
     ...topPermissionsProblems(workflow),
     ...pinProblems(workflow),
     ...pinCommentProblems(workflow, text),
+    ...remoteReusableProblems(workflow),
     ...checkoutProblems(workflow, checkoutAllowlist),
     ...expressionProblems(workflow, expressionAllowlist),
   ];
@@ -108,11 +109,7 @@ const CI_PARSED = parseWorkflow(CI_TEXT);
 
 describe("workflow coverage", () => {
   it("discovers every workflow file", () => {
-    expect(FILES.length).toBeGreaterThan(0);
-    expect(FILES).toContain("ci.yml");
-    expect(FILES).toContain("mutation.yml");
-    expect(FILES).toContain("release.yml");
-    expect(FILES).toContain("shared-sync.yml");
+    expect(FILES).toEqual(["ci.yml", "mutation.yml", "release.yml"]);
   });
 
   it("maps every workflow file to a dedicated test", () => {
@@ -136,6 +133,18 @@ describe("workflow coverage", () => {
     const tests = { ...DEDICATED_TESTS, "ci.yml": "mutation-workflow.test.ts" };
     expect(coverageProblems(FILES, tests, testExists)).toContain(
       "mutation-workflow.test.ts does not read ci.yml",
+    );
+  });
+
+  it("reports a non-local reusable workflow", () => {
+    const edited = replaceFirst(
+      CI_TEXT,
+      "jobs:\n  ci:\n",
+      "jobs:\n  hub:\n    uses: sanamhub/nepdate/.github/workflows/shared-check.yml@f86f9e5feb9bb9fba46ee477b34d7b42ddd30910\n\n  ci:\n",
+    );
+    expect(edited).not.toEqual(CI_TEXT);
+    expect(remoteReusableProblems(parseWorkflow(edited))).toContain(
+      "job hub calls a non-local reusable workflow; the hub has no GitHub remote (ADR-0012)",
     );
   });
 
