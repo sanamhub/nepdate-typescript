@@ -69,12 +69,8 @@ export function writeManifest(
   root: string,
   manifestPath = join(root, MANIFEST),
 ): { version: string; files: number } {
-  const version = sharedVersion(root);
-  const files = sharedFiles(root);
-  const lines = [`# hub ${version}`];
-  for (const path of files) lines.push(`${hash(join(root, path))}  ${path}`);
-  writeFileSync(manifestPath, `${lines.join("\n")}\n`, "utf8");
-  return { version, files: files.length };
+  writeFileSync(manifestPath, manifestFor(root), "utf8");
+  return { version: sharedVersion(root), files: sharedFiles(root).length };
 }
 
 /** Every difference between the manifest text and the shared/ tree under root. */
