@@ -116,6 +116,7 @@ function patroSize(): void {
 // Packed smoke (T8-06): the pack, offline install and both smoke modes live in
 // scripts/packed-smoke.ts so gate 11 and the oldest-node job run one path (T9-01).
 const gates: [name: string, body: () => void][] = [
+  ["shared tree", () => run("node scripts/shared-sums.ts")],
   ["lint + format", () => run("npx biome ci .")],
   ["generated code", () => run("node scripts/codegen.ts --check")],
   ["core types", () => run(`npx tsc -p ${CORE}/tsconfig.json`)],
@@ -137,7 +138,7 @@ const gates: [name: string, body: () => void][] = [
       run("npx tsc -p tsconfig.tools.json");
       run("node --test bench/report.test.ts bench/load.test.ts scripts/mutation-check.test.ts");
       run(
-        "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/tarball-check.test.ts",
+        "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/shared-sums.test.ts scripts/tarball-check.test.ts",
       );
     },
   ],
