@@ -484,9 +484,11 @@ function publishProblems(workflow: Workflow): string[] {
   ] as const) {
     found.push(
       ...stepProblems(workflow, "publish", name, "publish must publish both packages", (item) =>
+        // "./" keeps npm from reading "release-tarballs/x.tgz" as a GitHub user/repo shorthand,
+        // which made the 0.1.0-beta.1 publish try `git ls-remote` over SSH and fail.
         runHas(
           item,
-          `npm publish "release-tarballs/${tarball}"`,
+          `npm publish "./release-tarballs/${tarball}"`,
           "--provenance",
           "--access public",
         ),
@@ -789,6 +791,14 @@ jobs:
     const found = problems(workflow);
     expect(found).toContain("both publish steps must publish under the version's dist-tag");
     expect(found).toContain('every npm publish must pass --tag "$DIST_TAG"');
+  });
+
+  it("reports a tarball path npm would read as a GitHub shorthand", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "publish"));
+    const publish = steps[rawStepIndex(steps, "Publish nepdate")] as Record<string, unknown>;
+    publish.run = String(publish.run).replace('"./release-tarballs/', '"release-tarballs/');
+    expect(problems(workflow)).toContain("publish must publish both packages");
   });
 
   it("reports a GitHub release that does not mark a pre-release", () => {
