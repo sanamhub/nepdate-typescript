@@ -19,3 +19,4 @@ ADR.
 | [0011](0011-release-gates.md) | Release gates and post-publish verification | Accepted |
 | [0012](0012-ci-without-hub-remote.md) | CI without the hub remote | Accepted |
 | [0013](0013-core-package-name.md) | The core package is `nepdate-core` on npm | Accepted |
+| [0014](0014-typescript-7.md) | TypeScript 7 for tsc, the 6.x API for declaration tools | Accepted |
