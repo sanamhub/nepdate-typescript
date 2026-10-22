@@ -12,8 +12,8 @@
     "nepali-date-converter": "3.4.0",
     "nepali-date-library": "1.1.16",
     "nepali-datetime": "2.0.0",
-    "@nepdate/core": "file:../packages/nepdate",
-    "@nepdate/patro": "file:../packages/nepdate-patro",
+    "nepdate-core": "file:../packages/nepdate",
+    "nepdate-patro": "file:../packages/nepdate-patro",
     "world-calendars": "1.0.4"
   }
 }

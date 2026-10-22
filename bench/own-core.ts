@@ -1,8 +1,8 @@
-// B1 to B6 of BENCHMARK §3 for @nepdate/core. Loaded only by the child that measures one of these rows,
+// B1 to B6 of BENCHMARK §3 for nepdate-core. Loaded only by the child that measures one of these rows,
 // so a row's process imports the core and nothing from the patro package.
 
-import { type GregorianDate, NepaliDate } from "@nepdate/core";
 import { do_not_optimize } from "mitata";
+import { type GregorianDate, NepaliDate } from "nepdate-core";
 
 const DAY_MS = 86_400_000;
 const EPOCH_DAYS = Date.UTC(1844, 3, 11) / DAY_MS;

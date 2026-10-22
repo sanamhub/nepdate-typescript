@@ -1,12 +1,12 @@
-# `@nepdate/core` and `@nepdate/patro` (TypeScript): exported API contract (v0.1)
+# `nepdate-core` and `nepdate-patro` (TypeScript): exported API contract (v0.1)
 
 The complete exported surface of both packages for v0.1. Implement exactly this; a new export
 needs this file changed in the same PR, approved by the human. Behaviour: `shared/spec/`.
 Conventions: ADR-0003. Months are **1-based** everywhere (unlike JS `Date`). Every optional `lang`
-defaults to `"en"`. `@nepdate/core` never imports `@nepdate/patro` (ADR-0001 §2).
+defaults to `"en"`. `nepdate-core` never imports `nepdate-patro` (ADR-0001 §2).
 
 ```ts
-// "@nepdate/core"
+// "nepdate-core"
 export type Lang = "en" | "ne";
 export type Overflow = "clamp" | "spill";                    // ALGORITHM §8 (clamp = C# default)
 export type DateOrder = "ymd" | "ydm" | "myd" | "mdy" | "dym" | "dmy";
@@ -96,9 +96,9 @@ export class DateRange implements Iterable<NepaliDate> {     // inclusive; D-09:
 ```
 
 ```ts
-// "@nepdate/patro": a separate npm package (hub ADR-0004, ADR-0001 §1).
-// peerDependencies: { "@nepdate/core": "~X.Y.Z" }, same version as the core.
-import type { DateRange, NepaliDate } from "@nepdate/core";
+// "nepdate-patro": a separate npm package (hub ADR-0004, ADR-0001 §1).
+// peerDependencies: { "nepdate-core": "~X.Y.Z" }, same version as the core.
+import type { DateRange, NepaliDate } from "nepdate-core";
 
 export interface Named { readonly np: string; readonly en: string }
 export interface CalendarInfo {
@@ -117,7 +117,7 @@ Notes:
 - `today()` defaults to Nepal time via `Intl.DateTimeFormat` with `timeZone: "Asia/Kathmandu"`, not the
   machine's zone.
 - `info(date)` returns the same frozen `CalendarInfo` for a day on every call, with a frozen `events` array (no allocation per call, ADR-0002 §7).
-- `@nepdate/patro` reads a date's serial as `NepaliDate.MIN.daysUntil(date)` and builds dates with
+- `nepdate-patro` reads a date's serial as `NepaliDate.MIN.daysUntil(date)` and builds dates with
   `NepaliDate.MIN.addDays(serial)` (ADR-0002 §7). It needs no extra export from the core.
-- Usage: `import { NepaliDate } from "@nepdate/core"; import { info } from "@nepdate/patro";
+- Usage: `import { NepaliDate } from "nepdate-core"; import { info } from "nepdate-patro";
   info(NepaliDate.of(2081, 2, 15)).isPublicHoliday === true` (Republic Day).

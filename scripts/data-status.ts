@@ -7,7 +7,7 @@
 // Public holidays are the release blocker: fewer than 183 days left fails. Tithi and events print a
 // warning and still exit 0. The default --today is the current UTC date.
 
-import { NepaliDate } from "@nepdate/core";
+import { NepaliDate } from "nepdate-core";
 
 const GATE_DAYS = 183;
 const KINDS = ["tithi", "holidays", "events"] as const;

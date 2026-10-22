@@ -1,6 +1,6 @@
 # Contributing
 
-This is the TypeScript port of the NepDate family: the npm packages `@nepdate/core` and `@nepdate/patro`.
+This is the TypeScript port of the NepDate family: the npm packages `nepdate-core` and `nepdate-patro`.
 Behaviour is fixed by the shared spec in `shared/spec/` and decisions by the ADRs in `docs/adr/`,
 so most changes follow a task in `docs/plan/`. The rules for agents, which also apply to people,
 are in [`AGENTS.md`](AGENTS.md).
@@ -23,7 +23,7 @@ npm run ci
 
 The last line reads `ci: 10/10 gates passed`.
 
-- Zero runtime `dependencies` in both packages; `@nepdate/core` never imports `@nepdate/patro`.
+- Zero runtime `dependencies` in both packages; `nepdate-core` never imports `nepdate-patro`.
 - No export beyond [`docs/API.md`](docs/API.md).
 - Never weaken, skip or delete a test to get CI green. A skipped parity row names its deviation
   from `shared/spec/PARITY.md`.

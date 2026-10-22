@@ -16,9 +16,9 @@ function packageJson(fields: Record<string, unknown> = {}): TestMember {
     name: "package/package.json",
     data: Buffer.from(
       JSON.stringify({
-        name: "@nepdate/patro",
+        name: "nepdate-patro",
         version: "0.1.0",
-        peerDependencies: { "@nepdate/core": "~0.1.0" },
+        peerDependencies: { "nepdate-core": "~0.1.0" },
         ...fields,
       }),
     ),
@@ -37,8 +37,12 @@ function allowed(): TestMember[] {
   ];
 }
 
-const PATRO = { name: "@nepdate/patro", version: "0.1.0", peer: "@nepdate/core" } as const;
-const CORE = { name: "@nepdate/core", version: "0.1.0", peer: undefined } as const;
+const PATRO = {
+  name: "nepdate-patro",
+  version: "0.1.0",
+  peer: "nepdate-core",
+} as const;
+const CORE = { name: "nepdate-core", version: "0.1.0", peer: undefined } as const;
 
 test("the allowed members and patro manifest pass", () => {
   assert.deepEqual(checkMembers(allowed(), PATRO), []);
@@ -88,20 +92,20 @@ test("the wrong version fails", () => {
 test("the wrong peer range fails", () => {
   const members = allowed().map((member) =>
     member.name === "package/package.json"
-      ? packageJson({ peerDependencies: { "@nepdate/core": "~0.2.0" } })
+      ? packageJson({ peerDependencies: { "nepdate-core": "~0.2.0" } })
       : member,
   );
   const errors = checkMembers(members, PATRO);
   assert.match(
     errors[0] as string,
-    /peerDependencies\["@nepdate\/core"\] is ~0\.2\.0, expected ~0\.1\.0/,
+    /peerDependencies\["nepdate-core"\] is ~0\.2\.0, expected ~0\.1\.0/,
   );
 });
 
 test("devDependencies fail", () => {
   const members = allowed().map((member) =>
     member.name === "package/package.json"
-      ? packageJson({ devDependencies: { "@nepdate/core": "0.1.0" } })
+      ? packageJson({ devDependencies: { "nepdate-core": "0.1.0" } })
       : member,
   );
   const errors = checkMembers(members, PATRO);
@@ -120,10 +124,10 @@ test("runtime dependencies fail", () => {
 
 test("the core manifest must not carry a peer", () => {
   const members = allowed().map((member) =>
-    member.name === "package/package.json" ? packageJson({ name: "@nepdate/core" }) : member,
+    member.name === "package/package.json" ? packageJson({ name: "nepdate-core" }) : member,
   );
   const errors = checkMembers(members, CORE);
-  assert.match(errors[0] as string, /has peerDependencies, expected none for @nepdate\/core/);
+  assert.match(errors[0] as string, /has peerDependencies, expected none for nepdate-core/);
 });
 
 test("a missing package.json fails", () => {

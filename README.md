@@ -6,8 +6,8 @@
 
 <p align="center">
   <a href="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml"><img src="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://www.npmjs.com/package/@nepdate/core"><img src="https://img.shields.io/npm/v/@nepdate/core/beta?logo=npm&label=@nepdate/core" alt="@nepdate/core on npm"></a>
-  <a href="https://www.npmjs.com/package/@nepdate/patro"><img src="https://img.shields.io/npm/v/@nepdate/patro/beta?logo=npm&label=@nepdate/patro" alt="@nepdate/patro on npm"></a>
+  <a href="https://www.npmjs.com/package/nepdate-core"><img src="https://img.shields.io/npm/v/nepdate-core/beta?logo=npm&label=nepdate-core" alt="nepdate-core on npm"></a>
+  <a href="https://www.npmjs.com/package/nepdate-patro"><img src="https://img.shields.io/npm/v/nepdate-patro/beta?logo=npm&label=nepdate-patro" alt="nepdate-patro on npm"></a>
   <a href="https://github.com/sanamhub/nepdate-typescript/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
 </p>
 
@@ -17,10 +17,10 @@ original is [NepDate](https://github.com/RajuPrasai/NepDate).
 
 Two npm packages, released together with the same version:
 
-- [`@nepdate/core`](https://www.npmjs.com/package/@nepdate/core): dates, conversion, arithmetic, formatting and
+- [`nepdate-core`](https://www.npmjs.com/package/nepdate-core): dates, conversion, arithmetic, formatting and
   parsing. ESM only, types included, zero dependencies, no event data.
-- [`@nepdate/patro`](https://www.npmjs.com/package/@nepdate/patro): the patro (पात्रो, the Nepali
-  almanac): tithi, public holidays and events from BS 2077-01-01 to 2084-08-20. It needs `@nepdate/core`
+- [`nepdate-patro`](https://www.npmjs.com/package/nepdate-patro): the patro (पात्रो, the Nepali
+  almanac): tithi, public holidays and events from BS 2077-01-01 to 2084-08-20. It needs `nepdate-core`
   as a peer dependency.
 
 Pure TypeScript, no WASM and no time zone guessing. BS 1901-01-01 to 2199-12-30 (AD 1844-04-11 to
@@ -32,13 +32,13 @@ Pure TypeScript, no WASM and no time zone guessing. BS 1901-01-01 to 2199-12-30 
 > calendar.
 
 ```bash
-npm install @nepdate/core@beta
+npm install nepdate-core@beta
 ```
 
 ## Quick start (Node, Bun, bundlers)
 
 ```ts
-import { NepaliDate } from "@nepdate/core";
+import { NepaliDate } from "nepdate-core";
 
 const republicDay = NepaliDate.of(2081, 2, 15);
 console.log(republicDay.toGregorian()); // { year: 2024, month: 5, day: 28 }
@@ -52,7 +52,7 @@ console.log(republicDay.long({ weekday: true })); // "Tuesday, Jestha 15, 2081"
 ## Quick start (Deno)
 
 ```ts
-import { NepaliDate } from "npm:@nepdate/core@0.1.0-beta.1";
+import { NepaliDate } from "npm:nepdate-core@0.1.0-beta.1";
 
 console.log(NepaliDate.of(2081, 2, 15).toJSON()); // "2081-02-15"
 ```
@@ -73,7 +73,7 @@ needed. `fromJSDate` and `toJSDate` take an explicit zone because a `Date` holds
 calendar day.
 
 ```ts
-import { NepaliDate } from "@nepdate/core";
+import { NepaliDate } from "nepdate-core";
 
 if (globalThis.Temporal !== undefined) {
   const date = NepaliDate.fromGregorian(Temporal.PlainDate.from("2024-07-30"));
@@ -90,12 +90,12 @@ so the machine's own zone never changes the answer.
 Install both packages:
 
 ```bash
-npm install @nepdate/core@beta @nepdate/patro@beta
+npm install nepdate-core@beta nepdate-patro@beta
 ```
 
 ```ts
-import { NepaliDate } from "@nepdate/core";
-import { info } from "@nepdate/patro";
+import { NepaliDate } from "nepdate-core";
+import { info } from "nepdate-patro";
 
 const day = info(NepaliDate.of(2081, 2, 15));
 console.log(day.isPublicHoliday); // true

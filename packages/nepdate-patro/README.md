@@ -2,17 +2,17 @@
   <img src="https://raw.githubusercontent.com/sanamhub/nepdate-typescript/main/docs/assets/nepdate-typescript-128.png" width="128" alt="NepDate for TypeScript logo">
 </p>
 
-<h1 align="center">@nepdate/patro</h1>
+<h1 align="center">nepdate-patro</h1>
 
 <p align="center">
   <a href="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml"><img src="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://www.npmjs.com/package/@nepdate/patro"><img src="https://img.shields.io/npm/v/@nepdate/patro/beta?logo=npm&label=@nepdate/patro" alt="@nepdate/patro on npm"></a>
+  <a href="https://www.npmjs.com/package/nepdate-patro"><img src="https://img.shields.io/npm/v/nepdate-patro/beta?logo=npm&label=nepdate-patro" alt="nepdate-patro on npm"></a>
   <a href="https://github.com/sanamhub/nepdate-typescript/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
 </p>
 
 The patro (पात्रो, the Nepali almanac) for
-[`@nepdate/core`](https://www.npmjs.com/package/@nepdate/core): tithi (lunar day), gazetted public holidays and
-events for each Bikram Sambat day. `@nepdate/patro` needs `@nepdate/core` as a peer dependency and shares
+[`nepdate-core`](https://www.npmjs.com/package/nepdate-core): tithi (lunar day), gazetted public holidays and
+events for each Bikram Sambat day. `nepdate-patro` needs `nepdate-core` as a peer dependency and shares
 its version.
 
 > **Status:** 0.1.0-beta.1, the first public pre-release, on the `beta` dist-tag. The data is
@@ -21,14 +21,14 @@ its version.
 ## Install
 
 ```bash
-npm install @nepdate/core@beta @nepdate/patro@beta
+npm install nepdate-core@beta nepdate-patro@beta
 ```
 
 ## Use
 
 ```ts
-import { NepaliDate } from "@nepdate/core";
-import { info } from "@nepdate/patro";
+import { NepaliDate } from "nepdate-core";
+import { info } from "nepdate-patro";
 
 const republicDay = info(NepaliDate.of(2081, 2, 15));
 console.log(republicDay.isPublicHoliday); // true
@@ -41,7 +41,7 @@ every call, and the event array keeps the file order. A day without data returns
 object (`tithi: null`, `isPublicHoliday: false`, `events: []`).
 
 ```ts
-import { coverage, publicHolidays } from "@nepdate/patro";
+import { coverage, publicHolidays } from "nepdate-patro";
 
 console.log(coverage().start.toJSON()); // "2077-01-01"
 console.log(coverage().end.toJSON()); // "2084-08-20"

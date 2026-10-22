@@ -18,4 +18,4 @@ ADR.
 | [0010](0010-api-snapshot-and-examples.md) | Public API snapshot and runnable examples | Accepted |
 | [0011](0011-release-gates.md) | Release gates and post-publish verification | Accepted |
 | [0012](0012-ci-without-hub-remote.md) | CI without the hub remote | Accepted |
-| [0013](0013-scoped-npm-names.md) | Scoped npm names | Accepted |
+| [0013](0013-core-package-name.md) | The core package is `nepdate-core` on npm | Accepted |

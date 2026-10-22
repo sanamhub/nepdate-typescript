@@ -23,8 +23,8 @@ export interface Snapshot {
 export const SNAPSHOT_FORMAT = 1;
 
 export const PACKAGES: readonly PackageSource[] = [
-  { name: "@nepdate/core", entry: "packages/nepdate/dist/index.d.ts" },
-  { name: "@nepdate/patro", entry: "packages/nepdate-patro/dist/index.d.ts" },
+  { name: "nepdate-core", entry: "packages/nepdate/dist/index.d.ts" },
+  { name: "nepdate-patro", entry: "packages/nepdate-patro/dist/index.d.ts" },
 ];
 
 const printer = ts.createPrinter({ removeComments: true });
@@ -253,7 +253,7 @@ export function readDocumentedSurface(markdown: string): Surface {
   const blockPattern = /^```ts\r?\n([\s\S]*?)^```$/gm;
   for (const match of markdown.matchAll(blockPattern)) {
     const code = match[1] ?? "";
-    const name = /^\/\/ "(@nepdate\/(?:core|patro))"/m.exec(code)?.[1];
+    const name = /^\/\/ "(nepdate-(?:core|patro))"/m.exec(code)?.[1];
     if (name === undefined) continue;
     const sourceFile = ts.createSourceFile(`${name}.d.ts`, code, ts.ScriptTarget.ES2022, true);
     const entries: string[] = [];

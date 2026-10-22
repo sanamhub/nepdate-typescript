@@ -1,4 +1,4 @@
-# Runbook: release `@nepdate/core` and `@nepdate/patro` (npm)
+# Runbook: release `nepdate-core` and `nepdate-patro` (npm)
 
 Decided in [ADR-0005](../adr/0005-releases.md). Owner: maintainer. Approver: a second person. One
 tag releases both packages with the same version.
@@ -9,7 +9,7 @@ because the workflow is green.
 
 ## Preconditions
 
-1. **U-04 is settled.** The source of the tithi, holiday and event data in `@nepdate/patro` is known,
+1. **U-04 is settled.** The source of the tithi, holiday and event data in `nepdate-patro` is known,
    and the owner has confirmed that the data may be published under the MIT license. U-04 is the
    open question in the hub's
    [proposals](https://github.com/sanamhub/nepdate/blob/main/docs/upstream/proposals.md#u-04-question-where-does-the-tithi-holiday-and-event-data-come-from).
@@ -24,7 +24,7 @@ because the workflow is green.
    at least one required reviewer is configured. The reviewer must not be the person who pushes the
    tag. The publish job waits for that approval.
 5. **The version is ready.** Both `packages/nepdate/package.json` and
-   `packages/nepdate-patro/package.json` say X.Y.Z. `@nepdate/patro` has
+   `packages/nepdate-patro/package.json` say X.Y.Z. `nepdate-patro` has
    `peerDependencies.nepdate` `~X.Y.Z` and no `devDependencies`; the workspace link supplies the
    local core during development. `package-lock.json` changed only as `npm install` required.
    `CHANGELOG.md` has an empty `## [Unreleased]` and `## [X.Y.Z] - YYYY-MM-DD`. A missing
@@ -72,10 +72,10 @@ be used. For 0.1.0 only:
    no longer writes a dummy token
    ([v7 notes](https://github.com/actions/setup-node#whats-new-in-v7),
    [OIDC example](https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#publishing-to-npm-with-trusted-publisher-oidc)).
-3. On npmjs.com, for `@nepdate/core`: Settings, Trusted publishing, repository
+3. On npmjs.com, for `nepdate-core`: Settings, Trusted publishing, repository
    `sanamhub/nepdate-typescript`, workflow `release.yml`, environment `production`. Then enable
    "Require 2FA and disallow tokens".
-4. Repeat step 3 for `@nepdate/patro`.
+4. Repeat step 3 for `nepdate-patro`.
 5. Delete the token on npmjs.com and the `NPM_TOKEN` secret. Remove the token fallback from
    `release.yml` in the next pull request.
 
@@ -135,18 +135,18 @@ blocks the release.
    changelog.
 4. Set up Node with the npm registry, read the version and run `release-check` again. Run
    `sha256sum -c SHA256SUMS` before either package is published.
-5. Publish `@nepdate/core`, then `@nepdate/patro`, using only the downloaded tarballs. The publish job does
+5. Publish `nepdate-core`, then `nepdate-patro`, using only the downloaded tarballs. The publish job does
    not run `npm pack`. Each step first runs
    `npm view <name>@X.Y.Z version`; if the version already exists the step is skipped, so a
    half-finished release can be re-run without publishing twice. Publishing uses OIDC trusted
    publishing and `--provenance --access public --tag "$DIST_TAG"`; the token fallback is above.
    The `--tag` is required: npm moves `latest` to anything published without it, so a beta would
-   become what `npm install @nepdate/core` installs. A static test fails if any `npm publish` lacks it.
+   become what `npm install nepdate-core` installs. A static test fails if any `npm publish` lacks it.
 
 `verify` needs `publish` and calls `verify-published.yml` with the published version. It has
 `contents: read`, no `id-token`, no environment and no checkout. On Linux, macOS and Windows, each
-with Node 22 and 24, it creates a clean project and installs `@nepdate/core@X.Y.Z` and
-`@nepdate/patro@X.Y.Z` exactly from the public registry, retrying every 30 seconds for up to 15
+with Node 22 and 24, it creates a clean project and installs `nepdate-core@X.Y.Z` and
+`nepdate-patro@X.Y.Z` exactly from the public registry, retrying every 30 seconds for up to 15
 minutes. It checks both installed versions, runs `npm audit signatures` (registry signatures and
 provenance), then the README quick start (`NepaliDate.of(2081, 2, 15)`, `toGregorian`, `toJSON`,
 `long`) and one `info()` call that checks Republic Day. A failed verify job means the release is not
@@ -164,8 +164,8 @@ same version. Deprecate both packages with a reason, fix the cause on `main`, an
 patch version of both with this runbook:
 
 ```
-npm deprecate @nepdate/core@X.Y.Z "reason, use X.Y.(Z+1)"
-npm deprecate @nepdate/patro@X.Y.Z "reason, use X.Y.(Z+1)"
+npm deprecate nepdate-core@X.Y.Z "reason, use X.Y.(Z+1)"
+npm deprecate nepdate-patro@X.Y.Z "reason, use X.Y.(Z+1)"
 ```
 
 The manual checks below remain useful evidence after `verify` passes.
@@ -175,9 +175,9 @@ The manual checks below remain useful evidence after `verify` passes.
 Run these after the workflow finishes, before announcing the release:
 
 ```
-npm view @nepdate/core@X.Y.Z version
-npm view @nepdate/patro@X.Y.Z version peerDependencies
-npm view @nepdate/core@X.Y.Z dist.integrity dist.attestations
+npm view nepdate-core@X.Y.Z version
+npm view nepdate-patro@X.Y.Z version peerDependencies
+npm view nepdate-core@X.Y.Z dist.integrity dist.attestations
 ```
 
 `dist.attestations` must name the provenance attestation. On the npm page, both versions must show
@@ -188,31 +188,31 @@ Install the published packages in a clean directory and verify the registry sign
 ```
 mkdir nepdate-smoke && cd nepdate-smoke
 npm init -y
-npm install @nepdate/core@X.Y.Z
+npm install nepdate-core@X.Y.Z
 npm audit signatures
-node --input-type=module -e "import { NepaliDate } from '@nepdate/core'; console.log(NepaliDate.of(2081, 2, 15).toGregorian())"
+node --input-type=module -e "import { NepaliDate } from 'nepdate-core'; console.log(NepaliDate.of(2081, 2, 15).toGregorian())"
 test ! -d node_modules/nepdate-patro
 ```
 
 Then pack the published tarball and check its shape, not the local one:
 
 ```
-npm pack @nepdate/core@X.Y.Z
+npm pack nepdate-core@X.Y.Z
 npx publint nepdate-X.Y.Z.tgz
 npx attw nepdate-X.Y.Z.tgz --profile esm-only
 ```
 
-Repeat the install and `attw` check for `@nepdate/patro@X.Y.Z`; it must install `@nepdate/core@X.Y.Z` as its
+Repeat the install and `attw` check for `nepdate-patro@X.Y.Z`; it must install `nepdate-core@X.Y.Z` as its
 peer. A local `npm pack` before publishing is not evidence about the registry.
 
 ## Smoke installs
 
 The `smoke` job runs the two installs on every release. Run them again by hand only if the job was
 skipped or a tarball was rebuilt outside the workflow. Core only: a clean project installs
-`@nepdate/core@X.Y.Z`, runs the README core example, and has no `node_modules/nepdate-patro`. Both
+`nepdate-core@X.Y.Z`, runs the README core example, and has no `node_modules/nepdate-patro`. Both
 packages: a second clean project installs both versions, runs the README patro example, and checks
 `coverage()` reports BS 2077-01-01 to 2084-08-20. If Deno is available, run the
-`npm:@nepdate/core@X.Y.Z` example from the README. Record the Node, npm and Deno versions in the release
+`npm:nepdate-core@X.Y.Z` example from the README. Record the Node, npm and Deno versions in the release
 notes.
 
 ## Rollback
@@ -225,27 +225,27 @@ If a published version is wrong:
 1. Deprecate both packages with a reason:
 
    ```
-   npm deprecate @nepdate/core@X.Y.Z "reason, use X.Y.(Z+1)"
-   npm deprecate @nepdate/patro@X.Y.Z "reason, use X.Y.(Z+1)"
+   npm deprecate nepdate-core@X.Y.Z "reason, use X.Y.(Z+1)"
+   npm deprecate nepdate-patro@X.Y.Z "reason, use X.Y.(Z+1)"
    ```
 
 2. Fix the cause on `main`, add a changelog entry under `## [Unreleased]`, and release X.Y.(Z+1) of
    both packages with this runbook.
 3. Note the deprecation and the replacement in the changelog and the GitHub Release.
 
-If the failure is after `@nepdate/core` is published and before `@nepdate/patro` is, fix the cause and
+If the failure is after `nepdate-core` is published and before `nepdate-patro` is, fix the cause and
 re-run the failed publish job. It skips the version that already exists. Do not lower the version.
 
 ## Name fallback
 
-The npm name `@nepdate/core` may be rejected as too similar to the existing `nep-date`. The registry
+The npm name `nepdate-core` may be rejected as too similar to the existing `nep-date`. The registry
 decides at publish time; the owner decides the fallback at that moment, not before.
 
 If npm rejects the name:
 
 1. Stop the release. Do not publish the patro package under the old name and do not move the tag.
-2. Ask the owner to choose. The fallback is the scoped pair `@sanamhub/nepdate` and
-   `@sanamhub/nepdate-patro`. A scoped package is public only with `--access public`.
+2. Ask the owner to choose. The fallback is the scoped pair `nepdate-core` and
+   `nepdate-patro`. A scoped package is public only with `--access public`.
 3. Change both `name` fields, the patro `peerDependencies` key, the README imports, the `npm view`
    names in `release.yml`, and the trusted publishing configuration on npmjs.com.
 4. Run `npm install` so the lockfile agrees, run `npm run ci`, and open a pull request. Tag a new

@@ -1,7 +1,7 @@
 // Runs the README examples against locally installed tarballs, for the release smoke job
 // (T7-01). The README is the source: a broken example breaks this script.
 //
-//   node scripts/smoke.ts --mode core --project <clean project with @nepdate/core installed>
+//   node scripts/smoke.ts --mode core --project <clean project with nepdate-core installed>
 //   node scripts/smoke.ts --mode patro --project <clean project with both packages installed>
 //
 // The project must already have the tarballs installed. This script never installs, publishes or
@@ -84,11 +84,11 @@ const block =
   mode === "core"
     ? blocks.find(
         (candidate) =>
-          candidate.code.includes('from "@nepdate/core"') &&
-          !candidate.code.includes("@nepdate/patro") &&
+          candidate.code.includes('from "nepdate-core"') &&
+          !candidate.code.includes("nepdate-patro") &&
           !candidate.code.includes("npm:"),
       )
-    : blocks.find((candidate) => candidate.code.includes("@nepdate/patro"));
+    : blocks.find((candidate) => candidate.code.includes("nepdate-patro"));
 if (block === undefined) throw new Error(`README has no ${mode} TypeScript example`);
 
 const example = join(project, "example.mjs");
@@ -97,17 +97,17 @@ console.log(`smoke: ${mode} example is README ts block ${block.index}`);
 runNode(example, project, `${mode} example`);
 
 if (mode === "core") {
-  if (existsSync(join(project, "node_modules", "@nepdate/patro"))) {
-    throw new Error("the core-only project installed @nepdate/patro");
+  if (existsSync(join(project, "node_modules", "nepdate-patro"))) {
+    throw new Error("the core-only project installed nepdate-patro");
   }
-  console.log(`smoke: core ${packageVersion(project, "@nepdate/core")} ok, no @nepdate/patro`);
+  console.log(`smoke: core ${packageVersion(project, "nepdate-core")} ok, no nepdate-patro`);
 } else {
   const coverage = join(project, "coverage-check.mjs");
   const expected = coverageRange();
   writeFileSync(
     coverage,
     [
-      'import { coverage } from "@nepdate/patro";',
+      'import { coverage } from "nepdate-patro";',
       "const range = coverage();",
       "const start = range.start.toJSON();",
       "const end = range.end.toJSON();",
@@ -124,9 +124,9 @@ if (mode === "core") {
   );
   runNode(coverage, project, "coverage check");
   console.log(
-    `smoke: patro ${packageVersion(project, "@nepdate/patro")} with core ${packageVersion(
+    `smoke: patro ${packageVersion(project, "nepdate-patro")} with core ${packageVersion(
       project,
-      "@nepdate/core",
+      "nepdate-core",
     )} ok, data range ${expected.start}..${expected.end}`,
   );
 }

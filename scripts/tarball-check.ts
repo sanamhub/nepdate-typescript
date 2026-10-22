@@ -203,8 +203,8 @@ function run(args: readonly string[]): number {
   }
   const errors: string[] = [];
   const checks: [string, ExpectedManifest][] = [
-    [core, { name: "@nepdate/core", version, peer: undefined }],
-    [patro, { name: "@nepdate/patro", version, peer: "@nepdate/core" }],
+    [core, { name: "nepdate-core", version, peer: undefined }],
+    [patro, { name: "nepdate-patro", version, peer: "nepdate-core" }],
   ];
   for (const [name, expected] of checks) {
     const members = tarMembers(join(root, name));

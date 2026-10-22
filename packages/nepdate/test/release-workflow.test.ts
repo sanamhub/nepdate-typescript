@@ -246,7 +246,7 @@ function packProblems(workflow: Workflow): string[] {
       "pack",
       "Pack both packages",
       "pack must pack both packages",
-      (value) => runHas(value, "npm pack -w @nepdate/core", "npm pack -w @nepdate/patro"),
+      (value) => runHas(value, "npm pack -w nepdate-core", "npm pack -w nepdate-patro"),
     ),
   );
   found.push(
@@ -424,7 +424,7 @@ function publishProblems(workflow: Workflow): string[] {
       workflow,
       "publish",
       "Check the tag commit is on origin/main",
-      "Publish @nepdate/core",
+      "Publish nepdate-core",
       "publish must check main before publishing",
     ),
   );
@@ -473,14 +473,14 @@ function publishProblems(workflow: Workflow): string[] {
       workflow,
       "publish",
       "Verify the checked tarballs",
-      "Publish @nepdate/core",
+      "Publish nepdate-core",
       "publish must verify the tarball checksums before publishing",
     ),
   );
 
   for (const [name, tarball] of [
-    ["Publish @nepdate/core", "nepdate-core-$VERSION.tgz"],
-    ["Publish @nepdate/patro", "nepdate-patro-$VERSION.tgz"],
+    ["Publish nepdate-core", "nepdate-core-$VERSION.tgz"],
+    ["Publish nepdate-patro", "nepdate-patro-$VERSION.tgz"],
   ] as const) {
     found.push(
       ...stepProblems(workflow, "publish", name, "publish must publish both packages", (item) =>
@@ -718,7 +718,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: echo "${EXPRESSION} inputs.version }}"
-      - name: Publish @nepdate/core
+      - name: Publish nepdate-core
         run: npm publish
       - name: Check the tag commit is on origin/main
         run: git fetch --no-tags origin main && git merge-base --is-ancestor "$COMMIT_SHA" origin/main
@@ -772,7 +772,7 @@ jobs:
     const steps = rawSteps(requireJob(workflow, "publish"));
     steps.splice(rawStepIndex(steps, "Check the tag commit is on origin/main"), 0, {
       name: "Rebuild",
-      run: "npm pack -w @nepdate/core",
+      run: "npm pack -w nepdate-core",
     });
     expect(problems(workflow)).toContain("publish must not rebuild the tarballs");
   });
@@ -786,7 +786,7 @@ jobs:
   it("reports a publish step without the dist-tag", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
-    const publish = steps[rawStepIndex(steps, "Publish @nepdate/patro")] as Record<string, unknown>;
+    const publish = steps[rawStepIndex(steps, "Publish nepdate-patro")] as Record<string, unknown>;
     publish.run = String(publish.run).replace(' --tag "$DIST_TAG"', "");
     const found = problems(workflow);
     expect(found).toContain("both publish steps must publish under the version's dist-tag");
@@ -796,7 +796,7 @@ jobs:
   it("reports a tarball path npm would read as a GitHub shorthand", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
-    const publish = steps[rawStepIndex(steps, "Publish @nepdate/core")] as Record<string, unknown>;
+    const publish = steps[rawStepIndex(steps, "Publish nepdate-core")] as Record<string, unknown>;
     publish.run = String(publish.run).replace('"./release-tarballs/', '"release-tarballs/');
     expect(problems(workflow)).toContain("publish must publish both packages");
   });
@@ -818,7 +818,7 @@ jobs:
     const workflow = structuredClone(SHIPPED);
     const verify = requireJob(workflow, "verify");
     delete verify.uses;
-    verify.steps = [{ run: "npm install @nepdate/core" }];
+    verify.steps = [{ run: "npm install nepdate-core" }];
     expect(problems(workflow)).toContain(
       "verify must call ./.github/workflows/verify-published.yml",
     );
@@ -848,7 +848,7 @@ jobs:
   it("reports a GitHub release created in the publish job", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
-    steps.splice(rawStepIndex(steps, "Publish @nepdate/core"), 0, {
+    steps.splice(rawStepIndex(steps, "Publish nepdate-core"), 0, {
       name: "Release early",
       run: 'gh release create "v$VERSION"',
     });

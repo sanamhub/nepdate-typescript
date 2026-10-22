@@ -1,5 +1,5 @@
 {
-  "name": "@nepdate/core",
+  "name": "nepdate-core",
   "version": "0.1.0-beta.1",
   "description": "Bikram Sambat (Nepali calendar) dates: conversion, arithmetic, formatting and parsing.",
   "license": "MIT",

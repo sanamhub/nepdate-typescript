@@ -79,14 +79,14 @@ export function problems(workflow: Workflow): string[] {
     found.push("verify must check the version before using it");
   }
   if (
-    !has(workflow, INSTALL, '"@nepdate/core@$VERSION"', '"@nepdate/patro@$VERSION"', "--save-exact")
+    !has(workflow, INSTALL, '"nepdate-core@$VERSION"', '"nepdate-patro@$VERSION"', "--save-exact")
   ) {
     found.push("verify must install both exact versions");
   }
   if (!has(workflow, INSTALL, "SECONDS + 900", "sleep")) {
     found.push("verify must retry the install for up to 15 minutes");
   }
-  if (!has(workflow, VERSIONS, "@nepdate/core @nepdate/patro", '!= "$VERSION"')) {
+  if (!has(workflow, VERSIONS, "nepdate-core nepdate-patro", '!= "$VERSION"')) {
     found.push("verify must compare both installed versions with the input");
   }
   if (!has(workflow, SIGNATURES, "npm audit signatures")) {
@@ -124,7 +124,7 @@ describe("verify-published.yml", () => {
   });
 
   it("reports a range install instead of the exact version", () => {
-    const edited = TEXT.replace('"@nepdate/patro@$VERSION"', "@nepdate/patro");
+    const edited = TEXT.replace('"nepdate-patro@$VERSION"', "nepdate-patro");
     expect(edited).not.toEqual(TEXT);
     expect(problems(parseWorkflow(edited))).toContain("verify must install both exact versions");
   });
