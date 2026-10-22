@@ -3,6 +3,20 @@
   "version": "0.1.0-beta.1",
   "description": "Bikram Sambat (Nepali calendar) dates: conversion, arithmetic, formatting and parsing.",
   "license": "MIT",
+  "keywords": [
+    "bikram-sambat",
+    "nepali-date",
+    "nepali-calendar",
+    "bs-ad",
+    "date-conversion"
+  ],
+  "homepage": "https://github.com/sanamhub/nepdate-typescript#readme",
+  "bugs": "https://github.com/sanamhub/nepdate-typescript/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanamhub/nepdate-typescript.git",
+    "directory": "packages/nepdate"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.12"

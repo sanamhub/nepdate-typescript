@@ -3,7 +3,7 @@
 
 import { strict as assert } from "node:assert";
 import test from "node:test";
-import { checkMembers } from "./tarball-check.ts";
+import { checkMembers, REPOSITORY_URL } from "./tarball-check.ts";
 
 interface TestMember {
   readonly name: string;
@@ -19,6 +19,7 @@ function packageJson(fields: Record<string, unknown> = {}): TestMember {
         name: "nepdate-patro",
         version: "0.1.0",
         peerDependencies: { "nepdate-core": "~0.1.0" },
+        repository: { type: "git", url: REPOSITORY_URL, directory: "packages/nepdate-patro" },
         ...fields,
       }),
     ),
@@ -41,8 +42,14 @@ const PATRO = {
   name: "nepdate-patro",
   version: "0.1.0",
   peer: "nepdate-core",
+  directory: "packages/nepdate-patro",
 } as const;
-const CORE = { name: "nepdate-core", version: "0.1.0", peer: undefined } as const;
+const CORE = {
+  name: "nepdate-core",
+  version: "0.1.0",
+  peer: undefined,
+  directory: "packages/nepdate",
+} as const;
 
 test("the allowed members and patro manifest pass", () => {
   assert.deepEqual(checkMembers(allowed(), PATRO), []);
@@ -187,4 +194,24 @@ test("a path that climbs out of dist fails", () => {
   assert.deepEqual(errors, [
     "member package/dist/../src/index.ts has a relative path segment, expected a plain path",
   ]);
+});
+
+test("a manifest without the repository fails, because npm provenance needs it", () => {
+  const members = allowed().map((member) =>
+    member.name === "package/package.json" ? packageJson({ repository: undefined }) : member,
+  );
+  const errors = checkMembers(members, PATRO);
+  assert.match(errors[0] as string, /package.json repository is undefined, expected url/);
+});
+
+test("a repository with the other package's directory fails", () => {
+  const members = allowed().map((member) =>
+    member.name === "package/package.json"
+      ? packageJson({
+          repository: { type: "git", url: REPOSITORY_URL, directory: "packages/nepdate" },
+        })
+      : member,
+  );
+  const errors = checkMembers(members, PATRO);
+  assert.match(errors[0] as string, /expected url .* and directory packages\/nepdate-patro/);
 });
