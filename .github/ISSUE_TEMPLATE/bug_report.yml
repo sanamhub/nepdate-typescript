@@ -27,7 +27,7 @@ body:
     id: version
     attributes:
       label: Package versions
-      placeholder: nepdate 0.1.0, nepdate-patro 0.1.0
+      placeholder: nepdate 0.1.0-beta.1, nepdate-patro 0.1.0-beta.1
     validations:
       required: true
   - type: input

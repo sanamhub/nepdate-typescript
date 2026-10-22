@@ -25,6 +25,7 @@ export const DEDICATED_TESTS: Readonly<Record<string, string>> = {
   "ci.yml": "ci-workflow.test.ts",
   "mutation.yml": "mutation-workflow.test.ts",
   "release.yml": "release-workflow.test.ts",
+  "verify-published.yml": "verify-published-workflow.test.ts",
 };
 
 // No job needs persisted credentials. Every checkout only reads the repository.
@@ -109,7 +110,7 @@ const CI_PARSED = parseWorkflow(CI_TEXT);
 
 describe("workflow coverage", () => {
   it("discovers every workflow file", () => {
-    expect(FILES).toEqual(["ci.yml", "mutation.yml", "release.yml"]);
+    expect(FILES).toEqual(["ci.yml", "mutation.yml", "release.yml", "verify-published.yml"]);
   });
 
   it("maps every workflow file to a dedicated test", () => {

@@ -1,13 +1,17 @@
 // Preflight for a release (ADR-0005): both packages, the peer range and the changelog must agree
 // on one version, and the [Unreleased] section must be empty. Run from the repository root:
 //   node scripts/release-check.ts 0.1.0
+//   node scripts/release-check.ts 0.1.0-beta.1
 //
 // Every failed check names the value it expected.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { SEMVER, SEMVER_HINT } from "./release-semver.ts";
 
-const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 interface Manifest {
   readonly version?: string;
@@ -32,8 +36,8 @@ function unreleasedErrors(changelog: string): string[] {
 
 const version = process.argv[2];
 if (version === undefined || !SEMVER.test(version)) {
-  console.error("usage: node scripts/release-check.ts X.Y.Z");
-  console.error(`release-check: expected a strict X.Y.Z version, got ${String(version)}`);
+  console.error("usage: node scripts/release-check.ts X.Y.Z[-PRERELEASE]");
+  console.error(`release-check: expected ${SEMVER_HINT}, got ${String(version)}`);
   process.exit(2);
 }
 
@@ -56,8 +60,16 @@ if (patro.peerDependencies?.nepdate !== `~${version}`) {
   );
 }
 const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
-if (!changelog.includes(`## [${version}]`)) {
-  errors.push(`CHANGELOG.md has no "## [${version}]" section, expected one for ${version}`);
+// The heading must carry the release date, and only an exact match counts: a 0.1.0 section does
+// not cover 0.1.0-beta.1, and the other way round.
+const section = new RegExp(
+  `^## \\[${escapeRegExp(version)}\\] - \\d{4}-\\d{2}-\\d{2}[ \\t]*$`,
+  "m",
+);
+if (!section.test(changelog)) {
+  errors.push(
+    `CHANGELOG.md has no "## [${version}] - YYYY-MM-DD" section, expected one for ${version}`,
+  );
 }
 errors.push(...unreleasedErrors(changelog));
 

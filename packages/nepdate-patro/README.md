@@ -1,14 +1,27 @@
-# nepdate-patro
+<p align="center">
+  <img src="https://raw.githubusercontent.com/sanamhub/nepdate-typescript/main/docs/assets/nepdate-typescript-128.png" width="128" alt="NepDate for TypeScript logo">
+</p>
+
+<h1 align="center">nepdate-patro</h1>
+
+<p align="center">
+  <a href="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml"><img src="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/nepdate-patro"><img src="https://img.shields.io/npm/v/nepdate-patro/beta?logo=npm&label=nepdate-patro" alt="nepdate-patro on npm"></a>
+  <a href="https://github.com/sanamhub/nepdate-typescript/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
+</p>
 
 The patro (पात्रो, the Nepali almanac) for
 [`nepdate`](https://www.npmjs.com/package/nepdate): tithi (lunar day), gazetted public holidays and
 events for each Bikram Sambat day. `nepdate-patro` needs `nepdate` as a peer dependency and shares
 its version.
 
+> **Status:** 0.1.0-beta.1, the first public pre-release, on the `beta` dist-tag. The data is
+> informational, not an official calendar.
+
 ## Install
 
 ```bash
-npm install nepdate nepdate-patro
+npm install nepdate@beta nepdate-patro@beta
 ```
 
 ## Use
@@ -37,8 +50,8 @@ console.log([...publicHolidays()].length); // 294
 
 ## Coverage
 
-The data covers BS 2077-01-01 to 2084-08-20 with the current files. Tithi data starts later, at BS
-2078-01-02. Outside the coverage `info()` returns the empty object, and `coverage()` is the way to
+The data covers BS 2077-01-01 to 2084-08-20 with the current files. Tithi data is shorter: BS
+2078-01-02 to 2083-12-30. Outside the coverage `info()` returns the empty object, and `coverage()` is the way to
 decide whether to show a "no data" message.
 
 ## Data
@@ -49,6 +62,13 @@ The calendar and patro data are extracted from C# NepDate at commit
 [`shared/data/README.md`](https://github.com/sanamhub/nepdate-typescript/blob/main/shared/data/README.md)
 for the provenance note and the known data questions. Month lengths beyond the officially
 published calendar are projections inherited from C# NepDate and may change.
+
+## More
+
+The rest of the documentation lives with the core package in
+[sanamhub/nepdate-typescript](https://github.com/sanamhub/nepdate-typescript#readme): the API list, benchmarks, changelog and security
+policy. Report a wrong holiday, tithi or event with the hub's
+[data error form](https://github.com/sanamhub/nepdate/issues/new/choose).
 
 ## License
 

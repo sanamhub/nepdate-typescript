@@ -510,6 +510,23 @@ function publishProblems(workflow: Workflow): string[] {
         (item) => runHas(item, "unset NODE_AUTH_TOKEN"),
       ),
     );
+    found.push(
+      ...stepProblems(
+        workflow,
+        "publish",
+        name,
+        "both publish steps must publish under the version's dist-tag",
+        (item) =>
+          runHas(item, '--tag "$DIST_TAG"') &&
+          envValue(item, "DIST_TAG") === expression("steps.version.outputs.dist-tag"),
+      ),
+    );
+  }
+  // A publish without --tag moves latest, so a pre-release would become the default install.
+  for (const line of jobRun(workflow, "publish").split("\n")) {
+    if (line.includes("npm publish") && !line.includes('--tag "$DIST_TAG"')) {
+      found.push('every npm publish must pass --tag "$DIST_TAG"');
+    }
   }
 
   if (jobRun(workflow, "publish").includes("npm pack")) {
@@ -526,54 +543,21 @@ export function verifyProblems(workflow: Workflow): string[] {
   if (value === undefined) return ["release workflow must have a verify job"];
   const found: string[] = [];
   found.push(...needsProblems(workflow, "verify", ["publish"], "verify must need publish"));
-  if (value["runs-on"] !== "ubuntu-latest") found.push("verify must run on ubuntu-latest");
-  found.push(
-    ...stepProblems(
-      workflow,
-      "verify",
-      "Install the published packages with retries",
-      "verify must read the publish version",
-      (item) => envValue(item, "VERSION") === expression("needs.publish.outputs.version"),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "verify",
-      "Install the published packages with retries",
-      "verify must install both exact versions",
-      (item) => runHas(item, '"nepdate@$VERSION"', '"nepdate-patro@$VERSION"'),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "verify",
-      "Install the published packages with retries",
-      "verify must retry the install for up to 10 minutes",
-      (item) => runHas(item, "SECONDS + 600", "sleep"),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "verify",
-      "Run the README quick start and one info() call",
-      "verify must run the README quick start and info()",
-      (item) =>
-        runHas(item, "NepaliDate.of(2081, 2, 15)", "toGregorian", "toJSON", ".long(", "info(date)"),
-    ),
-  );
-  found.push(
-    ...orderProblems(
-      workflow,
-      "verify",
-      "Install the published packages with retries",
-      "Run the README quick start and one info() call",
-      "verify must run the quick start after the install",
-    ),
-  );
-  if (stringValues(value).some((text) => text.includes("secrets."))) {
+  if (value.uses !== "./.github/workflows/verify-published.yml") {
+    found.push("verify must call ./.github/workflows/verify-published.yml");
+  }
+  const withMap = isMapping(value.with) ? value.with : undefined;
+  if (withMap?.version !== expression("needs.publish.outputs.version")) {
+    found.push("verify must pass the published version");
+  }
+  const condition = typeof value.if === "string" ? value.if : "";
+  if (!condition.includes("github.event_name == 'push'") || !condition.includes("refs/tags/v")) {
+    found.push("verify must run only on a tag push");
+  }
+  if (
+    value.secrets !== undefined ||
+    stringValues(value).some((text) => text.includes("secrets."))
+  ) {
     found.push("verify must not read a secret");
   }
   return found;
@@ -612,6 +596,15 @@ export function githubReleaseProblems(workflow: Workflow): string[] {
       (item) =>
         runHas(item, "gh release create") &&
         envValue(item, "VERSION") === expression("needs.publish.outputs.version"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "github-release",
+      "Create the GitHub release",
+      "github-release must write the notes from the changelog and mark a pre-release",
+      (item) => runHas(item, "scripts/release-notes.ts", "--prerelease", "*-*"),
     ),
   );
   found.push(
@@ -786,6 +779,39 @@ jobs:
     const workflow = structuredClone(SHIPPED);
     delete jobsOf(workflow).verify;
     expect(problems(workflow)).toContain("release workflow must have a verify job");
+  });
+
+  it("reports a publish step without the dist-tag", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "publish"));
+    const publish = steps[rawStepIndex(steps, "Publish nepdate-patro")] as Record<string, unknown>;
+    publish.run = String(publish.run).replace(' --tag "$DIST_TAG"', "");
+    const found = problems(workflow);
+    expect(found).toContain("both publish steps must publish under the version's dist-tag");
+    expect(found).toContain('every npm publish must pass --tag "$DIST_TAG"');
+  });
+
+  it("reports a GitHub release that does not mark a pre-release", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "github-release"));
+    const create = steps[rawStepIndex(steps, "Create the GitHub release")] as Record<
+      string,
+      unknown
+    >;
+    create.run = String(create.run).replace("prerelease=(--prerelease)", "prerelease=()");
+    expect(problems(workflow)).toContain(
+      "github-release must write the notes from the changelog and mark a pre-release",
+    );
+  });
+
+  it("reports a verify job that runs its own steps instead of verify-published", () => {
+    const workflow = structuredClone(SHIPPED);
+    const verify = requireJob(workflow, "verify");
+    delete verify.uses;
+    verify.steps = [{ run: "npm install nepdate" }];
+    expect(problems(workflow)).toContain(
+      "verify must call ./.github/workflows/verify-published.yml",
+    );
   });
 
   it("reports a verify job with the wrong needs", () => {

@@ -18,6 +18,10 @@ jobs:
   mutation:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    # Same zone as the release job: the floor and the equivalent list were measured under Nepal
+    # time, and on a UTC runner mutants that swap the local and UTC Date constructors survive.
+    env:
+      TZ: Asia/Kathmandu
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
