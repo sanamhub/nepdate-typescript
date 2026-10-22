@@ -62,7 +62,7 @@ jobs:
       - name: Pack both packages
         run: |
           mkdir -p release-tarballs
-          npm pack -w nepdate --pack-destination release-tarballs
+          npm pack -w nepdate-core --pack-destination release-tarballs
           npm pack -w nepdate-patro --pack-destination release-tarballs
       - name: Check the tarball contents and write SHA256SUMS
         env:
@@ -116,7 +116,7 @@ jobs:
           mkdir smoke-core
           cd smoke-core
           npm init -y >/dev/null
-          npm install --no-audit --no-fund "../release-tarballs/nepdate-$VERSION.tgz"
+          npm install --no-audit --no-fund "../release-tarballs/nepdate-core-$VERSION.tgz"
           node ../scripts/smoke.ts --mode core --project "$PWD"
       - name: Core plus patro, from the README
         env:
@@ -127,7 +127,7 @@ jobs:
           cd smoke-patro
           npm init -y >/dev/null
           npm install --no-audit --no-fund \
-            "../release-tarballs/nepdate-$VERSION.tgz" \
+            "../release-tarballs/nepdate-core-$VERSION.tgz" \
             "../release-tarballs/nepdate-patro-$VERSION.tgz"
           node ../scripts/smoke.ts --mode patro --project "$PWD"
 
@@ -213,9 +213,9 @@ jobs:
       - name: Verify the checked tarballs
         run: cd release-tarballs && sha256sum -c SHA256SUMS
       # --tag is not optional: npm points latest at anything published without it, so a beta
-      # would become what `npm install nepdate` installs. release-version.ts gives a stable version
+      # would become what `npm install nepdate-core` installs. release-version.ts gives a stable version
       # latest and a pre-release its own tag (beta for 0.1.0-beta.1).
-      - name: Publish nepdate
+      - name: Publish nepdate-core
         env:
           VERSION: ${{ steps.version.outputs.version }}
           DIST_TAG: ${{ steps.version.outputs.dist-tag }}
@@ -224,10 +224,10 @@ jobs:
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
             unset NODE_AUTH_TOKEN
           fi
-          if npm view "nepdate@$VERSION" version >/dev/null 2>&1; then
-            echo "nepdate@$VERSION is already on npm"
+          if npm view "nepdate-core@$VERSION" version >/dev/null 2>&1; then
+            echo "nepdate-core@$VERSION is already on npm"
           else
-            npm publish "./release-tarballs/nepdate-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
+            npm publish "./release-tarballs/nepdate-core-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
           fi
       - name: Publish nepdate-patro
         env:

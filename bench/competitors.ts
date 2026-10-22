@@ -1,7 +1,7 @@
 // The B1 and B2 calls of docs/competitors.md. This module is imported only by the child process that
 // measures one competitor row, so a row never pays for another package's import.
 
-import { type GregorianDate, NepaliDate } from "nepdate";
+import { type GregorianDate, NepaliDate } from "nepdate-core";
 
 const DAY_MS = 86_400_000;
 const EPOCH_DAYS = Date.UTC(1844, 3, 11) / DAY_MS;

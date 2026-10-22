@@ -38,12 +38,10 @@ try {
   mkdirSync(patro);
   writeFileSync(join(core, "package.json"), '{"private":true,"type":"module"}\n');
   writeFileSync(join(patro, "package.json"), '{"private":true,"type":"module"}\n');
-  run(`npm pack -w nepdate --pack-destination "${temp}"`);
+  run(`npm pack -w nepdate-core --pack-destination "${temp}"`);
   run(`npm pack -w nepdate-patro --pack-destination "${temp}"`);
   const tarballs = readdirSync(temp).filter((name) => name.endsWith(".tgz"));
-  const coreTar = tarballs.find(
-    (name) => name.startsWith("nepdate-") && !name.startsWith("nepdate-patro-"),
-  );
+  const coreTar = tarballs.find((name) => name.startsWith("nepdate-core-"));
   const patroTar = tarballs.find((name) => name.startsWith("nepdate-patro-"));
   if (coreTar === undefined || patroTar === undefined) {
     throw new Error(`expected both tarballs, found ${tarballs.join(", ") || "none"}`);

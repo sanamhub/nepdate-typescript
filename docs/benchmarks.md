@@ -30,7 +30,7 @@ even where the TypeScript row is final. No target, 3× rule or load limit was ch
 | Hub checkout | `c6cc327` |
 | Pinned to | logical CPU 2 (`/affinity 4`, and `WithAffinity(0x4)` in the C# job) |
 | Date | 2026-10-18 |
-| Load, `nepdate` rows | 5% to 74% busy (per row below) |
+| Load, `nepdate-core` rows | 5% to 74% busy (per row below) |
 | Load, C# run | 17% before, 77% median during, 100% max, 87% after |
 | Load, competitors | 6% to 78% busy (per row below) |
 | Load, order pairs | 20% to 95% busy, all pairs loaded |
@@ -61,7 +61,7 @@ The BenchmarkDotNet report is at
 `D:\devcache\dotnet\artifacts\2026-10-18T04-29-32\results\DotnetBench.Benchmarks-report.csv`. The
 job runs the .NET 8 column too; only the .NET 10 rows are used here.
 
-## `nepdate` and C#
+## `nepdate-core` and C#
 
 Time is nanoseconds per single operation. B8 is one whole month grid. Bytes are mitata's heap delta
 under `--expose-gc`, marked approximate; B5 and B6 are "not measured" because V8 rope strings make
@@ -69,7 +69,7 @@ the figure unreliable (BENCHMARK §4). The C# time and bytes are BenchmarkDotNet
 bytes per operation. `LOADED` means the row ran at or above 15% load and is excluded from target
 verdicts.
 
-| Op | Operation | `nepdate` ns/op | load | core 2 | bytes/op | status | C# .NET 10 ns/op | C# load | C# bytes | target |
+| Op | Operation | `nepdate-core` ns/op | load | core 2 | bytes/op | status | C# .NET 10 ns/op | C# load | C# bytes | target |
 |---|---|---:|---:|---:|---|---|---:|---:|---:|---|
 | B1 | BS to AD: `of(y, m, d).toGregorian()` | 30.9 | 9% | 13% | 8 approx. | final | 32.55 | 77% | 0 | < 30 |
 | B2 | AD to BS: `fromGregorian(g)` | 26.7 | 10% | 6% | 23 approx. | final | 50.64 | 77% | 0 | < 30 |
@@ -126,9 +126,9 @@ Every one of the nine disagrees with `shared/data` inside its own documented ran
 is not proof that the other package is wrong: most first mismatches are in BS 2085 to 2090, and
 `shared/data/known-questions.json` lists open questions on those year lengths. The
 `bikram-sambat-js` B2 mismatch at AD 1956-04-08 and the `world-calendars` offsets of 8 and 9 days
-from BS 2033 are not near those years. ADR-0002 asks `nepdate` to be faster than every competitor
+from BS 2033 are not near those years. ADR-0002 asks `nepdate-core` to be faster than every competitor
 that agrees with the data; no package agrees on all 64 dates, so that clause has no row to apply to
-in this pass. Every competitor row is still slower than `nepdate` B1 and B2.
+in this pass. Every competitor row is still slower than `nepdate-core` B1 and B2.
 
 ## Agreement and ranges
 
@@ -214,6 +214,6 @@ esbuild `--bundle --minify --format=esm`, gzip level 9, unchanged from the 0.1.0
 
 | Package | Minified | Gzip |
 |---|---:|---:|
-| `nepdate` | 15,896 B | 5,588 B |
-| `nepdate-patro` alone (`--external:nepdate`) | 131,139 B | 26,349 B |
-| `nepdate-patro` with `nepdate` bundled | 146,601 B | 31,933 B |
+| `nepdate-core` | 15,896 B | 5,588 B |
+| `nepdate-patro` alone (`--external:nepdate-core`) | 131,139 B | 26,349 B |
+| `nepdate-patro` with `nepdate-core` bundled | 146,601 B | 31,933 B |

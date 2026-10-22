@@ -8,7 +8,7 @@
     // passes. The browser job still imports the built packages at runtime (Vite doesn't read
     // `paths`).
     "paths": {
-      "nepdate": ["../nepdate/src/index.ts"],
+      "nepdate-core": ["../nepdate/src/index.ts"],
       "nepdate-patro": ["../nepdate-patro/src/index.ts"]
     }
   },

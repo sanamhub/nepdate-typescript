@@ -18,7 +18,7 @@ const NON_EXPRESSION =
 // The only examples that cannot have a deterministic result. Each entry has a reason comment.
 export const ALLOW_LIST = [
   {
-    label: "nepdate:NepaliDate.today",
+    label: "nepdate-core:NepaliDate.today",
     reason: "today() reads the clock, so its date changes between runs.",
   },
 ] as const;
@@ -187,7 +187,7 @@ export function coverageErrors(
 function prelude(): string {
   return [
     'import { isDeepStrictEqual } from "node:util";',
-    'import { DateRange, FiscalYear, NepDateError, NepaliDate, monthName, monthShortName, toNepaliDigits, weekdayName, weekdayShortName } from "nepdate";',
+    'import { DateRange, FiscalYear, NepDateError, NepaliDate, monthName, monthShortName, toNepaliDigits, weekdayName, weekdayShortName } from "nepdate-core";',
     'import { coverage, info, publicHolidays } from "nepdate-patro";',
     "",
     "function check(actual, expected, label) {",

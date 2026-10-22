@@ -12,7 +12,7 @@ export const SEMVER_HINT = "a strict X.Y.Z or X.Y.Z-PRERELEASE version";
 
 /**
  * The npm dist-tag a version is published under. A stable version goes to `latest`. A pre-release
- * must not: npm moves `latest` to whatever is published without `--tag`, so `npm install nepdate`
+ * must not: npm moves `latest` to whatever is published without `--tag`, so `npm install nepdate-core`
  * would install the beta. It goes to its first identifier (`beta` for 0.1.0-beta.1), or to `next`
  * when that identifier is numeric.
  */

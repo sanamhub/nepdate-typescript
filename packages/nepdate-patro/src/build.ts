@@ -1,7 +1,7 @@
 // Builds the patro value objects once at module load (ADR-0002 §7). Nothing here is exported from
 // the package entry point; tests import `build` to time it.
 
-import { DateRange, NepaliDate } from "nepdate";
+import { DateRange, NepaliDate } from "nepdate-core";
 import {
   COVERAGE_FIRST,
   COVERAGE_LAST,

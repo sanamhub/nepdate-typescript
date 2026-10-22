@@ -21,7 +21,7 @@ the human as a hub issue. Never use the C# NepDate docs as a source (`shared/spe
 ## 2. Hard rules
 
 - Zero runtime `dependencies` in both packages. `nepdate-patro` has exactly one peer dependency,
-  `nepdate` (ADR-0001 §1). Dev tools in the root `devDependencies`; competitor packages only in
+  `nepdate-core` (ADR-0001 §1). Dev tools in the root `devDependencies`; competitor packages only in
   `bench/package.json`.
 - `packages/nepdate` never imports, depends on or contains anything from `nepdate-patro` (hub
   ADR-0004; checked by CI gate 6, ADR-0004).
@@ -38,7 +38,7 @@ the human as a hub issue. Never use the C# NepDate docs as a source (`shared/spe
   (`"sideEffects": false`): building the module's own tables at load (ADR-0002 §5, §7) is allowed;
   touching globals, I/O or timers is not.
 - Don't edit `*.gen.ts` by hand. Change `scripts/codegen.ts` and run `npm run codegen`.
-- Run every npm command from the repository root (`npm test -w nepdate`, not `cd packages/...`).
+- Run every npm command from the repository root (`npm test -w nepdate-core`, not `cd packages/...`).
 - Parity tests may skip rows **only** for deviations in `shared/spec/PARITY.md`, with a comment
   naming the D-ID. Don't weaken or delete a test to make CI pass.
 - No features outside the plan. Secrets never go in code, logs or commits.

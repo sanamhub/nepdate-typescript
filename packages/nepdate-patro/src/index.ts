@@ -1,7 +1,7 @@
 // The patro: tithi, public holidays and events per BS day (shared/spec/PATRO.md). The tables are
 // generated; every value object is built and frozen once at module load (ADR-0002 §7).
 
-import { type DateRange, NepaliDate } from "nepdate";
+import { type DateRange, NepaliDate } from "nepdate-core";
 import { build, type CalendarInfo } from "./build.js";
 import { COVERAGE_FIRST, COVERAGE_LAST } from "./tables.gen.js";
 

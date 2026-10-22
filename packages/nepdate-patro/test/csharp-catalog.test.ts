@@ -1,7 +1,7 @@
 // C# NepDate's patro tests (shared/spec/vectors/csharp-tests/catalog.tsv, phase 4), translated to
 // this API. One test per catalogue row (docs/plan/00-ROADMAP.md, "C# test catalogue").
 
-import { NepaliDate, NepDateError } from "nepdate";
+import { NepaliDate, NepDateError } from "nepdate-core";
 import { expect } from "vitest";
 import type { Named } from "../src/index.js";
 import { coverage, info, publicHolidays } from "../src/index.js";

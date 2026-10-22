@@ -2,7 +2,7 @@
 // rows, so the core-only rows never import the patro tables.
 
 import { do_not_optimize } from "mitata";
-import { NepaliDate } from "nepdate";
+import { NepaliDate } from "nepdate-core";
 import { coverage, info } from "nepdate-patro";
 import type { CoreOp } from "./own-core.ts";
 

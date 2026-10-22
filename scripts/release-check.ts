@@ -47,15 +47,15 @@ const core = readManifest(join(root, "packages/nepdate/package.json"));
 const patro = readManifest(join(root, "packages/nepdate-patro/package.json"));
 
 if (core.version !== version) {
-  errors.push(`nepdate version ${String(core.version)}, expected ${version}`);
+  errors.push(`nepdate-core version ${String(core.version)}, expected ${version}`);
 }
 if (patro.version !== version) {
   errors.push(`nepdate-patro version ${String(patro.version)}, expected ${version}`);
 }
-if (patro.peerDependencies?.nepdate !== `~${version}`) {
+if (patro.peerDependencies?.["nepdate-core"] !== `~${version}`) {
   errors.push(
-    `nepdate-patro peerDependencies.nepdate is ${String(
-      patro.peerDependencies?.nepdate,
+    `nepdate-patro peerDependencies["nepdate-core"] is ${String(
+      patro.peerDependencies?.["nepdate-core"],
     )}, expected ~${version}`,
   );
 }

@@ -16,7 +16,7 @@ export type ErrorKind =
   | "unrecognized";
 
 /**
- * The one error type of `nepdate`. It extends `RangeError`, so `instanceof RangeError` still holds,
+ * The one error type of `nepdate-core`. It extends `RangeError`, so `instanceof RangeError` still holds,
  * and `kind` says which check failed.
  * @example
  * const error = new NepDateError("invalid-month", "month 13 is outside 1..12");

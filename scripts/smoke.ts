@@ -1,7 +1,7 @@
 // Runs the README examples against locally installed tarballs, for the release smoke job
 // (T7-01). The README is the source: a broken example breaks this script.
 //
-//   node scripts/smoke.ts --mode core --project <clean project with nepdate installed>
+//   node scripts/smoke.ts --mode core --project <clean project with nepdate-core installed>
 //   node scripts/smoke.ts --mode patro --project <clean project with both packages installed>
 //
 // The project must already have the tarballs installed. This script never installs, publishes or
@@ -84,7 +84,7 @@ const block =
   mode === "core"
     ? blocks.find(
         (candidate) =>
-          candidate.code.includes('from "nepdate"') &&
+          candidate.code.includes('from "nepdate-core"') &&
           !candidate.code.includes("nepdate-patro") &&
           !candidate.code.includes("npm:"),
       )
@@ -100,7 +100,7 @@ if (mode === "core") {
   if (existsSync(join(project, "node_modules", "nepdate-patro"))) {
     throw new Error("the core-only project installed nepdate-patro");
   }
-  console.log(`smoke: core ${packageVersion(project, "nepdate")} ok, no nepdate-patro`);
+  console.log(`smoke: core ${packageVersion(project, "nepdate-core")} ok, no nepdate-patro`);
 } else {
   const coverage = join(project, "coverage-check.mjs");
   const expected = coverageRange();
@@ -126,7 +126,7 @@ if (mode === "core") {
   console.log(
     `smoke: patro ${packageVersion(project, "nepdate-patro")} with core ${packageVersion(
       project,
-      "nepdate",
+      "nepdate-core",
     )} ok, data range ${expected.start}..${expected.end}`,
   );
 }

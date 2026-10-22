@@ -12,7 +12,7 @@ rerun or extend a row.
 import graph. The child prints one JSON object on stdout; the parent prints the table or `--json`.
 
 `bench/measure.ts` is also the process that imports a competitor package. A core-only row never
-imports `nepdate-patro`, and a competitor row imports only its own package plus `nepdate` for the
+imports `nepdate-patro`, and a competitor row imports only its own package plus `nepdate-core` for the
 expected dates.
 
 Run from the repository root after `npm run build`:

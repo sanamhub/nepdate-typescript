@@ -85,10 +85,10 @@ function manifestErrors(member: Member, expected: ExpectedManifest): string[] {
     if (peers !== undefined && Object.keys(peers).length > 0) {
       errors.push(`package.json has peerDependencies, expected none for ${expected.name}`);
     }
-  } else if (peers?.nepdate !== `~${expected.version}`) {
+  } else if (peers?.[expected.peer] !== `~${expected.version}`) {
     errors.push(
-      `package.json peerDependencies.nepdate is ${String(
-        peers?.nepdate,
+      `package.json peerDependencies["${expected.peer}"] is ${String(
+        peers?.[expected.peer],
       )}, expected ~${expected.version}`,
     );
   }
@@ -193,9 +193,7 @@ function run(args: readonly string[]): number {
   const tarballs = readdirSync(root)
     .filter((name) => name.endsWith(".tgz"))
     .sort();
-  const core = tarballs.find(
-    (name) => name.startsWith("nepdate-") && !name.startsWith("nepdate-patro-"),
-  );
+  const core = tarballs.find((name) => name.startsWith("nepdate-core-"));
   const patro = tarballs.find((name) => name.startsWith("nepdate-patro-"));
   if (core === undefined || patro === undefined || tarballs.length !== 2) {
     console.error(
@@ -205,8 +203,8 @@ function run(args: readonly string[]): number {
   }
   const errors: string[] = [];
   const checks: [string, ExpectedManifest][] = [
-    [core, { name: "nepdate", version, peer: undefined }],
-    [patro, { name: "nepdate-patro", version, peer: "nepdate" }],
+    [core, { name: "nepdate-core", version, peer: undefined }],
+    [patro, { name: "nepdate-patro", version, peer: "nepdate-core" }],
   ];
   for (const [name, expected] of checks) {
     const members = tarMembers(join(root, name));

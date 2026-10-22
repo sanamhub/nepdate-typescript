@@ -6,8 +6,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w nepdate && npm run build -w nepdate-patro",
-    "test": "npm test -w nepdate && npm test -w nepdate-patro",
+    "build": "npm run build -w nepdate-core && npm run build -w nepdate-patro",
+    "test": "npm test -w nepdate-core && npm test -w nepdate-patro",
     "codegen": "node scripts/codegen.ts",
     "mutation": "npm run build && stryker run stryker.core.conf.mjs && stryker run stryker.patro.conf.mjs",
     "mutation:force": "npm run build && stryker run stryker.core.conf.mjs --force && stryker run stryker.patro.conf.mjs --force",

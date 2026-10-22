@@ -76,7 +76,7 @@ function coreIsolation(): void {
 
   const temp = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "nepdate-ci-"));
   try {
-    run(`npm pack -w nepdate --pack-destination "${temp}"`);
+    run(`npm pack -w nepdate-core --pack-destination "${temp}"`);
     const tarballs = readdirSync(temp).filter((f) => f.endsWith(".tgz"));
     if (tarballs.length !== 1)
       throw new GateError(`expected one tarball, found ${tarballs.length}`);
@@ -102,7 +102,7 @@ function coreIsolation(): void {
 function patroSize(): void {
   // The 26,349 B measured in T4 is the package alone; the core is its peer, so external it.
   const bundle = capture(
-    `npx esbuild ${PATRO}/dist/index.js --bundle --minify --format=esm --external:nepdate`,
+    `npx esbuild ${PATRO}/dist/index.js --bundle --minify --format=esm --external:nepdate-core`,
   );
   const gzipped = gzipSync(bundle, { level: 9 }).length;
   console.log(
@@ -120,7 +120,7 @@ const gates: [name: string, body: () => void][] = [
   ["lint + format", () => run("npx biome ci .")],
   ["generated code", () => run("node scripts/codegen.ts --check")],
   ["core types", () => run(`npx tsc -p ${CORE}/tsconfig.json`)],
-  ["core tests", () => run("npm test -w nepdate")],
+  ["core tests", () => run("npm test -w nepdate-core")],
   ["core build + shape", () => buildAndShape(CORE)],
   ["core isolation + size", coreIsolation],
   ["patro types", () => run(`npx tsc -p ${PATRO}/tsconfig.json`)],

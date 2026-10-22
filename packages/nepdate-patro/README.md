@@ -11,8 +11,8 @@
 </p>
 
 The patro (पात्रो, the Nepali almanac) for
-[`nepdate`](https://www.npmjs.com/package/nepdate): tithi (lunar day), gazetted public holidays and
-events for each Bikram Sambat day. `nepdate-patro` needs `nepdate` as a peer dependency and shares
+[`nepdate-core`](https://www.npmjs.com/package/nepdate-core): tithi (lunar day), gazetted public holidays and
+events for each Bikram Sambat day. `nepdate-patro` needs `nepdate-core` as a peer dependency and shares
 its version.
 
 > **Status:** 0.1.0-beta.1, the first public pre-release, on the `beta` dist-tag. The data is
@@ -21,13 +21,13 @@ its version.
 ## Install
 
 ```bash
-npm install nepdate@beta nepdate-patro@beta
+npm install nepdate-core@beta nepdate-patro@beta
 ```
 
 ## Use
 
 ```ts
-import { NepaliDate } from "nepdate";
+import { NepaliDate } from "nepdate-core";
 import { info } from "nepdate-patro";
 
 const republicDay = info(NepaliDate.of(2081, 2, 15));
