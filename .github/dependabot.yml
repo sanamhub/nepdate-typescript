@@ -16,3 +16,11 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+    # vitest and its plugins only install at one shared version, so a lone bump fails npm ci.
+    groups:
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
+    # A new @types/node major types APIs that engines (>=22.12) doesn't promise; it's picked by hand.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
