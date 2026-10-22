@@ -3,6 +3,20 @@
   "version": "0.1.0-beta.1",
   "description": "The Nepali patro for nepdate-core: tithi, public holidays and events.",
   "license": "MIT",
+  "keywords": [
+    "bikram-sambat",
+    "nepali-calendar",
+    "patro",
+    "tithi",
+    "nepal-holidays"
+  ],
+  "homepage": "https://github.com/sanamhub/nepdate-typescript#readme",
+  "bugs": "https://github.com/sanamhub/nepdate-typescript/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanamhub/nepdate-typescript.git",
+    "directory": "packages/nepdate-patro"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.12"

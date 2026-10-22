@@ -20,7 +20,12 @@ interface ExpectedManifest {
   readonly name: string;
   readonly version: string;
   readonly peer: string | undefined;
+  readonly directory: string;
 }
+
+// npm provenance compares repository.url with the repository that built the package and refuses
+// the upload when they differ, so both manifests must name it.
+export const REPOSITORY_URL = "git+https://github.com/sanamhub/nepdate-typescript.git";
 
 const ALLOWED_FILES = new Set(["package.json", "LICENSE", "NOTICE", "README.md"]);
 
@@ -106,6 +111,12 @@ function manifestErrors(member: Member, expected: ExpectedManifest): string[] {
     if (value !== undefined && Object.keys(value).length > 0) {
       errors.push(`package.json has ${field}, expected none`);
     }
+  }
+  const repository = manifest.repository as { url?: unknown; directory?: unknown } | undefined;
+  if (repository?.url !== REPOSITORY_URL || repository.directory !== expected.directory) {
+    errors.push(
+      `package.json repository is ${JSON.stringify(repository)}, expected url ${REPOSITORY_URL} and directory ${expected.directory}`,
+    );
   }
   return errors;
 }
@@ -203,8 +214,16 @@ function run(args: readonly string[]): number {
   }
   const errors: string[] = [];
   const checks: [string, ExpectedManifest][] = [
-    [core, { name: "nepdate-core", version, peer: undefined }],
-    [patro, { name: "nepdate-patro", version, peer: "nepdate-core" }],
+    [core, { name: "nepdate-core", version, peer: undefined, directory: "packages/nepdate" }],
+    [
+      patro,
+      {
+        name: "nepdate-patro",
+        version,
+        peer: "nepdate-core",
+        directory: "packages/nepdate-patro",
+      },
+    ],
   ];
   for (const [name, expected] of checks) {
     const members = tarMembers(join(root, name));
