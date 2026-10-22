@@ -6,7 +6,9 @@
 // Run `node scripts/api-check.ts --write` after a deliberate surface change.
 
 import { resolve } from "node:path";
-import ts from "typescript";
+// TypeScript 7 ships the native compiler without the classic JS API, so the declaration reader
+// uses the 6.x API through the `typescript6` alias; tsc itself is 7 (ADR-0014).
+import ts from "typescript6";
 
 export interface PackageSource {
   readonly name: string;
