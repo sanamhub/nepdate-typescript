@@ -227,7 +227,7 @@ jobs:
           if npm view "nepdate@$VERSION" version >/dev/null 2>&1; then
             echo "nepdate@$VERSION is already on npm"
           else
-            npm publish "release-tarballs/nepdate-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
+            npm publish "./release-tarballs/nepdate-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
           fi
       - name: Publish nepdate-patro
         env:
@@ -241,7 +241,7 @@ jobs:
           if npm view "nepdate-patro@$VERSION" version >/dev/null 2>&1; then
             echo "nepdate-patro@$VERSION is already on npm"
           else
-            npm publish "release-tarballs/nepdate-patro-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
+            npm publish "./release-tarballs/nepdate-patro-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
           fi
 
   # Post-publish verification (ADR-0011): verify-published.yml installs both exact versions from the
