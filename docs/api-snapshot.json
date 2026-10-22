@@ -1,7 +1,7 @@
 {
   "format": 1,
   "packages": {
-    "nepdate": [
+    "@nepdate/core": [
       "DateDiff readonly days: number",
       "DateDiff readonly months: number",
       "DateDiff readonly negative: boolean",
@@ -80,7 +80,7 @@
       "export type Quarter = 1 | 2 | 3 | 4",
       "export type Separator = \"/\" | \"\\\\\" | \".\" | \"_\" | \"-\" | \" \""
     ],
-    "nepdate-patro": [
+    "@nepdate/patro": [
       "CalendarInfo readonly events: readonly Named[]",
       "CalendarInfo readonly isPublicHoliday: boolean",
       "CalendarInfo readonly tithi: Named | null",

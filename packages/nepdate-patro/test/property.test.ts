@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { NepaliDate } from "@nepdate/core";
 import fc from "fast-check";
-import { NepaliDate } from "nepdate";
 import { expect, test } from "vitest";
 import { coverage, info } from "../src/index.js";
 

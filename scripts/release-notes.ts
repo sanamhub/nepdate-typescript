@@ -28,13 +28,13 @@ export function releaseNotes(changelog: string, version: string): string {
   const channel =
     tag === "latest"
       ? ""
-      : `\n\nThis is a pre-release on the \`${tag}\` dist-tag, so a plain \`npm install nepdate\` does not pick it up.`;
+      : `\n\nThis is a pre-release on the \`${tag}\` dist-tag, so a plain \`npm install @nepdate/core\` does not pick it up.`;
   return `${body}
 
 ### Install
 
 \`\`\`bash
-npm install nepdate@${version} nepdate-patro@${version}
+npm install @nepdate/core@${version} @nepdate/patro@${version}
 \`\`\`${channel}
 
 ### Verification

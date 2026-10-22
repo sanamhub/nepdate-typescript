@@ -82,6 +82,10 @@ Temporal adapter), `nepali-calendar-toolkit` (React bundle). Abandoned: `nepali-
 The npm names `nepdate` and `nepdate-patro` must be checked before the first release;
 fallback `@sanamhub/nepdate` and `@sanamhub/nepdate-patro`.
 
+On 2026-10-22 the first publish of `nepdate` was refused: "Package name too similar to existing
+package nep-date". The packages are `@nepdate/core` and `@nepdate/patro`, under the `nepdate` npm
+organization (ADR-0013).
+
 ## Sources
 
 `https://registry.npmjs.org/<name>`, `https://api.npmjs.org/downloads/point/last-week/<name>`,

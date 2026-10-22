@@ -1,4 +1,4 @@
-import { NepaliDate } from "nepdate";
+import { NepaliDate } from "@nepdate/core";
 import { describe, expect, test } from "vitest";
 import { build } from "../src/build.js";
 import { type CalendarInfo, coverage, info, type Named, publicHolidays } from "../src/index.js";

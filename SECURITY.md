@@ -1,6 +1,6 @@
 # Security policy
 
-`nepdate` and `nepdate-patro` have no runtime dependencies, no network access and no file access.
+`@nepdate/core` and `@nepdate/patro` have no runtime dependencies, no network access and no file access.
 A security problem is most likely an exception other than `NepDateError`, or a hang, on hostile
 input to `parse`, `tryParse` or `parseLenient`, or a problem in a workflow (`.github/workflows/`).
 

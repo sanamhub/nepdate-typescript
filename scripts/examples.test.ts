@@ -31,7 +31,7 @@ function fixture(typeScript: string): {
 function declarations(typeScript: string) {
   const file = fixture(typeScript);
   try {
-    return collectExamples([{ name: "nepdate", entry: file.entry }], ROOT);
+    return collectExamples([{ name: "@nepdate/core", entry: file.entry }], ROOT);
   } finally {
     file.cleanup();
   }
@@ -40,7 +40,7 @@ function declarations(typeScript: string) {
 test("a new export without an example fails", () => {
   const result = coverageErrors(declarations("export declare function newThing(): string;"), []);
   assert.equal(result.length, 1);
-  assert.match(result[0] as string, /nepdate:newThing has no @example/);
+  assert.match(result[0] as string, /@nepdate\/core:newThing has no @example/);
 });
 
 test("an example with no result comment does not count", () => {
@@ -74,7 +74,7 @@ test("an example with a wrong result fails", () => {
   assert.equal(result.examples, 1);
   assert.equal(result.assertions, 1);
   assert.equal(result.errors.length, 1);
-  assert.match(result.errors[0] as string, /nepdate:monthName example 1/);
+  assert.match(result.errors[0] as string, /@nepdate\/core:monthName example 1/);
   assert.match(result.errors[0] as string, /Wrong/);
 });
 
@@ -102,14 +102,14 @@ test("compileExample rejects a statement before a result comment", () => {
 
 test("the allow-list has only today, with a reason", () => {
   assert.equal(ALLOW_LIST.length, 1);
-  assert.equal(ALLOW_LIST[0]?.label, "nepdate:NepaliDate.today");
+  assert.equal(ALLOW_LIST[0]?.label, "@nepdate/core:NepaliDate.today");
   assert.ok((ALLOW_LIST[0]?.reason.length ?? 0) > 20);
 });
 
 test("checkExamples reports a missing example before running anything", () => {
   const file = fixture("export declare function newThing(): string;");
   try {
-    const result = checkExamples([{ name: "nepdate", entry: file.entry }], ROOT);
+    const result = checkExamples([{ name: "@nepdate/core", entry: file.entry }], ROOT);
     assert.equal(result.examples, 0);
     assert.match(result.errors[0] as string, /has no @example/);
   } finally {
@@ -128,8 +128,8 @@ test("an allow-list entry whose examples all have results is stale", () => {
         "export declare function monthName(month: number): string;",
       ].join("\n"),
     ),
-    [{ label: "nepdate:monthName" }],
+    [{ label: "@nepdate/core:monthName" }],
   );
   assert.equal(result.length, 1);
-  assert.match(result[0] as string, /allow-list entry nepdate:monthName is stale/);
+  assert.match(result[0] as string, /allow-list entry @nepdate\/core:monthName is stale/);
 });

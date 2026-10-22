@@ -39,7 +39,7 @@ function fixture(options: Fixture = {}): string {
   writeFileSync(
     join(dir, "packages/nepdate-patro/package.json"),
     manifest(options.patroVersion ?? "0.1.0", {
-      peerDependencies: { nepdate: options.peer ?? "~0.1.0" },
+      peerDependencies: { "@nepdate/core": options.peer ?? "~0.1.0" },
     }),
   );
   writeFileSync(
@@ -67,19 +67,19 @@ test("release-check accepts matching manifests, peer range, empty [Unreleased] a
 test("release-check fails when the core version differs", () => {
   const result = check(fixture({ coreVersion: "0.0.9" }));
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain("nepdate version 0.0.9, expected 0.1.0");
+  expect(result.stderr).toContain("@nepdate/core version 0.0.9, expected 0.1.0");
 });
 
 test("release-check fails when the patro version differs", () => {
   const result = check(fixture({ patroVersion: "0.1.1" }));
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain("nepdate-patro version 0.1.1, expected 0.1.0");
+  expect(result.stderr).toContain("@nepdate/patro version 0.1.1, expected 0.1.0");
 });
 
 test("release-check fails when the peer range is not ~X.Y.Z", () => {
   const result = check(fixture({ peer: "~0.2.0" }));
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain("peerDependencies.nepdate is ~0.2.0, expected ~0.1.0");
+  expect(result.stderr).toContain('peerDependencies["@nepdate/core"] is ~0.2.0, expected ~0.1.0');
 });
 
 test("release-check fails when the changelog has no section for the version", () => {

@@ -1,9 +1,9 @@
-// B7 and B8 of BENCHMARK §3 for nepdate-patro. Loaded only by the child that measures one of these
+// B7 and B8 of BENCHMARK §3 for @nepdate/patro. Loaded only by the child that measures one of these
 // rows, so the core-only rows never import the patro tables.
 
+import { NepaliDate } from "@nepdate/core";
+import { coverage, info } from "@nepdate/patro";
 import { do_not_optimize } from "mitata";
-import { NepaliDate } from "nepdate";
-import { coverage, info } from "nepdate-patro";
 import type { CoreOp } from "./own-core.ts";
 
 const DAY_MS = 86_400_000;

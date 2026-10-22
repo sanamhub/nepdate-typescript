@@ -1,7 +1,7 @@
 {
-  "name": "nepdate-patro",
+  "name": "@nepdate/patro",
   "version": "0.1.0-beta.1",
-  "description": "The Nepali patro for nepdate: tithi, public holidays and events.",
+  "description": "The Nepali patro for @nepdate/core: tithi, public holidays and events.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -27,6 +27,6 @@
     "test:browser": "vitest run --config vitest.browser.config.ts"
   },
   "peerDependencies": {
-    "nepdate": "~0.1.0-beta.1"
+    "@nepdate/core": "~0.1.0-beta.1"
   }
 }

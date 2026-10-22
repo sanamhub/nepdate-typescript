@@ -29,14 +29,14 @@ function liveSurface(typeScript: string): Surface {
   const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "api-surface-"));
   try {
     writeFileSync(join(dir, "index.d.ts"), `${typeScript}\n`);
-    return readLiveSurface([{ name: "nepdate", entry: "index.d.ts" }], dir);
+    return readLiveSurface([{ name: "@nepdate/core", entry: "index.d.ts" }], dir);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
 
 function apiDocs(typeScript: string): string {
-  return ["# API", "", "```ts", '// "nepdate"', typeScript, "```", ""].join("\n");
+  return ["# API", "", "```ts", '// "@nepdate/core"', typeScript, "```", ""].join("\n");
 }
 
 function errors(live: Surface, snapshot: Surface, documented: Surface): string[] {
@@ -74,7 +74,10 @@ test("an undocumented addition fails the API.md check", () => {
   const live = liveSurface(withBeta);
   const result = documentedErrors(live, baseDocs);
   assert.equal(result.length, 1);
-  assert.match(result[0] as string, /no declaration for nepdate: export function beta\(\): string/);
+  assert.match(
+    result[0] as string,
+    /no declaration for @nepdate\/core: export function beta\(\): string/,
+  );
 });
 
 test("a documented addition still fails until the snapshot is written", () => {
@@ -94,7 +97,7 @@ test("a name only in prose does not document the export", () => {
   const prose = readDocumentedSurface(`${apiDocs(BASE)}\n\`beta\` is exported.\n`);
   const result = documentedErrors(live, prose);
   assert.equal(result.length, 1);
-  assert.match(result[0] as string, /no declaration for nepdate: export function beta/);
+  assert.match(result[0] as string, /no declaration for @nepdate\/core: export function beta/);
 });
 
 test("snapshotText is sorted, deduplicated and round-trips", () => {
@@ -156,7 +159,7 @@ test("every overload of a function is its own entry", () => {
       "export declare function pick(value: number): number;",
     ].join("\n"),
   );
-  assert.deepEqual(live.nepdate, [
+  assert.deepEqual(live["@nepdate/core"], [
     "export function pick(value: number): number",
     "export function pick(value: string): string",
   ]);
@@ -164,7 +167,7 @@ test("every overload of a function is its own entry", () => {
 
 test("an exported const is part of the surface", () => {
   const live = liveSurface("export declare const LIMIT: number;");
-  assert.deepEqual(live.nepdate, ["export const LIMIT: number"]);
+  assert.deepEqual(live["@nepdate/core"], ["export const LIMIT: number"]);
 });
 
 test("an export kind the reader does not know fails loudly instead of vanishing", () => {
@@ -186,5 +189,5 @@ test("a TSDoc comment inside an option type does not change the surface", () => 
 
 test("a protected member is part of the surface", () => {
   const live = liveSurface("export declare class Base {\n  protected step(): void;\n}");
-  assert.deepEqual(live.nepdate, ["Base protected step(): void", "export class Base"]);
+  assert.deepEqual(live["@nepdate/core"], ["Base protected step(): void", "export class Base"]);
 });
