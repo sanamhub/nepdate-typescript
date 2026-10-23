@@ -61,7 +61,7 @@ console.log(NepaliDate.of(2081, 2, 15).toJSON()); // "2081-02-15"
 
 ```html
 <script type="module">
-  import { NepaliDate } from "https://esm.sh/nepdate@0.1.0-beta.1";
+  import { NepaliDate } from "https://esm.sh/nepdate-core@0.1.0-beta.1";
   document.body.textContent = NepaliDate.of(2081, 2, 15).toJSON();
 </script>
 ```
