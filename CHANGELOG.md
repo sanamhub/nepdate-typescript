@@ -1,11 +1,18 @@
 # Changelog
 
-All notable changes to `nepdate-core` and `nepdate-patro` are listed here. Both packages share one
-version (ADR-0005); an entry that concerns only one package starts with its name. The format follows
+All notable changes to `nepdate-core`, `nepdate-patro` and `nepdate-picker` are listed here. The
+packages share one version (ADR-0005); an entry that concerns only one package starts with its name. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the versions follow
 [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+### Added
+
+- `nepdate-picker`, a new package (ADR-0015): `<nepdate-calendar>`, a BS month grid with the
+  WAI-ARIA date picker keys; `<nepdate-input>`, a form-associated text field with that calendar in a
+  popover; the DOM-free `monthGrid`, `moveFocus`, `isSelectable` and `weekdayOrder`; and an optional
+  `theme.css`. Not published yet: a new npm name needs one manual publish first.
 
 ## [0.1.0-beta.1] - 2026-10-22
 

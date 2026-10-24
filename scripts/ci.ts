@@ -2,16 +2,19 @@
 // repository root: `npm run ci`. The last line is the summary that PROGRESS.md quotes.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
 
 const CORE = "packages/nepdate";
 const PATRO = "packages/nepdate-patro";
+const PICKER = "packages/nepdate-picker";
 const EVENT_SENTINEL = "World Day Against Human Trafficking";
 const CORE_GZIP_LIMIT = 8 * 1024;
 const PATRO_GZIP_LIMIT = 28 * 1024;
+// ADR-0015: the picker without the core (its peer) was 5,383 B gzip when it was added.
+const PICKER_GZIP_LIMIT = 6 * 1024;
 
 class GateError extends Error {}
 
@@ -36,11 +39,12 @@ function capture(command: string): Buffer {
   return result.stdout;
 }
 
-function buildAndShape(pkg: string): void {
+function buildAndShape(pkg: string, afterBuild?: () => void, attwFlags = ""): void {
   rmSync(join(pkg, "dist"), { recursive: true, force: true });
   run(`npx tsc -p ${pkg}/tsconfig.build.json`);
+  afterBuild?.();
   run(`npx publint ${pkg}`);
-  run(`npx attw --pack ${pkg} --profile esm-only`);
+  run(`npx attw --pack ${pkg} --profile esm-only${attwFlags}`);
 }
 
 function jsFiles(dir: string): string[] {
@@ -113,6 +117,19 @@ function patroSize(): void {
   }
 }
 
+function pickerSize(): void {
+  const bundle = capture(
+    `npx esbuild ${PICKER}/dist/index.js --bundle --minify --format=esm --external:nepdate-core`,
+  );
+  const gzipped = gzipSync(bundle, { level: 9 }).length;
+  console.log(
+    `picker bundle: ${bundle.length} B minified, ${gzipped} B gzip (limit ${PICKER_GZIP_LIMIT} B)`,
+  );
+  if (gzipped > PICKER_GZIP_LIMIT) {
+    throw new GateError(`picker bundle is ${gzipped} B gzip, limit ${PICKER_GZIP_LIMIT} B`);
+  }
+}
+
 // Packed smoke (T8-06): the pack, offline install and both smoke modes live in
 // scripts/packed-smoke.ts so gate 11 and the oldest-node job run one path (T9-01).
 const gates: [name: string, body: () => void][] = [
@@ -140,6 +157,21 @@ const gates: [name: string, body: () => void][] = [
       run(
         "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/release-notes.test.ts scripts/shared-sums.test.ts scripts/tarball-check.test.ts",
       );
+    },
+  ],
+  ["picker types", () => run(`npx tsc -p ${PICKER}/tsconfig.json`)],
+  ["picker tests", () => run("npm test -w nepdate-picker")],
+  [
+    "picker build + shape + size",
+    () => {
+      // The package's build script also copies theme.css, which tsc does not emit.
+      buildAndShape(
+        PICKER,
+        () => copyFileSync(`${PICKER}/src/theme.css`, `${PICKER}/dist/theme.css`),
+        // A stylesheet has no types to resolve.
+        " --exclude-entrypoints ./theme.css",
+      );
+      pickerSize();
     },
   ],
   ["docs", () => run("node scripts/docs-check.ts")],

@@ -1,4 +1,4 @@
-# `nepdate-core` and `nepdate-patro` (TypeScript): exported API contract (v0.1)
+# `nepdate-core`, `nepdate-patro` and `nepdate-picker` (TypeScript): exported API contract (v0.1)
 
 The complete exported surface of both packages for v0.1. Implement exactly this; a new export
 needs this file changed in the same PR, approved by the human. Behaviour: `shared/spec/`.
@@ -109,6 +109,78 @@ export interface CalendarInfo {
 export function info(date: NepaliDate): CalendarInfo;        // never throws; empty outside coverage
 export function coverage(): DateRange;                       // 2077-01-01..2084-08-20 with current data
 export function publicHolidays(): IterableIterator<NepaliDate>; // ascending
+```
+
+```ts
+// "nepdate-picker": a separate npm package (ADR-0015). Web components plus the DOM-free month grid.
+// peerDependencies: { "nepdate-core": "~X.Y.Z" }. `import "nepdate-picker/define"` registers both
+// elements; `nepdate-picker/theme.css` is an optional stylesheet. Neither is part of this surface.
+import type { GregorianDate, NepaliDate } from "nepdate-core";
+// ElementBase (not exported) is HTMLElement, or an empty class where there is no DOM, so the entry
+// imports in Node and during server rendering.
+
+export interface PickerDay {
+  readonly date: NepaliDate;
+  readonly gregorian: GregorianDate;
+  readonly isToday: boolean;
+  readonly disabled: boolean;                                // outside min/max or isDateDisallowed
+}
+export interface GridOptions {
+  readonly firstDayOfWeek?: number;                          // 0 = Sunday (default) .. 6
+  readonly min?: NepaliDate | null;
+  readonly max?: NepaliDate | null;
+  readonly isDateDisallowed?: ((date: NepaliDate) => boolean) | null;
+  readonly today?: NepaliDate;                               // default NepaliDate.today()
+}
+export type GridKey = "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown" | "Home" | "End" | "PageUp" | "PageDown" | "Shift+PageUp" | "Shift+PageDown";
+export declare const GRID_ROWS = 6;
+export declare function isSelectable(date: NepaliDate, options?: GridOptions): boolean;
+export declare function weekdayOrder(options?: GridOptions): number[];
+export declare function monthGrid(year: number, month: number, options?: GridOptions): (PickerDay | null)[][];
+export declare function moveFocus(date: NepaliDate, key: GridKey, options?: GridOptions): NepaliDate;
+
+export declare const CALENDAR_PARTS: readonly string[];
+export declare class NepDateCalendarElement extends ElementBase { // <nepdate-calendar>
+  static readonly observedAttributes: string[];
+  get value(): string;                                       // "YYYY-MM-DD" (BS) or ""
+  set value(value: string);
+  get date(): NepaliDate | null;
+  set date(date: NepaliDate | null);
+  get isDateDisallowed(): ((date: NepaliDate) => boolean) | null;
+  set isDateDisallowed(fn: ((date: NepaliDate) => boolean) | null);
+  get dayParts(): ((date: NepaliDate) => readonly string[]) | null;
+  set dayParts(fn: ((date: NepaliDate) => readonly string[]) | null);
+  get month(): NepaliDate;                                   // first day of the month on show
+  focusDay(): void;
+  connectedCallback(): void;
+  attributeChangedCallback(name: string, _old: string | null, value: string | null): void;
+}
+
+export declare const INPUT_PARTS: readonly string[];
+export declare class NepDateInputElement extends ElementBase { // <nepdate-input>, form-associated
+  static readonly formAssociated: boolean;
+  static readonly observedAttributes: string[];
+  constructor();
+  get value(): string;
+  set value(value: string);
+  get date(): NepaliDate | null;
+  set date(date: NepaliDate | null);
+  get calendar(): NepDateCalendarElement | null;
+  get form(): HTMLFormElement | null;
+  get name(): string;
+  get validity(): ValidityState;
+  get validationMessage(): string;
+  checkValidity(): boolean;
+  reportValidity(): boolean;
+  showPicker(): void;
+  connectedCallback(): void;
+  attributeChangedCallback(name: string): void;
+  formResetCallback(): void;
+  formDisabledCallback(disabled: boolean): void;
+  formStateRestoreCallback(state: string | File | FormData | null): void;
+}
+
+export declare function defineElements(): void;             // no-op without customElements
 ```
 
 Notes:

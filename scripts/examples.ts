@@ -191,6 +191,7 @@ function prelude(): string {
     'import { isDeepStrictEqual } from "node:util";',
     'import { DateRange, FiscalYear, NepDateError, NepaliDate, monthName, monthShortName, toNepaliDigits, weekdayName, weekdayShortName } from "nepdate-core";',
     'import { coverage, info, publicHolidays } from "nepdate-patro";',
+    'import { defineElements, isSelectable, monthGrid, moveFocus, NepDateCalendarElement, NepDateInputElement, weekdayOrder } from "nepdate-picker";',
     "",
     "function check(actual, expected, label) {",
     "  if (!isDeepStrictEqual(actual, expected)) {",
