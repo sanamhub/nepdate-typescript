@@ -142,6 +142,22 @@ const gates: [name: string, body: () => void][] = [
   ["core isolation + size", coreIsolation],
   ["patro types", () => run(`npx tsc -p ${PATRO}/tsconfig.json`)],
   ["patro tests", () => run("npm test -w nepdate-patro")],
+  // Before gate 10: its script tests run the @examples, which import the built picker.
+  ["picker types", () => run(`npx tsc -p ${PICKER}/tsconfig.json`)],
+  ["picker tests", () => run("npm test -w nepdate-picker")],
+  [
+    "picker build + shape + size",
+    () => {
+      // The package's build script also copies theme.css, which tsc does not emit.
+      buildAndShape(
+        PICKER,
+        () => copyFileSync(`${PICKER}/src/theme.css`, `${PICKER}/dist/theme.css`),
+        // A stylesheet has no types to resolve.
+        " --exclude-entrypoints ./theme.css",
+      );
+      pickerSize();
+    },
+  ],
   [
     "patro build + shape + tool types",
     () => {
@@ -157,21 +173,6 @@ const gates: [name: string, body: () => void][] = [
       run(
         "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/release-notes.test.ts scripts/shared-sums.test.ts scripts/tarball-check.test.ts",
       );
-    },
-  ],
-  ["picker types", () => run(`npx tsc -p ${PICKER}/tsconfig.json`)],
-  ["picker tests", () => run("npm test -w nepdate-picker")],
-  [
-    "picker build + shape + size",
-    () => {
-      // The package's build script also copies theme.css, which tsc does not emit.
-      buildAndShape(
-        PICKER,
-        () => copyFileSync(`${PICKER}/src/theme.css`, `${PICKER}/dist/theme.css`),
-        // A stylesheet has no types to resolve.
-        " --exclude-entrypoints ./theme.css",
-      );
-      pickerSize();
     },
   ],
   ["docs", () => run("node scripts/docs-check.ts")],
