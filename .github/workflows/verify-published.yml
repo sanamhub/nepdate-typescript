@@ -3,7 +3,8 @@ name: verify-published
 # Installs one published version of the three packages from the public registry, the way a user
 # does, and checks it: the registry signatures and provenance, the README quick start, one patro
 # lookup and one picker month grid. release.yml calls it after publishing (ADR-0011); it can also be
-# dispatched by hand for any version already on npm. No checkout, no secret, no token: only the registry is trusted here.
+# dispatched by hand for any version already on npm. No checkout, no secret, no token: only the
+# registry is trusted here.
 on:
   workflow_call:
     inputs:
