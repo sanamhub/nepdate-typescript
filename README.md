@@ -114,6 +114,8 @@ console.log(day.events.map((event) => event.en)); // ["Republic Day"]
 
 | Topic | Where |
 |---|---|
+| Guide and examples | [nepdate.com/docs/typescript](https://nepdate.com/docs/typescript/) |
+| The date picker | [nepdate.com/docs/datepicker](https://nepdate.com/docs/datepicker/) |
 | Every exported name | [docs/API.md](https://github.com/sanamhub/nepdate-typescript/blob/main/docs/API.md) |
 | Why it is built this way | [docs/adr](https://github.com/sanamhub/nepdate-typescript/tree/main/docs/adr) |
 | Speed and bundle size, with the C# baseline | [docs/benchmarks.md](https://github.com/sanamhub/nepdate-typescript/blob/main/docs/benchmarks.md) |
