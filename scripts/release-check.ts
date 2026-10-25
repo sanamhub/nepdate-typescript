@@ -50,7 +50,7 @@ const picker = readManifest(join(root, "packages/nepdate-picker/package.json"));
 for (const [name, manifest] of [
   ["nepdate-core", core],
   ["nepdate-patro", patro],
-  ["nepdate-picker", picker],
+  ["nepdate-datepicker", picker],
 ] as const) {
   if (manifest.version !== version) {
     errors.push(`${name} version ${String(manifest.version)}, expected ${version}`);
@@ -59,7 +59,7 @@ for (const [name, manifest] of [
 // patro and the picker build on the core, so each pins it with a tilde range on the same version.
 for (const [name, manifest] of [
   ["nepdate-patro", patro],
-  ["nepdate-picker", picker],
+  ["nepdate-datepicker", picker],
 ] as const) {
   const peer = manifest.peerDependencies?.["nepdate-core"];
   if (peer !== `~${version}`) {

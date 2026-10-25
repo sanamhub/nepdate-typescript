@@ -59,7 +59,7 @@ jobs:
           npm init -y >/dev/null
           deadline=$((SECONDS + 900))
           while true; do
-            if npm install --no-audit --no-fund --save-exact "nepdate-core@$VERSION" "nepdate-patro@$VERSION" "nepdate-picker@$VERSION"; then
+            if npm install --no-audit --no-fund --save-exact "nepdate-core@$VERSION" "nepdate-patro@$VERSION" "nepdate-datepicker@$VERSION"; then
               break
             fi
             now=$SECONDS
@@ -78,7 +78,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/verify-packages"
-          for name in nepdate-core nepdate-patro nepdate-picker; do
+          for name in nepdate-core nepdate-patro nepdate-datepicker; do
             installed=$(node -p "require('./node_modules/$name/package.json').version")
             if [ "$installed" != "$VERSION" ]; then
               echo "verify: $name is $installed, expected $VERSION" >&2
@@ -100,7 +100,7 @@ jobs:
           node --input-type=module - <<'JS'
           import { NepaliDate } from "nepdate-core";
           import { info } from "nepdate-patro";
-          import { monthGrid } from "nepdate-picker";
+          import { monthGrid } from "nepdate-datepicker";
 
           const date = NepaliDate.of(2081, 2, 15);
           const gregorian = date.toGregorian();

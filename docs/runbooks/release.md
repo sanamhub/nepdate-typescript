@@ -1,4 +1,4 @@
-# Runbook: release `nepdate-core`, `nepdate-patro` and `nepdate-picker` (npm)
+# Runbook: release `nepdate-core`, `nepdate-patro` and `nepdate-datepicker` (npm)
 
 Decided in [ADR-0005](../adr/0005-releases.md). Owner: maintainer. Approver: a second person. One
 tag releases the three packages with the same version. A package the workflow has never published
@@ -26,7 +26,7 @@ because the workflow is green.
    tag. The publish job waits for that approval.
 5. **The version is ready.** `packages/nepdate/package.json`,
    `packages/nepdate-patro/package.json` and `packages/nepdate-picker/package.json` say X.Y.Z.
-   `nepdate-patro` and `nepdate-picker` each have `peerDependencies["nepdate-core"]` `~X.Y.Z` and
+   `nepdate-patro` and `nepdate-datepicker` each have `peerDependencies["nepdate-core"]` `~X.Y.Z` and
    no `devDependencies`; the workspace link supplies the local core during development. `package-lock.json` changed only as `npm install` required.
    `CHANGELOG.md` has an empty `## [Unreleased]` and `## [X.Y.Z] - YYYY-MM-DD`. A missing
    `[Unreleased]` heading is allowed, but any entry under it blocks the release.
@@ -83,7 +83,7 @@ be used. For 0.1.0 only:
 ### First publish of a new package
 
 Trusted publishing is configured on a package that already exists, so a package new to npm is
-published once by hand, then handed to the workflow. `nepdate-picker` is that package (ADR-0015,
+published once by hand, then handed to the workflow. `nepdate-datepicker` is that package (ADR-0015,
 Consequences): its first version is `0.1.0-beta.1`, the version the core and patro already have on
 npm, so its `~0.1.0-beta.1` peer resolves. The owner does this, not the workflow and not an agent.
 
@@ -105,15 +105,15 @@ npm, so its `~0.1.0-beta.1` peer resolves. The owner does this, not the workflow
 
    `git status --short` must print nothing. The `./` keeps npm from reading the path as a GitHub
    `user/repo` shorthand. Read the dry-run file list first: `LICENSE`, `README.md`,
-   `package.json`, `dist/theme.css`, `dist/nepdate-picker.js` and `dist/*.js`, `*.d.ts`,
+   `package.json`, `dist/theme.css`, `dist/nepdate-datepicker.js` and `dist/*.js`, `*.d.ts`,
    `*.d.ts.map`, nothing else (the rule `scripts/tarball-check.ts` applies in the workflow). npm
    asks for the 2FA code. `--tag beta` matches a `-beta.N` version; a stable version takes
    `--tag latest`. This publish has no provenance, because provenance needs the workflow's OIDC
    token; every later version has it.
-3. On npmjs.com, for `nepdate-picker`: Settings, Trusted publishing, repository
+3. On npmjs.com, for `nepdate-datepicker`: Settings, Trusted publishing, repository
    `sanamhub/nepdate-typescript`, workflow `release.yml`, environment `production`. Then enable
    "Require 2FA and disallow tokens".
-4. Check it: `npm view nepdate-picker@0.1.0-beta.1 version peerDependencies dist-tags`. The
+4. Check it: `npm view nepdate-datepicker@0.1.0-beta.1 version peerDependencies dist-tags`. The
    `beta` tag points at `0.1.0-beta.1`. `latest` also points there, because npm sets `latest` on
    a package's first publish whatever `--tag` says; the first stable release moves it.
 5. Merge the change that adds the package to the workflow. From the next tag on, the package is
@@ -144,7 +144,7 @@ If npm refuses the name, stop and follow ADR-0015: the owner decides the fallbac
 8. Build the three packages, `npm pack` each one into `release-tarballs`, and run
    `scripts/tarball-check.ts --sums release-tarballs/SHA256SUMS`. The check allows only `dist/`,
    `LICENSE`, `NOTICE`, `README.md` and `package.json` in the core and patro tarballs; the picker
-   tarball has a narrower list and must contain `dist/theme.css` and `dist/nepdate-picker.js`. It
+   tarball has a narrower list and must contain `dist/theme.css` and `dist/nepdate-datepicker.js`. It
    checks the version and peer range, and rejects `devDependencies`, runtime dependencies, install lifecycle scripts
    (`preinstall`, `install`, `postinstall`, and `prepare` with its hooks), tar members
    that are not regular files or directories, and paths with `.` or `..` segments. Then run `publint` and `attw` on
@@ -161,7 +161,7 @@ If npm refuses the name, stop and follow ADR-0015: the owner decides the fallbac
    example. `--mode patro` also checks `coverage()` reports BS 2077-01-01 to 2084-08-20.
 4. Create a third clean project, install the core and picker tarballs, and run
    `scripts/smoke.ts --mode picker`: the main entry loads in Node with no DOM, `monthGrid(2081, 4)`
-   has 6 rows, and the package has `dist/theme.css` and a `dist/nepdate-picker.js` with no import.
+   has 6 rows, and the package has `dist/theme.css` and a `dist/nepdate-datepicker.js` with no import.
 5. No registry login is used. A broken README example fails this job, so the published npm page and
    the tarballs are checked against the same text.
 
@@ -181,7 +181,7 @@ blocks the release.
    changelog.
 4. Set up Node with the npm registry, read the version and run `release-check` again. Run
    `sha256sum -c SHA256SUMS` before any package is published.
-5. Publish `nepdate-core`, then `nepdate-patro`, then `nepdate-picker`, using only the downloaded
+5. Publish `nepdate-core`, then `nepdate-patro`, then `nepdate-datepicker`, using only the downloaded
    tarballs. The publish job does
    not run `npm pack`. Each step first runs
    `npm view <name>@X.Y.Z version`; if the version already exists the step is skipped, so a
@@ -193,7 +193,7 @@ blocks the release.
 `verify` needs `publish` and calls `verify-published.yml` with the published version. It has
 `contents: read`, no `id-token`, no environment and no checkout. On Linux, macOS and Windows, each
 with Node 22 and 24, it creates a clean project and installs `nepdate-core@X.Y.Z`,
-`nepdate-patro@X.Y.Z` and `nepdate-picker@X.Y.Z` exactly from the public registry, retrying every
+`nepdate-patro@X.Y.Z` and `nepdate-datepicker@X.Y.Z` exactly from the public registry, retrying every
 30 seconds for up to 15 minutes. It checks the three installed versions, runs `npm audit signatures`
 (registry signatures and provenance), then the README quick start (`NepaliDate.of(2081, 2, 15)`,
 `toGregorian`, `toJSON`, `long`), one `info()` call that checks Republic Day and one
@@ -214,7 +214,7 @@ next patch version of all three with this runbook:
 ```
 npm deprecate nepdate-core@X.Y.Z "reason, use X.Y.(Z+1)"
 npm deprecate nepdate-patro@X.Y.Z "reason, use X.Y.(Z+1)"
-npm deprecate nepdate-picker@X.Y.Z "reason, use X.Y.(Z+1)"
+npm deprecate nepdate-datepicker@X.Y.Z "reason, use X.Y.(Z+1)"
 ```
 
 The manual checks below remain useful evidence after `verify` passes.
@@ -226,7 +226,7 @@ Run these after the workflow finishes, before announcing the release:
 ```
 npm view nepdate-core@X.Y.Z version
 npm view nepdate-patro@X.Y.Z version peerDependencies
-npm view nepdate-picker@X.Y.Z version peerDependencies
+npm view nepdate-datepicker@X.Y.Z version peerDependencies
 npm view nepdate-core@X.Y.Z dist.integrity dist.attestations
 ```
 
@@ -252,7 +252,7 @@ npx publint nepdate-X.Y.Z.tgz
 npx attw nepdate-X.Y.Z.tgz --profile esm-only
 ```
 
-Repeat the install and `attw` check for `nepdate-patro@X.Y.Z` and `nepdate-picker@X.Y.Z` (with
+Repeat the install and `attw` check for `nepdate-patro@X.Y.Z` and `nepdate-datepicker@X.Y.Z` (with
 `--exclude-entrypoints ./theme.css`); each must install `nepdate-core@X.Y.Z` as its peer. A local `npm pack` before publishing is not evidence about the registry.
 
 ## Smoke installs
@@ -262,7 +262,7 @@ skipped or a tarball was rebuilt outside the workflow. Core only: a clean projec
 `nepdate-core@X.Y.Z`, runs the README core example, and has no `node_modules/nepdate-patro`. Both
 packages: a second clean project installs both versions, runs the README patro example, and checks
 `coverage()` reports BS 2077-01-01 to 2084-08-20. Picker: a third clean project installs
-`nepdate-core@X.Y.Z` and `nepdate-picker@X.Y.Z` and runs `scripts/smoke.ts --mode picker`. If Deno
+`nepdate-core@X.Y.Z` and `nepdate-datepicker@X.Y.Z` and runs `scripts/smoke.ts --mode picker`. If Deno
 is available, run the
 `npm:nepdate-core@X.Y.Z` example from the README. Record the Node, npm and Deno versions in the release
 notes.
@@ -279,14 +279,14 @@ If a published version is wrong:
    ```
    npm deprecate nepdate-core@X.Y.Z "reason, use X.Y.(Z+1)"
    npm deprecate nepdate-patro@X.Y.Z "reason, use X.Y.(Z+1)"
-   npm deprecate nepdate-picker@X.Y.Z "reason, use X.Y.(Z+1)"
+   npm deprecate nepdate-datepicker@X.Y.Z "reason, use X.Y.(Z+1)"
    ```
 
 2. Fix the cause on `main`, add a changelog entry under `## [Unreleased]`, and release X.Y.(Z+1) of
    the three packages with this runbook.
 3. Note the deprecation and the replacement in the changelog and the GitHub Release.
 
-If the failure is after `nepdate-core` is published and before `nepdate-picker` is, fix the cause
+If the failure is after `nepdate-core` is published and before `nepdate-datepicker` is, fix the cause
 and re-run the failed publish job. It skips the version that already exists. Do not lower the version.
 
 ## Name fallback

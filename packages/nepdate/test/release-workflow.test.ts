@@ -251,7 +251,7 @@ function packProblems(workflow: Workflow): string[] {
           value,
           "npm pack -w nepdate-core",
           "npm pack -w nepdate-patro",
-          "npm pack -w nepdate-picker",
+          "npm pack -w nepdate-datepicker",
         ),
     ),
   );
@@ -333,7 +333,7 @@ function smokeProblems(workflow: Workflow): string[] {
         runHas(
           item,
           "release-tarballs/nepdate-core-$VERSION.tgz",
-          "release-tarballs/nepdate-picker-$VERSION.tgz",
+          "release-tarballs/nepdate-datepicker-$VERSION.tgz",
         ),
     ),
   );
@@ -507,7 +507,7 @@ function publishProblems(workflow: Workflow): string[] {
     ),
   );
 
-  for (const pkg of ["nepdate-core", "nepdate-patro", "nepdate-picker"] as const) {
+  for (const pkg of ["nepdate-core", "nepdate-patro", "nepdate-datepicker"] as const) {
     const name = `Publish ${pkg}`;
     const tarball = `${pkg}-$VERSION.tgz`;
     found.push(
@@ -578,7 +578,7 @@ function publishProblems(workflow: Workflow): string[] {
       workflow,
       "publish",
       "Publish nepdate-patro",
-      "Publish nepdate-picker",
+      "Publish nepdate-datepicker",
       "publish must publish core, patro, then the picker",
     ),
   );
@@ -838,14 +838,14 @@ jobs:
   it("reports a missing picker publish step", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
-    steps.splice(rawStepIndex(steps, "Publish nepdate-picker"), 1);
+    steps.splice(rawStepIndex(steps, "Publish nepdate-datepicker"), 1);
     expect(problems(workflow)).toContain("publish must publish the three packages");
   });
 
   it("reports the picker published before patro", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
-    const [picker] = steps.splice(rawStepIndex(steps, "Publish nepdate-picker"), 1);
+    const [picker] = steps.splice(rawStepIndex(steps, "Publish nepdate-datepicker"), 1);
     steps.splice(rawStepIndex(steps, "Publish nepdate-patro"), 0, picker);
     expect(problems(workflow)).toContain("publish must publish core, patro, then the picker");
   });
@@ -853,8 +853,11 @@ jobs:
   it("reports a picker publish without the npm view guard", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
-    const publish = steps[rawStepIndex(steps, "Publish nepdate-picker")] as Record<string, unknown>;
-    publish.run = String(publish.run).replace('npm view "nepdate-picker@$VERSION"', "false");
+    const publish = steps[rawStepIndex(steps, "Publish nepdate-datepicker")] as Record<
+      string,
+      unknown
+    >;
+    publish.run = String(publish.run).replace('npm view "nepdate-datepicker@$VERSION"', "false");
     expect(problems(workflow)).toContain("every publish step must skip a version already on npm");
   });
 
@@ -864,7 +867,7 @@ jobs:
     smoke.splice(rawStepIndex(smoke, "Core plus picker"), 1);
     const pack = rawSteps(requireJob(workflow, "pack"));
     const step = pack[rawStepIndex(pack, "Pack the three packages")] as Record<string, unknown>;
-    step.run = String(step.run).replace("npm pack -w nepdate-picker", "true");
+    step.run = String(step.run).replace("npm pack -w nepdate-datepicker", "true");
     const found = problems(workflow);
     expect(found).toContain("smoke must run both README examples and the picker check");
     expect(found).toContain("pack must pack the three packages");

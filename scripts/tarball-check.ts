@@ -47,7 +47,7 @@ const DEFAULT_MEMBERS: MemberRule = {
 // picker build does not write, such as a NOTICE or a nested dist folder, means the build changed.
 export const PICKER_MEMBERS: MemberRule = {
   allowed: /^(?:LICENSE|README\.md|dist\/theme\.css|dist\/[A-Za-z0-9-]+\.(?:js|d\.ts|d\.ts\.map))$/,
-  required: ["dist/theme.css", "dist/nepdate-picker.js"],
+  required: ["dist/theme.css", "dist/nepdate-datepicker.js"],
   hint: "dist JavaScript, declarations and declaration maps, dist/theme.css, LICENSE, README.md and package.json",
 };
 
@@ -234,7 +234,7 @@ function run(args: readonly string[]): number {
     .sort();
   const core = tarballs.find((name) => name.startsWith("nepdate-core-"));
   const patro = tarballs.find((name) => name.startsWith("nepdate-patro-"));
-  const picker = tarballs.find((name) => name.startsWith("nepdate-picker-"));
+  const picker = tarballs.find((name) => name.startsWith("nepdate-datepicker-"));
   if (core === undefined || patro === undefined || picker === undefined || tarballs.length !== 3) {
     console.error(
       `tarball-check: expected the three ${version} tarballs, found ${tarballs.join(", ") || "none"}`,
@@ -256,7 +256,7 @@ function run(args: readonly string[]): number {
     [
       picker,
       {
-        name: "nepdate-picker",
+        name: "nepdate-datepicker",
         version,
         peer: "nepdate-core",
         directory: "packages/nepdate-picker",

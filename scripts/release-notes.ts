@@ -40,7 +40,7 @@ npm install nepdate-core@${version} nepdate-patro@${version}
 The date picker installs with the core it peers on:
 
 \`\`\`bash
-npm install nepdate-core@${version} nepdate-picker@${version}
+npm install nepdate-core@${version} nepdate-datepicker@${version}
 \`\`\`${channel}
 
 ### Verification

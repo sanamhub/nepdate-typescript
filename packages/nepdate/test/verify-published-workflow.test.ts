@@ -84,7 +84,7 @@ export function problems(workflow: Workflow): string[] {
       INSTALL,
       '"nepdate-core@$VERSION"',
       '"nepdate-patro@$VERSION"',
-      '"nepdate-picker@$VERSION"',
+      '"nepdate-datepicker@$VERSION"',
       "--save-exact",
     )
   ) {
@@ -93,7 +93,7 @@ export function problems(workflow: Workflow): string[] {
   if (!has(workflow, INSTALL, "SECONDS + 900", "sleep")) {
     found.push("verify must retry the install for up to 15 minutes");
   }
-  if (!has(workflow, VERSIONS, "nepdate-core nepdate-patro nepdate-picker", '!= "$VERSION"')) {
+  if (!has(workflow, VERSIONS, "nepdate-core nepdate-patro nepdate-datepicker", '!= "$VERSION"')) {
     found.push("verify must compare the three installed versions with the input");
   }
   if (!has(workflow, SIGNATURES, "npm audit signatures")) {
@@ -147,8 +147,8 @@ describe("verify-published.yml", () => {
   });
 
   it("reports a missing picker", () => {
-    const edited = TEXT.replace(' "nepdate-picker@$VERSION"', "").replace(
-      "nepdate-patro nepdate-picker;",
+    const edited = TEXT.replace(' "nepdate-datepicker@$VERSION"', "").replace(
+      "nepdate-patro nepdate-datepicker;",
       "nepdate-patro;",
     );
     expect(edited).not.toEqual(TEXT);

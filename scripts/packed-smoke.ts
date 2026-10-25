@@ -41,11 +41,11 @@ try {
   }
   run(`npm pack -w nepdate-core --pack-destination "${temp}"`);
   run(`npm pack -w nepdate-patro --pack-destination "${temp}"`);
-  run(`npm pack -w nepdate-picker --pack-destination "${temp}"`);
+  run(`npm pack -w nepdate-datepicker --pack-destination "${temp}"`);
   const tarballs = readdirSync(temp).filter((name) => name.endsWith(".tgz"));
   const coreTar = tarballs.find((name) => name.startsWith("nepdate-core-"));
   const patroTar = tarballs.find((name) => name.startsWith("nepdate-patro-"));
-  const pickerTar = tarballs.find((name) => name.startsWith("nepdate-picker-"));
+  const pickerTar = tarballs.find((name) => name.startsWith("nepdate-datepicker-"));
   if (coreTar === undefined || patroTar === undefined || pickerTar === undefined) {
     throw new Error(`expected the three tarballs, found ${tarballs.join(", ") || "none"}`);
   }

@@ -91,20 +91,20 @@ test("release-check fails when the patro peer range is not ~X.Y.Z", () => {
   expect(result.stderr).toContain(
     'nepdate-patro peerDependencies["nepdate-core"] is ~0.2.0, expected ~0.1.0',
   );
-  expect(result.stderr).not.toContain("nepdate-picker");
+  expect(result.stderr).not.toContain("nepdate-datepicker");
 });
 
 test("release-check fails when the picker version differs", () => {
   const result = check(fixture({ pickerVersion: "0.1.1" }));
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain("nepdate-picker version 0.1.1, expected 0.1.0");
+  expect(result.stderr).toContain("nepdate-datepicker version 0.1.1, expected 0.1.0");
 });
 
 test("release-check fails when the picker peer range is not ~X.Y.Z", () => {
   const result = check(fixture({ pickerPeer: "^0.1.0" }));
   expect(result.status).toBe(1);
   expect(result.stderr).toContain(
-    'nepdate-picker peerDependencies["nepdate-core"] is ^0.1.0, expected ~0.1.0',
+    'nepdate-datepicker peerDependencies["nepdate-core"] is ^0.1.0, expected ~0.1.0',
   );
   expect(result.stderr).not.toContain("nepdate-patro");
 });

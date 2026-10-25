@@ -80,19 +80,19 @@ function coverageRange(): { start: string; end: string } {
 // there and defineElements() does nothing. The standalone file must not import anything, the rule
 // gate 12 applies to the build.
 function pickerSmoke(project: string): void {
-  const dist = join(project, "node_modules", "nepdate-picker", "dist");
-  for (const name of ["theme.css", "nepdate-picker.js"]) {
-    if (!existsSync(join(dist, name))) throw new Error(`nepdate-picker has no dist/${name}`);
+  const dist = join(project, "node_modules", "nepdate-datepicker", "dist");
+  for (const name of ["theme.css", "nepdate-datepicker.js"]) {
+    if (!existsSync(join(dist, name))) throw new Error(`nepdate-datepicker has no dist/${name}`);
   }
-  const standalone = readFileSync(join(dist, "nepdate-picker.js"), "utf8");
+  const standalone = readFileSync(join(dist, "nepdate-datepicker.js"), "utf8");
   if (/\bfrom\s*["']|\bimport\s*["'(]/.test(standalone)) {
-    throw new Error("nepdate-picker dist/nepdate-picker.js imports a module");
+    throw new Error("nepdate-datepicker dist/nepdate-datepicker.js imports a module");
   }
   const check = join(project, "picker-check.mjs");
   writeFileSync(
     check,
     [
-      'import { defineElements, monthGrid } from "nepdate-picker";',
+      'import { defineElements, monthGrid } from "nepdate-datepicker";',
       'if (typeof globalThis.customElements !== "undefined") {',
       '  console.error("smoke: this check needs a runtime without customElements");',
       "  process.exit(1);",
@@ -114,7 +114,7 @@ function pickerSmoke(project: string): void {
   );
   runNode(check, project, "picker check");
   console.log(
-    `smoke: picker ${packageVersion(project, "nepdate-picker")} with core ${packageVersion(
+    `smoke: picker ${packageVersion(project, "nepdate-datepicker")} with core ${packageVersion(
       project,
       "nepdate-core",
     )} ok, theme.css and a standalone file with no import`,

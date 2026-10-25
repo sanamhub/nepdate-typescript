@@ -217,7 +217,7 @@ test("a repository with the other package's directory fails", () => {
 });
 
 const PICKER = {
-  name: "nepdate-picker",
+  name: "nepdate-datepicker",
   version: "0.1.0",
   peer: "nepdate-core",
   directory: "packages/nepdate-picker",
@@ -227,14 +227,14 @@ const PICKER = {
 function pickerMembers(): TestMember[] {
   return [
     packageJson({
-      name: "nepdate-picker",
+      name: "nepdate-datepicker",
       repository: { type: "git", url: REPOSITORY_URL, directory: "packages/nepdate-picker" },
     }),
     { name: "package/dist/index.js", data: Buffer.from("export {};") },
     { name: "package/dist/index.d.ts", data: Buffer.from("export {};") },
     { name: "package/dist/index.d.ts.map", data: Buffer.from("{}") },
     { name: "package/dist/define.js", data: Buffer.from("export {};") },
-    { name: "package/dist/nepdate-picker.js", data: Buffer.from("var a=1;") },
+    { name: "package/dist/nepdate-datepicker.js", data: Buffer.from("var a=1;") },
     { name: "package/dist/theme.css", data: Buffer.from(":root{}") },
     { name: "package/LICENSE", data: Buffer.from("MIT") },
     { name: "package/README.md", data: Buffer.from("# Picker") },
@@ -261,7 +261,7 @@ test("a picker source, test or stray file fails", () => {
 });
 
 test("a picker without the theme or the standalone file fails", () => {
-  for (const path of ["dist/theme.css", "dist/nepdate-picker.js"]) {
+  for (const path of ["dist/theme.css", "dist/nepdate-datepicker.js"]) {
     const errors = checkMembers(
       pickerMembers().filter((member) => member.name !== `package/${path}`),
       PICKER,
@@ -274,7 +274,7 @@ test("the picker manifest needs its own directory and the core peer", () => {
   const members = pickerMembers().map((member) =>
     member.name === "package/package.json"
       ? packageJson({
-          name: "nepdate-picker",
+          name: "nepdate-datepicker",
           peerDependencies: { "nepdate-core": "^0.1.0" },
         })
       : member,
