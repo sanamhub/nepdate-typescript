@@ -56,6 +56,17 @@ AC:
   `@example`.
 - The CI `browser` job runs the picker's browser tests in Chromium, Firefox and WebKit.
 
+## T15-05 Standalone file and frameworks (owner review, 2026-10-25)
+
+AC:
+- `dist/nepdate-picker.js` holds the elements and the core and registers both; export
+  `nepdate-picker/standalone`, `unpkg` and `jsdelivr` point at it. A CI gate fails if it imports
+  anything or passes 11 KB gzip; a browser test loads it without the core.
+- A changed `value` attribute on `nepdate-input` sets the date after the visitor's edit, so Blazor
+  can push state; the same date leaves unparsed text and `badInput` alone.
+- The README shows plain HTML, React 19, Vue, Blazor and MVC, each run in Chromium, Firefox and
+  WebKit against the standalone file.
+
 ## Checkpoint
 
 - `npm run ci` last line, and `BROWSERS=chromium,firefox,webkit npm run test:browser -w nepdate-picker`.

@@ -2,7 +2,7 @@
 // repository root: `npm run ci`. The last line is the summary that PROGRESS.md quotes.
 
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
@@ -15,6 +15,8 @@ const CORE_GZIP_LIMIT = 8 * 1024;
 const PATRO_GZIP_LIMIT = 28 * 1024;
 // ADR-0015: the picker without the core (its peer) was 5,383 B gzip when it was added.
 const PICKER_GZIP_LIMIT = 6 * 1024;
+// The standalone file carries the core too: 10,447 B gzip when it was added.
+const STANDALONE_GZIP_LIMIT = 11 * 1024;
 
 class GateError extends Error {}
 
@@ -130,6 +132,23 @@ function pickerSize(): void {
   }
 }
 
+// dist/nepdate-picker.js must load from a plain <script type="module">: no import left in it, so
+// no bare "nepdate-core" that a browser without an import map cannot resolve.
+function pickerStandalone(): void {
+  const file = readFileSync(`${PICKER}/dist/nepdate-picker.js`);
+  const text = file.toString("utf8");
+  if (/\bfrom\s*["']|\bimport\s*["'(]/.test(text)) {
+    throw new GateError("dist/nepdate-picker.js still imports a module");
+  }
+  const gzipped = gzipSync(file, { level: 9 }).length;
+  console.log(
+    `picker standalone: ${file.length} B minified, ${gzipped} B gzip (limit ${STANDALONE_GZIP_LIMIT} B)`,
+  );
+  if (gzipped > STANDALONE_GZIP_LIMIT) {
+    throw new GateError(`picker standalone is ${gzipped} B gzip, limit ${STANDALONE_GZIP_LIMIT} B`);
+  }
+}
+
 // Packed smoke (T8-06): the pack, offline install and both smoke modes live in
 // scripts/packed-smoke.ts so gate 11 and the oldest-node job run one path (T9-01).
 const gates: [name: string, body: () => void][] = [
@@ -148,14 +167,15 @@ const gates: [name: string, body: () => void][] = [
   [
     "picker build + shape + size",
     () => {
-      // The package's build script also copies theme.css, which tsc does not emit.
+      // The package's build script also runs picker-assets: theme.css and the standalone file.
       buildAndShape(
         PICKER,
-        () => copyFileSync(`${PICKER}/src/theme.css`, `${PICKER}/dist/theme.css`),
+        () => run("node scripts/picker-assets.ts"),
         // A stylesheet has no types to resolve.
         " --exclude-entrypoints ./theme.css",
       );
       pickerSize();
+      pickerStandalone();
     },
   ],
   [

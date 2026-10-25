@@ -122,6 +122,30 @@ describe("nepdate-input", () => {
     expect(text(el).value).toBe("2081/04/15");
   });
 
+  test("a changed value attribute replaces the date the user typed", async () => {
+    // Blazor and server templates push state through the attribute, not the property.
+    const form = mount('<nepdate-input name="d" value="2081-04-15"></nepdate-input>');
+    const el = picker(form);
+    await userEvent.clear(text(el));
+    await userEvent.type(text(el), "2081/05/01{Tab}");
+    expect(el.value).toBe("2081-05-01");
+    el.setAttribute("value", "2082-01-01");
+    expect(el.value).toBe("2082-01-01");
+    expect(text(el).value).toBe("2082/01/01");
+    el.removeAttribute("value");
+    expect(el.value).toBe("");
+    expect(text(el).value).toBe("");
+  });
+
+  test("an empty value attribute keeps text that isn't a date and its badInput", async () => {
+    const form = mount('<nepdate-input name="d"></nepdate-input>');
+    const el = picker(form);
+    await userEvent.type(text(el), "2081/13/01{Tab}");
+    el.setAttribute("value", "");
+    expect(text(el).value).toBe("2081/13/01");
+    expect(el.validity.badInput).toBe(true);
+  });
+
   test("the button opens the calendar on the value; choosing a day closes it", async () => {
     const form = mount('<nepdate-input value="2081-04-15"></nepdate-input>');
     const el = picker(form);

@@ -10,24 +10,38 @@ plain HTML and in any framework, plus the month grid underneath them for anyone 
 
 The elements are unstyled apart from layout. Style any piece with `::part()`, or import
 `nepdate-picker/theme.css` for a ready-made look. About 5.5 KB gzip on top of the core, no other
-dependencies.
+dependencies; the standalone file below, core included, is about 10.5 KB.
 
 > **Pre-release.** The API may change before 0.1.0.
 
 ## Install
 
+With a bundler (Vite, webpack, esbuild and the like):
+
 ```sh
 npm install nepdate-core@beta nepdate-picker@beta
 ```
 
+```js
+import "nepdate-picker/define";
+import "nepdate-picker/theme.css";
+```
+
+Without a build step, use the standalone file. It holds the elements and the core in one module
+and registers both elements, so the page needs no import map. Load it from a CDN:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nepdate-picker@0.1.0-beta.1/dist/theme.css" />
+<script type="module" src="https://cdn.jsdelivr.net/npm/nepdate-picker@0.1.0-beta.1/dist/nepdate-picker.js"></script>
+```
+
+Or copy `dist/nepdate-picker.js` and `dist/theme.css` from the package into your site, such as an
+ASP.NET Core `wwwroot/lib/nepdate-picker/`, and point the same two tags at them. Don't load the
+standalone file and `nepdate-picker/define` on one page: both register the same element names.
+
 ## Use it
 
 ```html
-<link rel="stylesheet" href="node_modules/nepdate-picker/dist/theme.css" />
-<script type="module">
-  import "nepdate-picker/define";
-</script>
-
 <form>
   <label for="dob">Date of birth (BS)</label>
   <nepdate-input id="dob" name="dob" required max="2082-12-30"></nepdate-input>
@@ -40,6 +54,10 @@ or Nepali digits or with the month name (`15 Shrawan 2081`), or pick it from the
 
 `import "nepdate-picker/define"` registers both elements. The main entry has no side effects:
 `import { defineElements } from "nepdate-picker"` and call it when you choose.
+
+The `value` attribute is the date. Unlike a native input it keeps working after the visitor has
+edited the field, so a framework that renders the attribute can push a new date; a form reset
+returns to it.
 
 ### Attributes
 
@@ -91,10 +109,40 @@ follows the page's `color-scheme`.
 
 ## Frameworks
 
-Custom elements work in every framework without a wrapper. In React 19, Vue, Svelte, Solid and
-Angular, render `<nepdate-input>` like any element and listen for `change`; set `isDateDisallowed`
-and `dayParts` as properties. With server rendering, import `nepdate-picker/define` on the client
-only; the main entry imports safely on the server.
+Custom elements work without a wrapper. Render `<nepdate-input>` like any element, pass the date
+as `value`, and read `event.target.value` on `change`. Set `isDateDisallowed` and `dayParts` as
+properties. With server rendering, import `nepdate-picker/define` on the client only; the main
+entry imports safely on the server.
+
+React 19:
+
+```jsx
+<nepdate-input value={date} onChange={(e) => setDate(e.target.value)} />
+```
+
+Vue:
+
+```vue
+<nepdate-input :value="date" @change="date = $event.target.value" />
+```
+
+Blazor, with the standalone file loaded in `App.razor`:
+
+```razor
+<nepdate-input @bind-value="date" @bind-value:event="onchange" />
+```
+
+ASP.NET Core MVC or Razor Pages, where the form posts the BS date as a string; parse it on the
+server, for example with [NepDate](https://www.nuget.org/packages/NepDate) for .NET. The `asp-for`
+tag helper only works on built-in elements, so write the name:
+
+```cshtml
+<nepdate-input name="@Html.NameFor(m => m.Dob)" value="@Model.Dob" required></nepdate-input>
+```
+
+These five were checked in Chromium, Firefox and WebKit: plain HTML with the standalone file,
+React 19.3, Vue 3.5, Blazor (.NET 10, interactive server) and MVC (.NET 10). Svelte, Solid and
+Angular set properties on custom elements the same way but have not been run.
 
 ## Keyboard
 

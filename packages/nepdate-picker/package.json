@@ -23,6 +23,7 @@
   },
   "sideEffects": [
     "./dist/define.js",
+    "./dist/nepdate-picker.js",
     "*.css"
   ],
   "exports": {
@@ -34,15 +35,21 @@
       "types": "./dist/define.d.ts",
       "default": "./dist/define.js"
     },
+    "./standalone": {
+      "types": "./dist/define.d.ts",
+      "default": "./dist/nepdate-picker.js"
+    },
     "./theme.css": "./dist/theme.css"
   },
+  "unpkg": "./dist/nepdate-picker.js",
+  "jsdelivr": "./dist/nepdate-picker.js",
   "files": [
     "dist",
     "LICENSE",
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').copyFileSync('src/theme.css', 'dist/theme.css')\"",
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/picker-assets.ts",
     "test": "vitest run --coverage",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "prepack": "node -e \"require('node:fs').copyFileSync('../../LICENSE', 'LICENSE')\""

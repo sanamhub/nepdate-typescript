@@ -23,7 +23,7 @@ const ICON =
  * `<nepdate-input>`: a text field for a BS date with a calendar in a popover, usable in a `<form>`
  * like a native input. It submits `YYYY-MM-DD` (BS) under its `name`.
  *
- * Attributes: `name`, `value` (the default), `min`, `max`, `required`, `disabled`, `placeholder`,
+ * Attributes: `name`, `value` (the date, and what a form reset returns to), `min`, `max`, `required`, `disabled`, `placeholder`,
  * `lang` (`en` or `ne`), `first-day-of-week`, `show-gregorian`.
  * Fires `input` and `change` when the date changes.
  * @example
@@ -115,8 +115,16 @@ export class NepDateInputElement extends ElementBase {
   }
 
   attributeChangedCallback(name: string): void {
-    if (name === "value" && !this.#dirty)
-      this.#value = parseDateAttribute(this.getAttribute("value"));
+    if (name === "value") {
+      // Unlike a native input, a changed value attribute sets the date even after the user has
+      // edited it: Blazor and server-rendered templates update the attribute, not the property,
+      // to push their state. The same date changes nothing, so text that isn't a date stays.
+      const date = parseDateAttribute(this.getAttribute("value"));
+      if (!sameDate(date, this.#value)) {
+        this.#value = date;
+        this.#badInput = false;
+      }
+    }
     this.#sync();
   }
 
@@ -235,7 +243,7 @@ export class NepDateInputElement extends ElementBase {
   }
 
   #setDate(date: NepaliDate | null, fromUser: boolean): void {
-    const changed = !(date === this.#value || (date && this.#value?.equals(date)));
+    const changed = !sameDate(date, this.#value);
     this.#value = date;
     if (date) this.#badInput = false;
     this.#sync(fromUser || changed);
@@ -319,4 +327,8 @@ export class NepDateInputElement extends ElementBase {
       .trim();
     return text === "" ? null : text;
   }
+}
+
+function sameDate(a: NepaliDate | null, b: NepaliDate | null): boolean {
+  return a === b || (a !== null && b !== null && a.equals(b));
 }
