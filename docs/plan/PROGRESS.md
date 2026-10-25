@@ -115,3 +115,4 @@ is filled in by the next commit.
 | T15-03 | done | this branch | `ci: 16/16 gates passed` | `<nepdate-input>`; 14 browser tests (form value, reset, fieldset, validity flags, Enter submits, popover placement, Escape focus, label). 84 browser tests pass in Chromium, Firefox and WebKit |
 | T15-04 | done | this branch | `ci: 16/16 gates passed` | `theme.css` with `light-dark()`; README; gates 10 to 12 (picker bundle 5,356 B gzip, limit 6,144 B); API snapshot 142 entries for 3 packages; 7 new runnable examples; CI browser job installs and runs the three engines |
 | T15 checkpoint | ready for review | | | Waiting on the owner: ADR-0015, the new API, and the first manual publish |
+| T16 plan | done | this commit | n/a (plan only) | `docs/plan/T16-picker-release.md` adds T16-01 to T16-06 and the checkpoint; the roadmap has the T16 row. The tag that follows the merge publishes the picker, so the owner's first manual publish comes before the merge |
