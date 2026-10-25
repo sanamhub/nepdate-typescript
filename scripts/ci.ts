@@ -149,8 +149,8 @@ function pickerStandalone(): void {
   }
 }
 
-// Packed smoke (T8-06): the pack, offline install and both smoke modes live in
-// scripts/packed-smoke.ts so gate 11 and the oldest-node job run one path (T9-01).
+// Packed smoke (T8-06): the pack, offline install and the three smoke modes live in
+// scripts/packed-smoke.ts so this gate and the oldest-node job run one path (T9-01).
 const gates: [name: string, body: () => void][] = [
   ["shared tree", () => run("node scripts/shared-sums.ts")],
   ["lint + format", () => run("npx biome ci .")],

@@ -1,6 +1,6 @@
 // Packs the three packages into a temporary directory, installs the tarballs offline in three
-// clean projects and runs the three smoke modes (T8-06, T9-01, T16-03). Gate 11 and the oldest-node
-// job share this path. Run from the repository root: `node scripts/packed-smoke.ts`.
+// clean projects and runs the three smoke modes (T8-06, T9-01, T16-03). The CI gate and the
+// oldest-node job share this path. Run from the repository root: `node scripts/packed-smoke.ts`.
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";

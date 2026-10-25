@@ -51,7 +51,7 @@ AC:
   calls `defineElements()` without a `customElements` global.
 - It fails unless the installed package has `dist/theme.css` and `dist/nepdate-picker.js`, and the
   standalone file has no `from"` or `import"` statement (the gate 12 rule).
-- `scripts/packed-smoke.ts` (gate 11, and the oldest-node job) packs the picker, installs it with
+- `scripts/packed-smoke.ts` (gate 15, and the oldest-node job) packs the picker, installs it with
   the core into a third clean project offline and runs `--mode picker`.
 
 ## T16-04 Release workflow
@@ -92,7 +92,7 @@ AC:
 
 The implementation agent stops after T16-06. The reviewer checks:
 
-- [ ] `npm run ci` passes, and gate 11 prints the picker smoke line.
+- [ ] `npm run ci` passes, and gate 15 (packed smoke) prints the picker smoke line.
 - [ ] `node scripts/release-check.ts` and `scripts/tarball-check.ts` reject a wrong picker version,
       peer range and tarball member.
 - [ ] `release.yml` diff: one pack line, one smoke step, one publish step, no pin change.
