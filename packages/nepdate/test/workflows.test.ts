@@ -23,8 +23,10 @@ const EXPRESSION = "${{";
 // One map, so an unmapped workflow fails with its file name.
 export const DEDICATED_TESTS: Readonly<Record<string, string>> = {
   "ci.yml": "ci-workflow.test.ts",
+  "codeql.yml": "codeql-workflow.test.ts",
   "mutation.yml": "mutation-workflow.test.ts",
   "release.yml": "release-workflow.test.ts",
+  "scorecard.yml": "scorecard-workflow.test.ts",
   "verify-published.yml": "verify-published-workflow.test.ts",
 };
 
@@ -110,7 +112,14 @@ const CI_PARSED = parseWorkflow(CI_TEXT);
 
 describe("workflow coverage", () => {
   it("discovers every workflow file", () => {
-    expect(FILES).toEqual(["ci.yml", "mutation.yml", "release.yml", "verify-published.yml"]);
+    expect(FILES).toEqual([
+      "ci.yml",
+      "codeql.yml",
+      "mutation.yml",
+      "release.yml",
+      "scorecard.yml",
+      "verify-published.yml",
+    ]);
   });
 
   it("maps every workflow file to a dedicated test", () => {
