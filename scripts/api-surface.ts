@@ -27,7 +27,7 @@ export const SNAPSHOT_FORMAT = 1;
 export const PACKAGES: readonly PackageSource[] = [
   { name: "nepdate-core", entry: "packages/nepdate/dist/index.d.ts" },
   { name: "nepdate-patro", entry: "packages/nepdate-patro/dist/index.d.ts" },
-  { name: "nepdate-picker", entry: "packages/nepdate-picker/dist/index.d.ts" },
+  { name: "nepdate-datepicker", entry: "packages/nepdate-picker/dist/index.d.ts" },
 ];
 
 const printer = ts.createPrinter({ removeComments: true });
@@ -256,7 +256,7 @@ export function readDocumentedSurface(markdown: string): Surface {
   const blockPattern = /^```ts\r?\n([\s\S]*?)^```$/gm;
   for (const match of markdown.matchAll(blockPattern)) {
     const code = match[1] ?? "";
-    const name = /^\/\/ "(nepdate-(?:core|patro|picker))"/m.exec(code)?.[1];
+    const name = /^\/\/ "(nepdate-(?:core|patro|datepicker))"/m.exec(code)?.[1];
     if (name === undefined) continue;
     const sourceFile = ts.createSourceFile(`${name}.d.ts`, code, ts.ScriptTarget.ES2022, true);
     const entries: string[] = [];
