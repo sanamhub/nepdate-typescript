@@ -1,7 +1,7 @@
 # bench
 
 The TypeScript side of `shared/spec/BENCHMARK.md`. The published numbers and their load are in
-[`../docs/benchmarks.md`](../docs/benchmarks.md); this page is the map for a reviewer who wants to
+[`../docs/benchmarks.md`](../docs/benchmarks.md); this page is the map for anyone who wants to
 rerun or extend a row.
 
 ## One process per row

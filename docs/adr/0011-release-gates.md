@@ -6,7 +6,7 @@
 
 ## Context
 
-T9 made the build and API contracts testable, but the release path still trusted files that nothing
+ADR-0009 and ADR-0010 made the build and API contracts testable, but the release path still trusted files that nothing
 checked. The patro data can run out, `[Unreleased]` can hold an entry for the version being tagged,
 a tarball can carry a source file or a development-only field, and a green publish job does not prove
 that the registry serves the two exact versions. Go G12, Python P10/P11 and Rust W4-00 solved the

@@ -7,7 +7,7 @@
 ## Context
 
 ADR-0004 requires 90% line coverage of both `src/` trees. Coverage says a line ran, not that a test
-would notice if the line changed. T8 adds a mutation gate so a weak assertion cannot pass as a
+would notice if the line changed. A mutation gate keeps a weak assertion from passing as a
 strong test. The gate has to be affordable on a shared developer machine and in CI, and it must not
 mutate generated tables or files that the coverage rule leaves out.
 
@@ -51,18 +51,18 @@ mutate generated tables or files that the coverage rule leaves out.
    not contain (the source moved under the list, so the ids must be triaged again). A listed mutant
    that timed out is not flagged, because a timeout on a loaded machine proves nothing.
 
-5. **Floor.** The floor is the score after T8-03 triage, rounded down to a whole percentage. The
+5. **Floor.** The floor is the score after the first triage, rounded down to a whole percentage. The
    measured score is 93.98% over all 1,512 mutants, so the floor is **93**. It is stored in `docs/mutation/floor.json` and
    repeated in this ADR. A report below the floor, or a survivor without an equivalent entry, fails
    `scripts/mutation-check.ts` and blocks a release.
 
 6. **Where it runs.** `npm run mutation` runs both configs after a build. Concurrency is 2, which
    keeps two Vitest runners inside the memory of the shared machine; the first attempt at 4 hit a
-   V8 out-of-memory crash in the property test. On Windows the Stryker temp directory and
-   incremental file are under `D:\devcache\stryker\`; other platforms use `.stryker-tmp/`. JSON
-   reports go to `reports/mutation/` and are not committed. The release workflow runs the mutation
-   job before `publish`. A separate weekly workflow runs the same check and uploads the reports; it
-   never runs on a pull request.
+   V8 out-of-memory crash in the property test. The Stryker temp directory and incremental file
+   are under `.stryker-tmp/`, or under `STRYKER_TEMP` when it is set. JSON reports go to
+   `reports/mutation/` and are not committed. The release workflow runs the mutation job before
+   `publish`. A separate weekly workflow runs the same check and uploads the reports; it never runs
+   on a pull request.
 
 ## Consequences
 

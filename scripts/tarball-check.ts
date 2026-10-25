@@ -1,5 +1,5 @@
-// Rehearses the three release tarballs before the pack job uploads them (T10-03). It reads the tar
-// members, checks the allow-list and the manifest, and writes SHA256SUMS for the publish job.
+// Rehearses the three release tarballs before the pack job uploads them (ADR-0011). It reads the
+// tar members, checks the allow-list and the manifest, and writes SHA256SUMS for the publish job.
 //
 //   node scripts/tarball-check.ts --version 0.1.0 --dir release-tarballs --sums release-tarballs/SHA256SUMS
 

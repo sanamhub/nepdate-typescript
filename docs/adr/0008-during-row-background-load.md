@@ -9,8 +9,8 @@
 ## Context
 
 ADR-0006 samples the all-CPU load before a TypeScript row and retries when it is above 15%. A row
-can start quiet and turn loaded while it runs, and the before-row sample cannot see that. T7 found
-the gap and T8 asked for a during-row figure.
+can start quiet and turn loaded while it runs, and the before-row sample cannot see that, so a
+during-row figure is needed.
 
 The benchmark process itself keeps logical CPU 2 busy, so including CPU 2 in a during-row sample
 would mark every row loaded. The figure has to leave out the pinned CPU.

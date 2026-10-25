@@ -1,5 +1,5 @@
-// Tests for the shared checksum gate (T13-01). Every case uses a temporary tree; the real manifest
-// is checked once at the end, but never written.
+// Tests for the shared checksum gate (ADR-0012). Every case uses a temporary tree; the real
+// manifest is checked once at the end, but never written.
 
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";

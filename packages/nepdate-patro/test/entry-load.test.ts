@@ -1,4 +1,4 @@
-// T8 review: a module that throws while it is imported fails its test files at collection, and the
+// A module that throws while it is imported fails its test files at collection, and the
 // Stryker Vitest runner drops those files instead of counting a failure. This test imports the
 // entry point inside a test, so an import-time throw (a static mutant that breaks a table build)
 // is a failed test and the mutant is killed.

@@ -31,7 +31,7 @@
   second clean project installs `nepdate@X.Y.Z` and `nepdate-patro@X.Y.Z` and runs the README
   patro example.
 - Trusted publishing is configured per package on npmjs.com, so it is set up twice, once for
-  `nepdate` and once for `nepdate-patro`. After the first publish, the human sets both packages
+  `nepdate` and once for `nepdate-patro`. After the first publish, the maintainer sets both packages
   to "Require 2FA and disallow tokens" (runbook).
 - JSR is not published in v0.1 (YAGNI); `isolatedDeclarations` keeps it possible later.
 - Rollback: `npm deprecate nepdate@X.Y.Z "<reason>"` and `npm deprecate nepdate-patro@X.Y.Z

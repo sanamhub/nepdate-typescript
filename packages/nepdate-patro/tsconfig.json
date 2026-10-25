@@ -3,10 +3,10 @@
   "compilerOptions": {
     "noEmit": true,
     "types": ["node"],
-    // Gate 7 type-checks `test/smoke.browser.ts`, which imports both package names; before gate 9
-    // builds `dist/`, those names must resolve to source so a fresh clone's first `npm run ci`
-    // passes. The browser job still imports the built packages at runtime (Vite doesn't read
-    // `paths`).
+    // The patro types gate checks `test/smoke.browser.ts`, which imports both package names; before
+    // the patro build gate writes `dist/`, those names must resolve to source so a fresh clone's
+    // first `npm run ci` passes. The browser job still imports the built packages at runtime (Vite
+    // doesn't read `paths`).
     "paths": {
       "nepdate-core": ["../nepdate/src/index.ts"],
       "nepdate-patro": ["../nepdate-patro/src/index.ts"]

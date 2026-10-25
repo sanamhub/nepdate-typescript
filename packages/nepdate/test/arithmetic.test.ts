@@ -3,7 +3,7 @@ import { NepaliDate } from "../src/index.js";
 import { bs, kindOf, outcome } from "./helpers.js";
 import { readVectors } from "./vectors.js";
 
-describe("addDays and daysUntil (T2-01)", () => {
+describe("addDays and daysUntil", () => {
   const rows = readVectors("csharp-golden/add-days.tsv");
 
   test("add-days.tsv: all 9162 rows", () => {
@@ -41,7 +41,7 @@ describe("addDays and daysUntil (T2-01)", () => {
   });
 });
 
-describe("addMonths and addYears (T2-02)", () => {
+describe("addMonths and addYears", () => {
   const rows = readVectors("csharp-golden/add-months.tsv");
 
   test("add-months.tsv: all 10180 rows, clamp and spill", () => {

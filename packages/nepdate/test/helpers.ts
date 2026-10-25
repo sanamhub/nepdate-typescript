@@ -23,7 +23,7 @@ export function kindOf(fn: () => unknown): ErrorKind | undefined {
   return undefined;
 }
 
-/** A vector cell: "ERR" means the call throws "out-of-range" (T2 plan), else the ISO date. */
+/** A vector cell: "ERR" means the call throws "out-of-range", else the ISO date. */
 export function outcome(fn: () => { year: number; month: number; day: number }): string {
   try {
     return iso(fn());

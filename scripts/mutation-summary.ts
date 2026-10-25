@@ -1,4 +1,4 @@
-// Reads the two Stryker JSON reports and writes the committed summary (T8-02). The score is
+// Reads the two Stryker JSON reports and writes a summary (ADR-0007). The score is
 // Stryker's: (killed + timeout) / (killed + timeout + survived + no coverage). Runtime errors,
 // compile errors and ignored mutants are outside the denominator.
 

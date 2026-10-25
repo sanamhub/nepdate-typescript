@@ -1,4 +1,4 @@
-// Runnable TSDoc examples (T9-03). Every `@example` on a public declaration is executed against
+// Runnable TSDoc examples (ADR-0010). Every `@example` on a public declaration is executed against
 // the built packages, and every `// =>` line is compared with node:util.isDeepStrictEqual. The
 // docs gate calls checkExamples; the unit tests call the smaller functions.
 //

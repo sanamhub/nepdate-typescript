@@ -1,9 +1,9 @@
-// Compares the Stryker reports with the floor and the equivalent-mutant list (T8-04). Exits 1 when
-// the score is below the floor, when a survived or no-coverage mutant is not in
+// Compares the Stryker reports with the floor and the equivalent-mutant list (ADR-0007). Exits 1
+// when the score is below the floor, when a survived or no-coverage mutant is not in
 // docs/mutation/equivalent.md, or when a listed mutant is killed or missing: a killed "equivalent"
 // has a wrong proof, and a missing id means the source moved under the list. A listed mutant that
-// timed out is not flagged, because a timeout on a loaded machine proves nothing. The score
-// formula is in ADR-0007.
+// timed out is not flagged, because a timeout on a loaded machine proves nothing. The score formula
+// is in ADR-0007.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

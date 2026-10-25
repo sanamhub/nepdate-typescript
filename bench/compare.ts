@@ -1,7 +1,7 @@
-// B1 and B2 of shared/spec/BENCHMARK.md for every package in docs/competitors.md, on the 64 dates of
-// BENCHMARK §2. Every (package, direction) pair is measured in a fresh pinned process by
-// bench/measure.ts (T6-01). Agreement is judged only on the package's documented range (T6-03).
-// Run from the repository root:
+// B1 and B2 of shared/spec/BENCHMARK.md for every package in docs/competitors.md, on the 64 dates
+// of BENCHMARK §2. Every (package, direction) pair is measured in a fresh pinned process by
+// bench/measure.ts. Agreement is judged only on the package's documented range. Run from the
+// repository root:
 //   node bench/compare.ts
 //   node bench/compare.ts --check
 //   node bench/compare.ts --json > compare.json

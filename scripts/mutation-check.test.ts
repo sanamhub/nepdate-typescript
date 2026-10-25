@@ -1,4 +1,4 @@
-// Tests for the mutation check (T8-04): a passing report, a below-floor report, an untriaged
+// Tests for the mutation check (ADR-0007): a passing report, a below-floor report, an untriaged
 // survivor, an untriaged static survivor and stale equivalent entries. Each case writes a small
 // Stryker-shaped report and runs the CLI.
 

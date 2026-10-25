@@ -1,4 +1,4 @@
-// Fixed-date tests for the data freshness gate (T10-01) on the real built patro tables.
+// Fixed-date tests for the data freshness gate (ADR-0011) on the real built patro tables.
 
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";

@@ -29,7 +29,7 @@ All numbers: Node 24.19.0, mitata 1.0.34, `node --expose-gc`, the reference mach
 (logical CPU 2), 2026-10-08. Time is mean ns per operation (iteration over the 64 dates / 64).
 "heap" is mitata's heap delta per operation: plausible for objects, not reliable for strings
 (ropes), so the benchmark report marks it approximate (BENCHMARK §4). Prototype code is outside the
-repository and is not part of the plan; the C# column is from the hub's `docs/benchmarks/dotnet.md`.
+repository and is not part of this decision; the C# column is from the hub's `docs/benchmarks/dotnet.md`.
 
 Representation of `NepaliDate` (B1 includes the `{year, month, day}` result object):
 
@@ -71,7 +71,7 @@ Holiday flag alone: bit set 3.9 ns, binary search over 294 serials 9.6 ns. Build
 index takes 0.6 to 0.7 ms and the frozen objects 0.9 to 1.3 ms at load; `import()` of the whole
 prototype patro module takes 4.7 to 5.3 ms. Its bundle is 118,883 B minified, 21,611 B gzip (base64
 typed arrays), against 145,646 B and 29,588 B for plain array literals. Our B8 omits the per-day
-BS to AD construction that the C# B8 includes; T5 measures the full protocol.
+BS to AD construction that the C# B8 includes; `docs/benchmarks.md` measures the full protocol.
 
 Formatting and parsing:
 
@@ -128,7 +128,7 @@ Formatting and parsing:
 9. **Parsing.** One pass over `charCodeAt` with a separator lookup table (`Uint8Array(128)`),
    digits accumulated as integers, validation once at the end through the same check as `of`. No
    `split`, no regex, no intermediate strings.
-10. **Targets** (Node 24, reference machine, T5-02 measures them):
+10. **Targets** (Node 24, reference machine, measured in `docs/benchmarks.md`):
 
     | ID | Target | BENCHMARK §6 limit (3× C#) | Prototype |
     |---|---:|---:|---:|
@@ -140,7 +140,7 @@ Formatting and parsing:
     | B7 | < 10 ns, 0 bytes | 143.8 ns | 3.2 |
 
     Also faster than every competitor in `docs/competitors.md` that agrees with the data. A miss is
-    reported to the human with a `--cpu-prof` profile, not fixed by guessing.
+    reported to the maintainer with a `--cpu-prof` profile, not fixed by guessing.
 
 ## Consequences
 

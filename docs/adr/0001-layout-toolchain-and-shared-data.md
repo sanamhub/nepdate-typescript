@@ -5,7 +5,7 @@
 - Updated: 2026-10-07 (hub ADR-0004: the patro (tithi, holidays, events) moves from the `nepdate/meta` subpath to the package
   `nepdate-patro`)
 - Updated: 2026-10-10 (§6: `@types/node`, and `@vitest/browser-playwright` with `playwright` for the
-  browser smoke test, approved by the lead after the T0 light check)
+  browser smoke test, approved by the maintainer)
 - Deciders: Sanam Pakuwal
 
 ## Context

@@ -51,15 +51,14 @@ the `--out` flag and the during-row field; its rows keep the before-row load onl
 
 `bench/own.ts` and `bench/compare.ts` spawn one `node --expose-gc bench/measure.ts` per row under
 `cmd /c start "" /affinity 4 /wait /b`. `bench/dotnet.ts` runs the hub's `tools/dotnet-bench` with
-NuGet and build caches on `D:\devcache\dotnet`; the command it used is:
+NuGet and build caches outside both checkouts (`DOTNET_CACHE`); the command it used is:
 
 ```
-dotnet run -c Release -f net10.0 -p:BaseOutputPath=D:\devcache\dotnet\bin\ -p:BaseIntermediateOutputPath=D:\devcache\dotnet\obj\ --project E:\github\sanamhub\nepdate\tools\dotnet-bench -- --filter * --artifacts D:\devcache\dotnet\artifacts\2026-10-18T04-29-32
+dotnet run -c Release -f net10.0 -p:BaseOutputPath=<cache>\bin\ -p:BaseIntermediateOutputPath=<cache>\obj\ --project <hub>\tools\dotnet-bench -- --filter * --artifacts <cache>\artifacts\2026-10-18T04-29-32
 ```
 
-The BenchmarkDotNet report is at
-`D:\devcache\dotnet\artifacts\2026-10-18T04-29-32\results\DotnetBench.Benchmarks-report.csv`. The
-job runs the .NET 8 column too; only the .NET 10 rows are used here.
+The numbers come from BenchmarkDotNet's `DotnetBench.Benchmarks-report.csv` in that run's
+`results` directory. The job runs the .NET 8 column too; only the .NET 10 rows are used here.
 
 ## `nepdate-core` and C#
 
@@ -185,7 +184,7 @@ a quiet repeat.
 ## B1 and B6 profiles
 
 Two quiet `--cpu-prof` runs, pinned to CPU 2 with `--no-heap` so the heap probe does not dominate the
-sample. The files are under `D:\devcache\profiles`.
+sample. The profiles are not committed.
 
 | Op | Run | ns/op | all-CPU load | profile |
 |---|---|---:|---:|---|

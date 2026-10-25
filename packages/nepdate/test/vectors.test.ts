@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { NepaliDate } from "../src/index.js";
 import { type Row, readVectors } from "./vectors.js";
 
-// The vector files name weekdays in English; weekdayName arrives in T3.
+// The vector files name weekdays in English.
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function ymd(text: string): [number, number, number] {

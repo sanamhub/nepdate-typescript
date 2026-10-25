@@ -1,4 +1,4 @@
-// BenchmarkDotNet CSV reader (T7-03). The report prints a unit with every cell and picks the unit
+// BenchmarkDotNet CSV reader. The report prints a unit with every cell and picks the unit
 // per column, so the unit is read, not assumed. This module is kept free of child-process and file
 // system imports so the parser can be unit-tested directly.
 

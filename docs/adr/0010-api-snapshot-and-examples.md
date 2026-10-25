@@ -90,7 +90,7 @@ compares the contract's declarations with it. The other runs every public exampl
 
 10. **The docs gate reports the counts.** It prints the number of examples run and the number of
     `// =>` assertions checked. A missing required example, a wrong value or an example without a
-    result fails the gate. `scripts/examples.test.ts` covers the three negative controls: a new
+    result fails the gate. `scripts/examples.test.ts` covers the three failing cases: a new
     export without an example, a wrong `// =>` value, and an example with no result comment.
 
 ## Consequences

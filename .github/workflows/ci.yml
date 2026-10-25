@@ -55,7 +55,7 @@ jobs:
       - run: node scripts/packed-smoke.ts
 
   # Temporal is built in from Node 26, so this job runs the Temporal-shaped interop test instead of
-  # skipping it. No polyfill is installed (ADR-0004, T4).
+  # skipping it. No polyfill is installed (ADR-0004).
   temporal:
     runs-on: ubuntu-latest
     timeout-minutes: 15

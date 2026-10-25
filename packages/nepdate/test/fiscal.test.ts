@@ -3,7 +3,7 @@ import { FiscalYear, NepaliDate } from "../src/index.js";
 import { bs, iso, kindOf, outcome } from "./helpers.js";
 import { readVectors } from "./vectors.js";
 
-describe("FiscalYear and quarter (T2-04)", () => {
+describe("FiscalYear and quarter", () => {
   test("dates.tsv: fy_start, fy_end, quarter_start, quarter_end (1018 rows)", () => {
     const rows = readVectors("csharp-golden/dates.tsv");
     expect(rows).toHaveLength(1018);

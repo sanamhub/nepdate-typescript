@@ -2,11 +2,10 @@ import { test } from "vitest";
 import { type Row, readVectors } from "./vectors.js";
 
 /**
- * How one C# catalogue row is covered (docs/plan/00-ROADMAP.md, "C# test catalogue"):
+ * How one C# catalogue row is covered (shared/spec/PORT-PLAN.md, "C# test catalogue"):
  * - a function: the C# assertions translated to this port's API;
  * - `{ deviation }`: PARITY says the port behaves differently, so the row is skipped with that id;
- * - `{ pending }`: the row needs the API of a later task, named in the marker (PORT-PLAN, "C# test
- *   catalogue"). That task removes the marker.
+ * - `{ pending }`: the row needs an API this port does not have yet, named in the marker.
  */
 export type CatalogCase =
   | (() => void)

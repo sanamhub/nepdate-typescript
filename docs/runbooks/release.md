@@ -4,9 +4,8 @@ Decided in [ADR-0005](../adr/0005-releases.md). Owner: maintainer. Approver: a s
 tag releases the three packages with the same version. A package the workflow has never published
 needs one manual publish first: see [First publish of a new package](#first-publish-of-a-new-package).
 
-This runbook is for the human who runs the release. The implementation agent stops before the tag.
-A release is not a CI run: read the whole page before starting, and do not skip a precondition
-because the workflow is green.
+This runbook is for the maintainer who runs the release. A release is not a CI run: read the whole
+page before starting, and do not skip a precondition because the workflow is green.
 
 ## Preconditions
 
@@ -85,11 +84,11 @@ be used. For 0.1.0 only:
 Trusted publishing is configured on a package that already exists, so a package new to npm is
 published once by hand, then handed to the workflow. `nepdate-datepicker` is that package (ADR-0015,
 Consequences): its first version is `0.1.0-beta.1`, the version the core and patro already have on
-npm, so its `~0.1.0-beta.1` peer resolves. The owner does this, not the workflow and not an agent.
+npm, so its `~0.1.0-beta.1` peer resolves. The owner does this by hand, not the workflow.
 
 1. The commit to publish from is on `main`, `ci` is green on it, and the package's version is one
    the other two already have on npm. Do it before the change that adds the package to
-   `release.yml` merges (T16): a tag pushed after that merge publishes the package with OIDC, which
+   `release.yml` merges: a tag pushed after that merge publishes the package with OIDC, which
    fails while no trusted publisher exists.
 2. From a clean checkout of that commit, with npm 2FA enabled on the account:
 

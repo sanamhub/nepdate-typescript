@@ -8,7 +8,7 @@ function bs(text: string): NepaliDate {
   return NepaliDate.of(y as number, m as number, d as number);
 }
 
-describe("short and long (T3-02)", () => {
+describe("short and long", () => {
   test("FORMATTING §3 examples", () => {
     const d = bs("2080-05-15");
     expect(d.short({ order: "ymd", separator: "-", pad: true })).toBe("2080-05-15");
@@ -54,7 +54,7 @@ describe("short and long (T3-02)", () => {
   });
 });
 
-describe("format pattern (T3-03)", () => {
+describe("format pattern", () => {
   test("FORMATTING §5 examples", () => {
     const d = bs("2081-04-15");
     expect(d.format("yyyy-MM-dd")).toBe("2081-04-15");

@@ -1,6 +1,6 @@
 // Shared benchmark protocol: the operation list, the JSON row the child returns, and the spawn
 // helper that gives every row a fresh process pinned to logical CPU 2. The child never imports
-// another row's package (T6-01).
+// another row's package.
 
 import { spawn } from "node:child_process";
 import { dirname, join, resolve } from "node:path";

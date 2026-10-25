@@ -1,4 +1,4 @@
-// Vitest settings for the Stryker runs only (T8). The fuzz test does 10,000 inputs; with four
+// Vitest settings for the Stryker runs only (ADR-0007). The fuzz test does 10,000 inputs; with four
 // Stryker workers on a shared machine it can pass five seconds, so it gets a longer timeout here.
 // The normal `npm test` config keeps the default.
 

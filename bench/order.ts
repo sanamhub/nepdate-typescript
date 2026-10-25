@@ -1,8 +1,9 @@
-// Order-dependence check for T6-01. Each pair measures B1 alone, runs all 18 competitor rows in
-// fresh processes, then measures B1 again. Five pairs take about a minute, so the load is close
-// within a pair; the per-pair difference controls for the slow load drift that made the first,
-// ten-minute version inconclusive. The competitor rows are agreement passes, not timed rows: the
-// question is whether a competitor process leaves state behind for the next B1 process.
+// Order-dependence check for the one-process-per-row protocol. Each pair measures B1 alone, runs
+// all 18 competitor rows in fresh processes, then measures B1 again. Five pairs take about a
+// minute, so the load is close within a pair; the per-pair difference controls for the slow load
+// drift that made the first, ten-minute version inconclusive. The competitor rows are agreement
+// passes, not timed rows: the question is whether a competitor process leaves state behind for the
+// next B1 process.
 //
 // Run from the repository root:
 //   node bench/order.ts

@@ -1,5 +1,5 @@
 // Runs every CI gate of ADR-0004 in order and stops at the first failure. Run from the
-// repository root: `npm run ci`. The last line is the summary that PROGRESS.md quotes.
+// repository root: `npm run ci`. The last line is the summary.
 
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
@@ -106,7 +106,7 @@ function coreIsolation(): void {
 }
 
 function patroSize(): void {
-  // The 26,349 B measured in T4 is the package alone; the core is its peer, so external it.
+  // The 26,349 B patro measurement is the package alone; the core is its peer, so external it.
   const bundle = capture(
     `npx esbuild ${PATRO}/dist/index.js --bundle --minify --format=esm --external:nepdate-core`,
   );
@@ -149,8 +149,8 @@ function pickerStandalone(): void {
   }
 }
 
-// Packed smoke (T8-06): the pack, offline install and the three smoke modes live in
-// scripts/packed-smoke.ts so this gate and the oldest-node job run one path (T9-01).
+// Packed smoke (ADR-0009): the pack, offline install and the three smoke modes live in
+// scripts/packed-smoke.ts so this gate and the oldest-node job run one path.
 const gates: [name: string, body: () => void][] = [
   ["shared tree", () => run("node scripts/shared-sums.ts")],
   ["lint + format", () => run("npx biome ci .")],
@@ -161,7 +161,7 @@ const gates: [name: string, body: () => void][] = [
   ["core isolation + size", coreIsolation],
   ["patro types", () => run(`npx tsc -p ${PATRO}/tsconfig.json`)],
   ["patro tests", () => run("npm test -w nepdate-patro")],
-  // Before gate 10: its script tests run the @examples, which import the built picker.
+  // Before the docs gate: its script tests run the @examples, which import the built picker.
   ["picker types", () => run(`npx tsc -p ${PICKER}/tsconfig.json`)],
   ["picker tests", () => run("npm test -w nepdate-datepicker")],
   [

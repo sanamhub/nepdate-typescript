@@ -1,5 +1,6 @@
-// The `--out <dir>` writer for the benchmark scripts (T8-05). Every future benchmark pass commits
-// its JSON under bench/results/<date>/ so a number on docs/benchmarks.md has a source in the tree.
+// The `--out <dir>` writer for the benchmark scripts (ADR-0008). Every future benchmark pass
+// commits its JSON under bench/results/<date>/ so a number on docs/benchmarks.md has a source in
+// the tree.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";

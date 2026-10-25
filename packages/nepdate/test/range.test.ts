@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { DateRange, NepaliDate } from "../src/index.js";
 import { kindOf } from "./helpers.js";
 
-describe("DateRange (T2-05)", () => {
+describe("DateRange", () => {
   test("every year's length is the sum of its month lengths", () => {
     for (let y = 1901; y <= 2199; y++) {
       let sum = 0;

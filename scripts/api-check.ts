@@ -1,4 +1,4 @@
-// Gate 12 (T9-02): the committed public API snapshot and the signatures in docs/API.md.
+// Public API gate (ADR-0010): the committed public API snapshot and the signatures in docs/API.md.
 // Run from the repository root: `node scripts/api-check.ts` or `node scripts/api-check.ts --write`.
 //
 // The only update path is --write. A documented addition still fails until the snapshot is written.

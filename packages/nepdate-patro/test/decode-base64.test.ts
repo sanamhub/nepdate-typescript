@@ -1,4 +1,4 @@
-// T8 review: the generated tables use only part of the base64 alphabet and few padding shapes, so
+// The generated tables use only part of the base64 alphabet and few padding shapes, so
 // the hand-written decoder is checked against Buffer for every alphabet character and for inputs
 // with no padding, one "=" and two "=".
 

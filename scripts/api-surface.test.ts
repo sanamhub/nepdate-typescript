@@ -1,6 +1,6 @@
-// Tests for the public API surface check (T9-02). The negative controls are the five changes that
-// must fail: a rename, a signature change, an undocumented addition, a documented addition with a
-// stale snapshot, and a name that appears only in prose.
+// Tests for the public API surface check (ADR-0010). Five changes must fail: a rename, a signature
+// change, an undocumented addition, a documented addition with a stale snapshot, and a name that
+// appears only in prose.
 
 import { strict as assert } from "node:assert";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";

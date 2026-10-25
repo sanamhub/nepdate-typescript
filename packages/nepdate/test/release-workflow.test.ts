@@ -1,7 +1,7 @@
 // The release workflow keeps its permissions, pins, shell inputs and job order in the right places.
 // The checks run on the parsed YAML tree, so a comment, an indentation change or a step moved to
 // another job cannot satisfy a rule by accident. This is the TypeScript counterpart of the Python
-// port's test_release_workflow.py (T7-02), tightened in T11.
+// port's test_release_workflow.py.
 
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
