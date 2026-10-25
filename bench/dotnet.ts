@@ -1,8 +1,8 @@
-// Same-machine C# column (T6-02). Runs the hub's tools/dotnet-bench on this machine, in the same
+// Same-machine C# column (ADR-0006). Runs the hub's tools/dotnet-bench on this machine, in the same
 // session as the TypeScript rows, and parses the .NET 10 rows out of BenchmarkDotNet's CSV report.
 // The hub checkout defaults to ../nepdate and can be set with HUB_DIR. NuGet, build and benchmark
-// caches go to D:\devcache\dotnet by default (DOTNET_CACHE overrides), so the hub checkout stays
-// clean and the C: drive is not filled.
+// caches go to DOTNET_CACHE (default: nepdate-dotnet-bench in the OS temp directory), so the hub
+// checkout stays clean.
 //
 // Run from the repository root:
 //   node bench/dotnet.ts
@@ -10,6 +10,7 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -20,7 +21,7 @@ import type { RowResult } from "./protocol.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HUB = resolve(process.env.HUB_DIR ?? join(ROOT, "..", "nepdate"));
-const CACHE = resolve(process.env.DOTNET_CACHE ?? "D:\\devcache\\dotnet");
+const CACHE = resolve(process.env.DOTNET_CACHE ?? join(tmpdir(), "nepdate-dotnet-bench"));
 const PROJECT = join(HUB, "tools", "dotnet-bench");
 const jsonOutput = process.argv.includes("--json");
 const out = outDir();

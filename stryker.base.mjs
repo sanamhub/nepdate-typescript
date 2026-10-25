@@ -3,8 +3,8 @@
 
 import { join } from "node:path";
 
-const TEMP_ROOT =
-  process.platform === "win32" ? "D:\\devcache\\stryker" : join(process.cwd(), ".stryker-tmp");
+// STRYKER_TEMP moves the sandboxes and the incremental file off the checkout's drive.
+const TEMP_ROOT = process.env.STRYKER_TEMP ?? join(process.cwd(), ".stryker-tmp");
 
 export function strykerConfig(pkg, name) {
   return {
