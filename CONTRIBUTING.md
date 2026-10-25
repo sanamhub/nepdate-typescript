@@ -1,41 +1,61 @@
 # Contributing
 
-This is the TypeScript port of the NepDate family: the npm packages `nepdate-core` and `nepdate-patro`.
-Behaviour is fixed by the shared spec in `shared/spec/` and decisions by the ADRs in `docs/adr/`,
-so most changes follow a task in `docs/plan/`. The rules for agents, which also apply to people,
-are in [`AGENTS.md`](AGENTS.md).
+Bug reports, fixes and documentation improvements are welcome. For a new feature or an API change,
+open an issue first so the design can be agreed before you write code.
 
-## Data and spec changes go to the hub
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as
+described in [SECURITY.md](SECURITY.md), not in a public issue.
 
-`shared/` is a read-only copy of [`sanamhub/nepdate`](https://github.com/sanamhub/nepdate). A wrong
-month length, holiday or tithi, or a question about the spec, goes there as an issue. Never edit
-`shared/` here, and never edit a `*.gen.ts` file by hand: change `scripts/codegen.ts` and run
-`npm run codegen`.
+## Scope
 
-## Checks
+The shared calendar and patro data, the spec and the golden vectors live in the hub
+([`sanamhub/nepdate`](https://github.com/sanamhub/nepdate)) and are copied into `shared/`
+read-only. A wrong date, holiday or tithi is a data issue: report it in the hub, not here. Never
+edit `shared/` or a `*.gen.ts` file by hand: change `scripts/codegen.ts` and run `npm run codegen`.
 
-Node 24 for development (Node 22.12 is the floor for users). From the repository root:
+## Setup
 
-```bash
+Node 24 for development (Node 22.12 is the floor for users). Run every npm command from the
+repository root.
+
+```sh
 npm ci
-npm run ci
+npm test
 ```
 
-The last line reads `ci: 10/10 gates passed`.
+The browser suites (`npm run test:browser -w nepdate-patro` and `-w nepdate-datepicker`) need the
+Playwright browsers: `npx playwright install chromium firefox webkit`.
 
-- Zero runtime `dependencies` in both packages; `nepdate-core` never imports `nepdate-patro`.
-- No export beyond [`docs/API.md`](docs/API.md).
-- Never weaken, skip or delete a test to get CI green. A skipped parity row names its deviation
-  from `shared/spec/PARITY.md`.
+## Gates
 
-## Commits and PRs
+`npm run ci` runs every gate in [ADR-0004](docs/adr/0004-testing-and-quality-gates.md) in order and
+stops at the first failure. The last line reads `ci: 16/16 gates passed`. The mutation run
+(`npm run mutation`, then `npm run mutation:check`) is slow and has its own workflow.
 
-- [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with the
-  task ID first when the change follows one (`feat(nepdate): serial conversion`).
-- One task per PR. Fill in the PR template, including "What to look at first".
-- Prose, comments and commit messages follow
-  [`.claude/skills/writing-style/SKILL.md`](.claude/skills/writing-style/SKILL.md): no em dashes,
-  no filler, exact numbers and IDs, and no AI attribution lines.
+## Pull requests
+
+- Keep a pull request to one change.
+- Add or update a test for any behaviour change. The shared vector suites must keep passing, and a
+  skipped parity row names its deviation from `shared/spec/PARITY.md`.
+- Zero runtime `dependencies` in every package; `nepdate-core` never imports `nepdate-patro`.
+- Public API changes go in `docs/API.md` and `docs/api-snapshot.json` (`node scripts/api-check.ts
+  --write`) in the same commit.
+- Add a line to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md) for anything a user would
+  notice.
+- A significant design decision gets an ADR in `docs/adr/`. Accepted ADRs are not edited; a later
+  ADR supersedes an earlier one.
+- CI must pass.
+
+## Commit messages
+
+[Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, imperative,
+lower case, no trailing period. Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `build`,
+`ci`, `perf`. The body says why, not what.
+
+## Releases
+
+Releasing and rolling back are described in
+[`docs/runbooks/release.md`](docs/runbooks/release.md).
 
 By contributing you agree that your contribution is licensed under the MIT license
 ([LICENSE](LICENSE)).
