@@ -9,11 +9,12 @@ packages share one version (ADR-0005); an entry that concerns only one package s
 
 ### Added
 
-- `nepdate-datepicker`, a new package (ADR-0015, ADR-0016): `<nepdate-calendar>`, a BS month grid with the
-  WAI-ARIA date picker keys; `<nepdate-input>`, a form-associated text field with that calendar in a
-  popover; the DOM-free `monthGrid`, `moveFocus`, `isSelectable` and `weekdayOrder`; and an optional
+- `nepdate-datepicker`, a new package (ADR-0015, ADR-0016): `<nepdate-calendar>`, a BS month grid
+  with the WAI-ARIA date picker keys; `<nepdate-input>`, a form-associated text field with that
+  calendar in a popover; the DOM-free `monthGrid`, `moveFocus`, `isSelectable` and `weekdayOrder`; and an optional
   `theme.css`; and `dist/nepdate-datepicker.js`, one standalone module with the core inside for a
-  page with no bundler. Not published yet: a new npm name needs one manual publish first.
+  page with no bundler. After its first publish it is released with `nepdate-core` and
+  `nepdate-patro` under the same version, with npm provenance.
 
 ## [0.1.0-beta.1] - 2026-10-22
 

@@ -244,17 +244,23 @@ function packProblems(workflow: Workflow): string[] {
     ...stepProblems(
       workflow,
       "pack",
-      "Pack both packages",
-      "pack must pack both packages",
-      (value) => runHas(value, "npm pack -w nepdate-core", "npm pack -w nepdate-patro"),
+      "Pack the three packages",
+      "pack must pack the three packages",
+      (value) =>
+        runHas(
+          value,
+          "npm pack -w nepdate-core",
+          "npm pack -w nepdate-patro",
+          "npm pack -w nepdate-datepicker",
+        ),
     ),
   );
   found.push(
     ...stepProblems(
       workflow,
       "pack",
-      "Check both tarballs",
-      "pack must check both tarballs with publint and attw",
+      "Check every tarball",
+      "pack must check every tarball with publint and attw",
       (value) => runHas(value, "npx publint", "npx attw"),
     ),
   );
@@ -286,7 +292,7 @@ function smokeProblems(workflow: Workflow): string[] {
       workflow,
       "smoke",
       "Core only, from the README",
-      "smoke must run both README examples",
+      "smoke must run both README examples and the picker check",
       (item) => runHas(item, "--mode core", "scripts/smoke.ts"),
     ),
   );
@@ -295,7 +301,7 @@ function smokeProblems(workflow: Workflow): string[] {
       workflow,
       "smoke",
       "Core plus patro, from the README",
-      "smoke must run both README examples",
+      "smoke must run both README examples and the picker check",
       (item) => runHas(item, "--mode patro", "scripts/smoke.ts"),
     ),
   );
@@ -306,6 +312,29 @@ function smokeProblems(workflow: Workflow): string[] {
       "Core plus patro, from the README",
       "smoke must install the patro tarball",
       (item) => runHas(item, "release-tarballs/nepdate-patro-$VERSION.tgz"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "smoke",
+      "Core plus picker",
+      "smoke must run both README examples and the picker check",
+      (item) => runHas(item, "--mode picker", "scripts/smoke.ts"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "smoke",
+      "Core plus picker",
+      "smoke must install the core and picker tarballs",
+      (item) =>
+        runHas(
+          item,
+          "release-tarballs/nepdate-core-$VERSION.tgz",
+          "release-tarballs/nepdate-datepicker-$VERSION.tgz",
+        ),
     ),
   );
   found.push(
@@ -478,20 +507,24 @@ function publishProblems(workflow: Workflow): string[] {
     ),
   );
 
-  for (const [name, tarball] of [
-    ["Publish nepdate-core", "nepdate-core-$VERSION.tgz"],
-    ["Publish nepdate-patro", "nepdate-patro-$VERSION.tgz"],
-  ] as const) {
+  for (const pkg of ["nepdate-core", "nepdate-patro", "nepdate-datepicker"] as const) {
+    const name = `Publish ${pkg}`;
+    const tarball = `${pkg}-$VERSION.tgz`;
     found.push(
-      ...stepProblems(workflow, "publish", name, "publish must publish both packages", (item) =>
-        // "./" keeps npm from reading "release-tarballs/x.tgz" as a GitHub user/repo shorthand,
-        // which made the 0.1.0-beta.1 publish try `git ls-remote` over SSH and fail.
-        runHas(
-          item,
-          `npm publish "./release-tarballs/${tarball}"`,
-          "--provenance",
-          "--access public",
-        ),
+      ...stepProblems(
+        workflow,
+        "publish",
+        name,
+        "publish must publish the three packages",
+        (item) =>
+          // "./" keeps npm from reading "release-tarballs/x.tgz" as a GitHub user/repo shorthand,
+          // which made the 0.1.0-beta.1 publish try `git ls-remote` over SSH and fail.
+          runHas(
+            item,
+            `npm publish "./release-tarballs/${tarball}"`,
+            "--provenance",
+            "--access public",
+          ),
       ),
     );
     found.push(
@@ -499,7 +532,16 @@ function publishProblems(workflow: Workflow): string[] {
         workflow,
         "publish",
         name,
-        "both publish steps need NODE_AUTH_TOKEN",
+        "every publish step must skip a version already on npm",
+        (item) => runHas(item, `npm view "${pkg}@$VERSION" version`),
+      ),
+    );
+    found.push(
+      ...stepProblems(
+        workflow,
+        "publish",
+        name,
+        "every publish step needs NODE_AUTH_TOKEN",
         (item) => envValue(item, "NODE_AUTH_TOKEN") === expression("secrets.NPM_TOKEN"),
       ),
     );
@@ -508,7 +550,7 @@ function publishProblems(workflow: Workflow): string[] {
         workflow,
         "publish",
         name,
-        "both publish steps must unset an empty NODE_AUTH_TOKEN",
+        "every publish step must unset an empty NODE_AUTH_TOKEN",
         (item) => runHas(item, "unset NODE_AUTH_TOKEN"),
       ),
     );
@@ -517,13 +559,29 @@ function publishProblems(workflow: Workflow): string[] {
         workflow,
         "publish",
         name,
-        "both publish steps must publish under the version's dist-tag",
+        "every publish step must publish under the version's dist-tag",
         (item) =>
           runHas(item, '--tag "$DIST_TAG"') &&
           envValue(item, "DIST_TAG") === expression("steps.version.outputs.dist-tag"),
       ),
     );
   }
+  found.push(
+    ...orderProblems(
+      workflow,
+      "publish",
+      "Publish nepdate-core",
+      "Publish nepdate-patro",
+      "publish must publish core, patro, then the picker",
+    ),
+    ...orderProblems(
+      workflow,
+      "publish",
+      "Publish nepdate-patro",
+      "Publish nepdate-datepicker",
+      "publish must publish core, patro, then the picker",
+    ),
+  );
   // A publish without --tag moves latest, so a pre-release would become the default install.
   for (const line of jobRun(workflow, "publish").split("\n")) {
     if (line.includes("npm publish") && !line.includes('--tag "$DIST_TAG"')) {
@@ -744,7 +802,7 @@ jobs:
       "smoke must not use an environment",
       "smoke must not read a secret",
       "download the packed tarballs",
-      "both README examples",
+      "both README examples and the picker check",
       "install the patro tarball",
       "check the tarball contents",
       "upload the tarballs",
@@ -777,6 +835,44 @@ jobs:
     expect(problems(workflow)).toContain("publish must not rebuild the tarballs");
   });
 
+  it("reports a missing picker publish step", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "publish"));
+    steps.splice(rawStepIndex(steps, "Publish nepdate-datepicker"), 1);
+    expect(problems(workflow)).toContain("publish must publish the three packages");
+  });
+
+  it("reports the picker published before patro", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "publish"));
+    const [picker] = steps.splice(rawStepIndex(steps, "Publish nepdate-datepicker"), 1);
+    steps.splice(rawStepIndex(steps, "Publish nepdate-patro"), 0, picker);
+    expect(problems(workflow)).toContain("publish must publish core, patro, then the picker");
+  });
+
+  it("reports a picker publish without the npm view guard", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "publish"));
+    const publish = steps[rawStepIndex(steps, "Publish nepdate-datepicker")] as Record<
+      string,
+      unknown
+    >;
+    publish.run = String(publish.run).replace('npm view "nepdate-datepicker@$VERSION"', "false");
+    expect(problems(workflow)).toContain("every publish step must skip a version already on npm");
+  });
+
+  it("reports a missing picker smoke step and an unpacked picker", () => {
+    const workflow = structuredClone(SHIPPED);
+    const smoke = rawSteps(requireJob(workflow, "smoke"));
+    smoke.splice(rawStepIndex(smoke, "Core plus picker"), 1);
+    const pack = rawSteps(requireJob(workflow, "pack"));
+    const step = pack[rawStepIndex(pack, "Pack the three packages")] as Record<string, unknown>;
+    step.run = String(step.run).replace("npm pack -w nepdate-datepicker", "true");
+    const found = problems(workflow);
+    expect(found).toContain("smoke must run both README examples and the picker check");
+    expect(found).toContain("pack must pack the three packages");
+  });
+
   it("reports a missing verify job", () => {
     const workflow = structuredClone(SHIPPED);
     delete jobsOf(workflow).verify;
@@ -789,7 +885,7 @@ jobs:
     const publish = steps[rawStepIndex(steps, "Publish nepdate-patro")] as Record<string, unknown>;
     publish.run = String(publish.run).replace(' --tag "$DIST_TAG"', "");
     const found = problems(workflow);
-    expect(found).toContain("both publish steps must publish under the version's dist-tag");
+    expect(found).toContain("every publish step must publish under the version's dist-tag");
     expect(found).toContain('every npm publish must pass --tag "$DIST_TAG"');
   });
 
@@ -798,7 +894,7 @@ jobs:
     const steps = rawSteps(requireJob(workflow, "publish"));
     const publish = steps[rawStepIndex(steps, "Publish nepdate-core")] as Record<string, unknown>;
     publish.run = String(publish.run).replace('"./release-tarballs/', '"release-tarballs/');
-    expect(problems(workflow)).toContain("publish must publish both packages");
+    expect(problems(workflow)).toContain("publish must publish the three packages");
   });
 
   it("reports a GitHub release that does not mark a pre-release", () => {

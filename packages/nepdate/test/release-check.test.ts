@@ -19,7 +19,9 @@ afterEach(() => {
 interface Fixture {
   readonly coreVersion?: string;
   readonly patroVersion?: string;
+  readonly pickerVersion?: string;
   readonly peer?: string;
+  readonly pickerPeer?: string;
   readonly changelog?: string;
 }
 
@@ -32,6 +34,7 @@ function fixture(options: Fixture = {}): string {
   fixtures.push(dir);
   mkdirSync(join(dir, "packages/nepdate"), { recursive: true });
   mkdirSync(join(dir, "packages/nepdate-patro"), { recursive: true });
+  mkdirSync(join(dir, "packages/nepdate-picker"), { recursive: true });
   writeFileSync(
     join(dir, "packages/nepdate/package.json"),
     manifest(options.coreVersion ?? "0.1.0"),
@@ -40,6 +43,12 @@ function fixture(options: Fixture = {}): string {
     join(dir, "packages/nepdate-patro/package.json"),
     manifest(options.patroVersion ?? "0.1.0", {
       peerDependencies: { "nepdate-core": options.peer ?? "~0.1.0" },
+    }),
+  );
+  writeFileSync(
+    join(dir, "packages/nepdate-picker/package.json"),
+    manifest(options.pickerVersion ?? "0.1.0", {
+      peerDependencies: { "nepdate-core": options.pickerPeer ?? "~0.1.0" },
     }),
   );
   writeFileSync(
@@ -76,10 +85,28 @@ test("release-check fails when the patro version differs", () => {
   expect(result.stderr).toContain("nepdate-patro version 0.1.1, expected 0.1.0");
 });
 
-test("release-check fails when the peer range is not ~X.Y.Z", () => {
+test("release-check fails when the patro peer range is not ~X.Y.Z", () => {
   const result = check(fixture({ peer: "~0.2.0" }));
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain('peerDependencies["nepdate-core"] is ~0.2.0, expected ~0.1.0');
+  expect(result.stderr).toContain(
+    'nepdate-patro peerDependencies["nepdate-core"] is ~0.2.0, expected ~0.1.0',
+  );
+  expect(result.stderr).not.toContain("nepdate-datepicker");
+});
+
+test("release-check fails when the picker version differs", () => {
+  const result = check(fixture({ pickerVersion: "0.1.1" }));
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("nepdate-datepicker version 0.1.1, expected 0.1.0");
+});
+
+test("release-check fails when the picker peer range is not ~X.Y.Z", () => {
+  const result = check(fixture({ pickerPeer: "^0.1.0" }));
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain(
+    'nepdate-datepicker peerDependencies["nepdate-core"] is ^0.1.0, expected ~0.1.0',
+  );
+  expect(result.stderr).not.toContain("nepdate-patro");
 });
 
 test("release-check fails when the changelog has no section for the version", () => {
@@ -124,7 +151,9 @@ function betaFixture(changelog: string): string {
   return fixture({
     coreVersion: "0.1.0-beta.1",
     patroVersion: "0.1.0-beta.1",
+    pickerVersion: "0.1.0-beta.1",
     peer: "~0.1.0-beta.1",
+    pickerPeer: "~0.1.0-beta.1",
     changelog,
   });
 }

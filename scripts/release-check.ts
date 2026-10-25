@@ -1,5 +1,5 @@
-// Preflight for a release (ADR-0005): both packages, the peer range and the changelog must agree
-// on one version, and the [Unreleased] section must be empty. Run from the repository root:
+// Preflight for a release (ADR-0005): the three packages, both peer ranges and the changelog must
+// agree on one version, and the [Unreleased] section must be empty. Run from the repository root:
 //   node scripts/release-check.ts 0.1.0
 //   node scripts/release-check.ts 0.1.0-beta.1
 //
@@ -45,19 +45,28 @@ const root = process.cwd();
 const errors: string[] = [];
 const core = readManifest(join(root, "packages/nepdate/package.json"));
 const patro = readManifest(join(root, "packages/nepdate-patro/package.json"));
+const picker = readManifest(join(root, "packages/nepdate-picker/package.json"));
 
-if (core.version !== version) {
-  errors.push(`nepdate-core version ${String(core.version)}, expected ${version}`);
+for (const [name, manifest] of [
+  ["nepdate-core", core],
+  ["nepdate-patro", patro],
+  ["nepdate-datepicker", picker],
+] as const) {
+  if (manifest.version !== version) {
+    errors.push(`${name} version ${String(manifest.version)}, expected ${version}`);
+  }
 }
-if (patro.version !== version) {
-  errors.push(`nepdate-patro version ${String(patro.version)}, expected ${version}`);
-}
-if (patro.peerDependencies?.["nepdate-core"] !== `~${version}`) {
-  errors.push(
-    `nepdate-patro peerDependencies["nepdate-core"] is ${String(
-      patro.peerDependencies?.["nepdate-core"],
-    )}, expected ~${version}`,
-  );
+// patro and the picker build on the core, so each pins it with a tilde range on the same version.
+for (const [name, manifest] of [
+  ["nepdate-patro", patro],
+  ["nepdate-datepicker", picker],
+] as const) {
+  const peer = manifest.peerDependencies?.["nepdate-core"];
+  if (peer !== `~${version}`) {
+    errors.push(
+      `${name} peerDependencies["nepdate-core"] is ${String(peer)}, expected ~${version}`,
+    );
+  }
 }
 const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
 // The heading must carry the release date, and only an exact match counts: a 0.1.0 section does
@@ -79,5 +88,5 @@ if (errors.length > 0) {
   process.exit(1);
 }
 console.log(
-  `release-check: ${version} agrees in both manifests, the peer range, the empty [Unreleased] section and the changelog`,
+  `release-check: ${version} agrees in the three manifests, both peer ranges, the empty [Unreleased] section and the changelog`,
 );

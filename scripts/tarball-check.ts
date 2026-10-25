@@ -1,4 +1,4 @@
-// Rehearses the two release tarballs before the pack job uploads them (T10-03). It reads the tar
+// Rehearses the three release tarballs before the pack job uploads them (T10-03). It reads the tar
 // members, checks the allow-list and the manifest, and writes SHA256SUMS for the publish job.
 //
 //   node scripts/tarball-check.ts --version 0.1.0 --dir release-tarballs --sums release-tarballs/SHA256SUMS
@@ -16,18 +16,40 @@ interface Member {
   readonly type?: string;
 }
 
+// Which paths under package/ a tarball may hold, and which it must hold. The hint names the allowed
+// set in the error message.
+export interface MemberRule {
+  readonly allowed: RegExp;
+  readonly required: readonly string[];
+  readonly hint: string;
+}
+
 interface ExpectedManifest {
   readonly name: string;
   readonly version: string;
   readonly peer: string | undefined;
   readonly directory: string;
+  // DEFAULT_MEMBERS (core and patro) when absent.
+  readonly members?: MemberRule;
 }
 
 // npm provenance compares repository.url with the repository that built the package and refuses
-// the upload when they differ, so both manifests must name it.
+// the upload when they differ, so every manifest must name it.
 export const REPOSITORY_URL = "git+https://github.com/sanamhub/nepdate-typescript.git";
 
-const ALLOWED_FILES = new Set(["package.json", "LICENSE", "NOTICE", "README.md"]);
+const DEFAULT_MEMBERS: MemberRule = {
+  allowed: /^(?:LICENSE|NOTICE|README\.md|dist\/.+)$/,
+  required: [],
+  hint: "dist, LICENSE, NOTICE, README.md and package.json",
+};
+
+// ADR-0015: tsc output (no source maps for the JS), the theme and the standalone file. A file the
+// picker build does not write, such as a NOTICE or a nested dist folder, means the build changed.
+export const PICKER_MEMBERS: MemberRule = {
+  allowed: /^(?:LICENSE|README\.md|dist\/theme\.css|dist\/[A-Za-z0-9-]+\.(?:js|d\.ts|d\.ts\.map))$/,
+  required: ["dist/theme.css", "dist/nepdate-datepicker.js"],
+  hint: "dist JavaScript, declarations and declaration maps, dist/theme.css, LICENSE, README.md and package.json",
+};
 
 // npm runs these scripts when a consumer installs the package (prepare also for git and directory
 // installs), so a packed manifest must not carry any of them. Pack and publish hooks such as
@@ -123,6 +145,8 @@ function manifestErrors(member: Member, expected: ExpectedManifest): string[] {
 
 export function checkMembers(members: readonly Member[], expected: ExpectedManifest): string[] {
   const errors: string[] = [];
+  const rule = expected.members ?? DEFAULT_MEMBERS;
+  const seen = new Set<string>();
   let manifest: Member | undefined;
   for (const member of members) {
     const type = member.type ?? "0";
@@ -147,10 +171,14 @@ export function checkMembers(members: readonly Member[], expected: ExpectedManif
       manifest = member;
       continue;
     }
-    if (ALLOWED_FILES.has(relative) || relative.startsWith("dist/")) continue;
-    errors.push(
-      `unexpected member ${member.name}, expected only dist, LICENSE, NOTICE, README.md and package.json`,
-    );
+    if (rule.allowed.test(relative)) {
+      seen.add(relative);
+      continue;
+    }
+    errors.push(`unexpected member ${member.name}, expected only ${rule.hint}`);
+  }
+  for (const path of rule.required) {
+    if (!seen.has(path)) errors.push(`package/${path} is missing`);
   }
   if (manifest === undefined) {
     errors.push("package/package.json is missing");
@@ -206,9 +234,10 @@ function run(args: readonly string[]): number {
     .sort();
   const core = tarballs.find((name) => name.startsWith("nepdate-core-"));
   const patro = tarballs.find((name) => name.startsWith("nepdate-patro-"));
-  if (core === undefined || patro === undefined || tarballs.length !== 2) {
+  const picker = tarballs.find((name) => name.startsWith("nepdate-datepicker-"));
+  if (core === undefined || patro === undefined || picker === undefined || tarballs.length !== 3) {
     console.error(
-      `tarball-check: expected the two ${version} tarballs, found ${tarballs.join(", ") || "none"}`,
+      `tarball-check: expected the three ${version} tarballs, found ${tarballs.join(", ") || "none"}`,
     );
     return 1;
   }
@@ -222,6 +251,16 @@ function run(args: readonly string[]): number {
         version,
         peer: "nepdate-core",
         directory: "packages/nepdate-patro",
+      },
+    ],
+    [
+      picker,
+      {
+        name: "nepdate-datepicker",
+        version,
+        peer: "nepdate-core",
+        directory: "packages/nepdate-picker",
+        members: PICKER_MEMBERS,
       },
     ],
   ];
@@ -243,7 +282,7 @@ function run(args: readonly string[]): number {
     writeFileSync(resolve(sums), `${lines.join("\n")}\n`);
     console.log(`tarball-check: wrote ${resolve(sums)}`);
   }
-  console.log("tarball-check: both tarballs checked");
+  console.log("tarball-check: the three tarballs checked");
   return 0;
 }
 

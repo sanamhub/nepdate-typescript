@@ -1,6 +1,6 @@
 name: release
 
-# One tag vX.Y.Z or vX.Y.Z-PRERELEASE releases both packages with the same version (ADR-0005). A
+# One tag vX.Y.Z or vX.Y.Z-PRERELEASE releases the three packages with one version (ADR-0005). A
 # manual dispatch only packs and checks the tarballs: publishing needs a tag push and the
 # production environment. A pre-release goes to its own npm dist-tag, never to latest.
 on:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       dry-run:
-        description: Pack both packages and skip publishing
+        description: Pack the packages and skip publishing
         type: boolean
         default: true
 
@@ -59,11 +59,12 @@ jobs:
         run: node scripts/data-status.ts
       - name: Build
         run: npm run build
-      - name: Pack both packages
+      - name: Pack the three packages
         run: |
           mkdir -p release-tarballs
           npm pack -w nepdate-core --pack-destination release-tarballs
           npm pack -w nepdate-patro --pack-destination release-tarballs
+          npm pack -w nepdate-datepicker --pack-destination release-tarballs
       - name: Check the tarball contents and write SHA256SUMS
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -72,11 +73,16 @@ jobs:
           --version "$VERSION"
           --dir release-tarballs
           --sums release-tarballs/SHA256SUMS
-      - name: Check both tarballs
+      # A stylesheet has no types to resolve, so attw skips the picker's theme.css, as gate 12 does.
+      - name: Check every tarball
         run: |
           for tarball in release-tarballs/*.tgz; do
             npx publint "$tarball"
-            npx attw "$tarball" --profile esm-only
+            exclude=()
+            case "$tarball" in
+              */nepdate-datepicker-*) exclude=(--exclude-entrypoints ./theme.css) ;;
+            esac
+            npx attw "$tarball" --profile esm-only "${exclude[@]}"
           done
       - name: Upload the tarballs
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -86,8 +92,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # ADR-0005 smoke job: install the packed tarballs in two clean projects and run the README
-  # examples. No registry login, no secrets; the tarballs come from the pack job.
+  # ADR-0005 smoke job: install the packed tarballs in three clean projects and run the README
+  # examples, plus the picker's DOM-free check. No registry login, no secrets; the tarballs come
+  # from the pack job.
   smoke:
     needs: pack
     runs-on: ubuntu-latest
@@ -130,6 +137,18 @@ jobs:
             "../release-tarballs/nepdate-core-$VERSION.tgz" \
             "../release-tarballs/nepdate-patro-$VERSION.tgz"
           node ../scripts/smoke.ts --mode patro --project "$PWD"
+      - name: Core plus picker
+        env:
+          VERSION: ${{ needs.pack.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir smoke-picker
+          cd smoke-picker
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund \
+            "../release-tarballs/nepdate-core-$VERSION.tgz" \
+            "../release-tarballs/nepdate-datepicker-$VERSION.tgz"
+          node ../scripts/smoke.ts --mode picker --project "$PWD"
 
   # Mutation testing (ADR-0007). The release is blocked when the score is below the floor or a
   # survivor has no equivalent entry. It needs pack, runs beside the smoke job, and gates publish.
@@ -243,11 +262,28 @@ jobs:
           else
             npm publish "./release-tarballs/nepdate-patro-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
           fi
+      # The first nepdate-datepicker version was published by hand (runbook, "First publish of a new
+      # package"); from then on it is published here like the other two.
+      - name: Publish nepdate-datepicker
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            unset NODE_AUTH_TOKEN
+          fi
+          if npm view "nepdate-datepicker@$VERSION" version >/dev/null 2>&1; then
+            echo "nepdate-datepicker@$VERSION is already on npm"
+          else
+            npm publish "./release-tarballs/nepdate-datepicker-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
+          fi
 
-  # Post-publish verification (ADR-0011): verify-published.yml installs both exact versions from the
-  # public registry on Linux, macOS and Windows with Node 22 and 24, checks the registry signatures
-  # and runs the README quick start plus one info() call. Called, not triggered: a release created
-  # with GITHUB_TOKEN fires no event. It can also be dispatched by hand for any published version.
+  # Post-publish verification (ADR-0011): verify-published.yml installs the three exact versions from
+  # the public registry on Linux, macOS and Windows with Node 22 and 24, checks the registry
+  # signatures and runs the README quick start, one info() call and one monthGrid() call. Called,
+  # not triggered: a release created with GITHUB_TOKEN fires no event. It can also be dispatched by
+  # hand for any published version.
   verify:
     needs: publish
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -257,7 +293,7 @@ jobs:
     with:
       version: ${{ needs.publish.outputs.version }}
 
-  # The GitHub release appears only after verify has installed both versions from the registry, so a
+  # The GitHub release appears only after verify has installed every version from the registry, so a
   # failed verify leaves no release page for packages that are about to be deprecated (ADR-0011).
   # This is the only job with contents: write; it publishes nothing to npm.
   github-release:

@@ -30,7 +30,7 @@ const VERSION = "${{ inputs.version }}";
 const INSTALL = "Install the published packages with retries";
 const VERSIONS = "Check the installed versions";
 const SIGNATURES = "Check the registry signatures";
-const QUICK_START = "Run the README quick start and one info() call";
+const QUICK_START = "Run the README quick start, one info() and one monthGrid() call";
 
 function versionInput(workflow: Workflow, name: string): boolean {
   const value = trigger(workflow, name);
@@ -79,23 +79,38 @@ export function problems(workflow: Workflow): string[] {
     found.push("verify must check the version before using it");
   }
   if (
-    !has(workflow, INSTALL, '"nepdate-core@$VERSION"', '"nepdate-patro@$VERSION"', "--save-exact")
+    !has(
+      workflow,
+      INSTALL,
+      '"nepdate-core@$VERSION"',
+      '"nepdate-patro@$VERSION"',
+      '"nepdate-datepicker@$VERSION"',
+      "--save-exact",
+    )
   ) {
-    found.push("verify must install both exact versions");
+    found.push("verify must install the three exact versions");
   }
   if (!has(workflow, INSTALL, "SECONDS + 900", "sleep")) {
     found.push("verify must retry the install for up to 15 minutes");
   }
-  if (!has(workflow, VERSIONS, "nepdate-core nepdate-patro", '!= "$VERSION"')) {
-    found.push("verify must compare both installed versions with the input");
+  if (!has(workflow, VERSIONS, "nepdate-core nepdate-patro nepdate-datepicker", '!= "$VERSION"')) {
+    found.push("verify must compare the three installed versions with the input");
   }
   if (!has(workflow, SIGNATURES, "npm audit signatures")) {
     found.push("verify must check the registry signatures");
   }
   if (
-    !has(workflow, QUICK_START, "NepaliDate.of(2081, 2, 15)", "toGregorian", ".long(", "info(date)")
+    !has(
+      workflow,
+      QUICK_START,
+      "NepaliDate.of(2081, 2, 15)",
+      "toGregorian",
+      ".long(",
+      "info(date)",
+      "monthGrid(2081, 4)",
+    )
   ) {
-    found.push("verify must run the README quick start and info()");
+    found.push("verify must run the README quick start, info() and monthGrid()");
   }
   for (const name of ["Check the version", INSTALL, VERSIONS]) {
     const value = step(workflow, "verify", name);
@@ -126,7 +141,20 @@ describe("verify-published.yml", () => {
   it("reports a range install instead of the exact version", () => {
     const edited = TEXT.replace('"nepdate-patro@$VERSION"', "nepdate-patro");
     expect(edited).not.toEqual(TEXT);
-    expect(problems(parseWorkflow(edited))).toContain("verify must install both exact versions");
+    expect(problems(parseWorkflow(edited))).toContain(
+      "verify must install the three exact versions",
+    );
+  });
+
+  it("reports a missing picker", () => {
+    const edited = TEXT.replace(' "nepdate-datepicker@$VERSION"', "").replace(
+      "nepdate-patro nepdate-datepicker;",
+      "nepdate-patro;",
+    );
+    expect(edited).not.toEqual(TEXT);
+    const found = problems(parseWorkflow(edited));
+    expect(found).toContain("verify must install the three exact versions");
+    expect(found).toContain("verify must compare the three installed versions with the input");
   });
 
   it("reports a single-platform matrix", () => {

@@ -3,7 +3,7 @@
 
 import { strict as assert } from "node:assert";
 import test from "node:test";
-import { checkMembers, REPOSITORY_URL } from "./tarball-check.ts";
+import { checkMembers, PICKER_MEMBERS, REPOSITORY_URL } from "./tarball-check.ts";
 
 interface TestMember {
   readonly name: string;
@@ -214,4 +214,73 @@ test("a repository with the other package's directory fails", () => {
   );
   const errors = checkMembers(members, PATRO);
   assert.match(errors[0] as string, /expected url .* and directory packages\/nepdate-patro/);
+});
+
+const PICKER = {
+  name: "nepdate-datepicker",
+  version: "0.1.0",
+  peer: "nepdate-core",
+  directory: "packages/nepdate-picker",
+  members: PICKER_MEMBERS,
+} as const;
+
+function pickerMembers(): TestMember[] {
+  return [
+    packageJson({
+      name: "nepdate-datepicker",
+      repository: { type: "git", url: REPOSITORY_URL, directory: "packages/nepdate-picker" },
+    }),
+    { name: "package/dist/index.js", data: Buffer.from("export {};") },
+    { name: "package/dist/index.d.ts", data: Buffer.from("export {};") },
+    { name: "package/dist/index.d.ts.map", data: Buffer.from("{}") },
+    { name: "package/dist/define.js", data: Buffer.from("export {};") },
+    { name: "package/dist/nepdate-datepicker.js", data: Buffer.from("var a=1;") },
+    { name: "package/dist/theme.css", data: Buffer.from(":root{}") },
+    { name: "package/LICENSE", data: Buffer.from("MIT") },
+    { name: "package/README.md", data: Buffer.from("# Picker") },
+  ];
+}
+
+test("the picker members and manifest pass", () => {
+  assert.deepEqual(checkMembers(pickerMembers(), PICKER), []);
+});
+
+test("a picker source, test or stray file fails", () => {
+  for (const name of [
+    "package/src/grid.ts",
+    "package/test/grid.test.ts",
+    "package/NOTICE",
+    "package/dist/index.js.map",
+    "package/dist/src/grid.js",
+    "package/dist/theme.scss",
+  ]) {
+    const errors = checkMembers([...pickerMembers(), { name, data: Buffer.from("x") }], PICKER);
+    assert.equal(errors.length, 1, name);
+    assert.ok((errors[0] as string).startsWith(`unexpected member ${name}, expected only`), name);
+  }
+});
+
+test("a picker without the theme or the standalone file fails", () => {
+  for (const path of ["dist/theme.css", "dist/nepdate-datepicker.js"]) {
+    const errors = checkMembers(
+      pickerMembers().filter((member) => member.name !== `package/${path}`),
+      PICKER,
+    );
+    assert.deepEqual(errors, [`package/${path} is missing`]);
+  }
+});
+
+test("the picker manifest needs its own directory and the core peer", () => {
+  const members = pickerMembers().map((member) =>
+    member.name === "package/package.json"
+      ? packageJson({
+          name: "nepdate-datepicker",
+          peerDependencies: { "nepdate-core": "^0.1.0" },
+        })
+      : member,
+  );
+  const errors = checkMembers(members, PICKER);
+  assert.equal(errors.length, 2);
+  assert.match(errors[0] as string, /peerDependencies\["nepdate-core"\] is \^0\.1\.0/);
+  assert.match(errors[1] as string, /directory packages\/nepdate-picker/);
 });

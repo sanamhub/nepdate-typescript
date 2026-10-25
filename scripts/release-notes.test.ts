@@ -38,6 +38,10 @@ test("releaseNotes adds the install and verification blocks for the exact versio
   const notes = releaseNotes(CHANGELOG, "0.1.0-beta.1");
   assert.ok(notes.startsWith("First public pre-release."));
   assert.ok(notes.includes("npm install nepdate-core@0.1.0-beta.1 nepdate-patro@0.1.0-beta.1"));
+  assert.ok(
+    notes.includes("npm install nepdate-core@0.1.0-beta.1 nepdate-datepicker@0.1.0-beta.1"),
+  );
+  assert.ok(notes.includes("The three tarballs attached here"));
   assert.ok(notes.includes("pre-release on the `beta` dist-tag"));
   assert.ok(notes.includes("npm audit signatures"));
   assert.ok(!notes.includes("## [0.0.9]"));

@@ -30,6 +30,7 @@ Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit (today
 | T12 | `T12-workflow-coverage.md` | parsed tests for every workflow, shared pin and expression rules |
 | T13 | `T13-ci-without-hub-remote.md` | shared checksum gate, no cross-repo reusable workflows |
 | T15 | `T15-picker.md` | package `nepdate-picker`: month grid, `<nepdate-calendar>`, form-associated `<nepdate-input>`, theme (ADR-0015) |
+| T16 | `T16-picker-release.md` | the release workflow, checks, smoke and post-publish verification take `nepdate-picker`; runbook for its first manual publish |
 
 ## Checkpoints
 

@@ -1,7 +1,8 @@
-# Runbook: release `nepdate-core` and `nepdate-patro` (npm)
+# Runbook: release `nepdate-core`, `nepdate-patro` and `nepdate-datepicker` (npm)
 
 Decided in [ADR-0005](../adr/0005-releases.md). Owner: maintainer. Approver: a second person. One
-tag releases both packages with the same version.
+tag releases the three packages with the same version. A package the workflow has never published
+needs one manual publish first: see [First publish of a new package](#first-publish-of-a-new-package).
 
 This runbook is for the human who runs the release. The implementation agent stops before the tag.
 A release is not a CI run: read the whole page before starting, and do not skip a precondition
@@ -13,8 +14,8 @@ because the workflow is green.
    and the owner has confirmed that the data may be published under the MIT license. U-04 is the
    open question in the hub's
    [proposals](https://github.com/sanamhub/nepdate/blob/main/docs/upstream/proposals.md#u-04-question-where-does-the-tithi-holiday-and-event-data-come-from).
-   If it is not settled, stop. Publish neither package: the core tarball is clean, but the release
-   is one tag and one version for both.
+   If it is not settled, stop. Publish no package: the core tarball is clean, but the release is
+   one tag and one version for all three.
 2. **The owner approves.** The owner comments on the release pull request or the release issue with
    the version and the date. An approval on the pull request is not an approval of the tag if the
    commit changed after it.
@@ -23,10 +24,10 @@ because the workflow is green.
 4. **The `production` environment has a reviewer.** In GitHub, Settings, Environments, `production`,
    at least one required reviewer is configured. The reviewer must not be the person who pushes the
    tag. The publish job waits for that approval.
-5. **The version is ready.** Both `packages/nepdate/package.json` and
-   `packages/nepdate-patro/package.json` say X.Y.Z. `nepdate-patro` has
-   `peerDependencies.nepdate` `~X.Y.Z` and no `devDependencies`; the workspace link supplies the
-   local core during development. `package-lock.json` changed only as `npm install` required.
+5. **The version is ready.** `packages/nepdate/package.json`,
+   `packages/nepdate-patro/package.json` and `packages/nepdate-picker/package.json` say X.Y.Z.
+   `nepdate-patro` and `nepdate-datepicker` each have `peerDependencies["nepdate-core"]` `~X.Y.Z` and
+   no `devDependencies`; the workspace link supplies the local core during development. `package-lock.json` changed only as `npm install` required.
    `CHANGELOG.md` has an empty `## [Unreleased]` and `## [X.Y.Z] - YYYY-MM-DD`. A missing
    `[Unreleased]` heading is allowed, but any entry under it blocks the release.
 6. **The release check passes.** From the repository root:
@@ -35,8 +36,8 @@ because the workflow is green.
    node scripts/release-check.ts X.Y.Z
    ```
 
-   Every failure names the expected value. The command checks both versions, the peer range, the
-   empty `[Unreleased]` section and the dated changelog section.
+   Every failure names the expected value. The command checks the three versions, both peer
+   ranges, the empty `[Unreleased]` section and the dated changelog section.
 
 ## Tag
 
@@ -79,6 +80,47 @@ be used. For 0.1.0 only:
 5. Delete the token on npmjs.com and the `NPM_TOKEN` secret. Remove the token fallback from
    `release.yml` in the next pull request.
 
+### First publish of a new package
+
+Trusted publishing is configured on a package that already exists, so a package new to npm is
+published once by hand, then handed to the workflow. `nepdate-datepicker` is that package (ADR-0015,
+Consequences): its first version is `0.1.0-beta.1`, the version the core and patro already have on
+npm, so its `~0.1.0-beta.1` peer resolves. The owner does this, not the workflow and not an agent.
+
+1. The commit to publish from is on `main`, `ci` is green on it, and the package's version is one
+   the other two already have on npm. Do it before the change that adds the package to
+   `release.yml` merges (T16): a tag pushed after that merge publishes the package with OIDC, which
+   fails while no trusted publisher exists.
+2. From a clean checkout of that commit, with npm 2FA enabled on the account:
+
+   ```
+   git switch main
+   git pull --ff-only
+   git status --short
+   npm ci
+   npm run build
+   npm publish ./packages/nepdate-picker --access public --tag beta --dry-run
+   npm publish ./packages/nepdate-picker --access public --tag beta
+   ```
+
+   `git status --short` must print nothing. The `./` keeps npm from reading the path as a GitHub
+   `user/repo` shorthand. Read the dry-run file list first: `LICENSE`, `README.md`,
+   `package.json`, `dist/theme.css`, `dist/nepdate-datepicker.js` and `dist/*.js`, `*.d.ts`,
+   `*.d.ts.map`, nothing else (the rule `scripts/tarball-check.ts` applies in the workflow). npm
+   asks for the 2FA code. `--tag beta` matches a `-beta.N` version; a stable version takes
+   `--tag latest`. This publish has no provenance, because provenance needs the workflow's OIDC
+   token; every later version has it.
+3. On npmjs.com, for `nepdate-datepicker`: Settings, Trusted publishing, repository
+   `sanamhub/nepdate-typescript`, workflow `release.yml`, environment `production`. Then enable
+   "Require 2FA and disallow tokens".
+4. Check it: `npm view nepdate-datepicker@0.1.0-beta.1 version peerDependencies dist-tags`. The
+   `beta` tag points at `0.1.0-beta.1`. `latest` also points there, because npm sets `latest` on
+   a package's first publish whatever `--tag` says; the first stable release moves it.
+5. Merge the change that adds the package to the workflow. From the next tag on, the package is
+   released with the other two.
+
+If npm refuses the name, stop and follow ADR-0015: the owner decides the fallback.
+
 ## What the workflow jobs do
 
 `release.yml` has six jobs. The default permission is `contents: read`; only `publish` gets
@@ -94,18 +136,19 @@ be used. For 0.1.0 only:
    (dispatch), rejects anything that is not strict `X.Y.Z` or `X.Y.Z-PRERELEASE`, and writes the
    version and its npm dist-tag to the job output: `latest` for a stable version, the first
    pre-release identifier for a pre-release (`beta` for `0.1.0-beta.1`).
-6. `scripts/release-check.ts` checks both manifests, the peer range, the empty `[Unreleased]`
-   section and the changelog section, and names the expected value on every failure.
+6. `scripts/release-check.ts` checks the three manifests, both peer ranges, the empty
+   `[Unreleased]` section and the changelog section, and names the expected value on every failure.
 7. `scripts/data-status.ts` reads the built patro tables and blocks the release when fewer than
    183 days of public holiday data remain. Tithi and event warnings are printed in the job log;
    copy them into the release notes by hand.
-8. Build both packages, `npm pack` each one into `release-tarballs`, and run
+8. Build the three packages, `npm pack` each one into `release-tarballs`, and run
    `scripts/tarball-check.ts --sums release-tarballs/SHA256SUMS`. The check allows only `dist/`,
-   `LICENSE`, `NOTICE`, `README.md` and `package.json` in each tarball, checks the version and peer
-   range, and rejects `devDependencies`, runtime dependencies, install lifecycle scripts
+   `LICENSE`, `NOTICE`, `README.md` and `package.json` in the core and patro tarballs; the picker
+   tarball has a narrower list and must contain `dist/theme.css` and `dist/nepdate-datepicker.js`. It
+   checks the version and peer range, and rejects `devDependencies`, runtime dependencies, install lifecycle scripts
    (`preinstall`, `install`, `postinstall`, and `prepare` with its hooks), tar members
    that are not regular files or directories, and paths with `.` or `..` segments. Then run `publint` and `attw` on
-   each tarball and upload the directory including `SHA256SUMS` for seven days. The job output
+   each tarball (`attw` skips the picker's `theme.css` export, which has no types) and upload the directory including `SHA256SUMS` for seven days. The job output
    carries the version to `smoke`.
 
 `smoke` needs `pack`. It has `contents: read`, no environment and no secret:
@@ -114,9 +157,12 @@ be used. For 0.1.0 only:
 2. Create a clean project, install only `nepdate-X.Y.Z.tgz`, and run the README core example.
    `scripts/smoke.ts --mode core` reads the example from `README.md`, runs it, and fails if
    `node_modules/nepdate-patro` exists.
-3. Create a second clean project, install both tarballs, and run the README patro example.
-   `--mode patro` also checks `coverage()` reports BS 2077-01-01 to 2084-08-20.
-4. No registry login is used. A broken README example fails this job, so the published npm page and
+3. Create a second clean project, install the core and patro tarballs, and run the README patro
+   example. `--mode patro` also checks `coverage()` reports BS 2077-01-01 to 2084-08-20.
+4. Create a third clean project, install the core and picker tarballs, and run
+   `scripts/smoke.ts --mode picker`: the main entry loads in Node with no DOM, `monthGrid(2081, 4)`
+   has 6 rows, and the package has `dist/theme.css` and a `dist/nepdate-datepicker.js` with no import.
+5. No registry login is used. A broken README example fails this job, so the published npm page and
    the tarballs are checked against the same text.
 
 `mutation` needs `pack`, has `contents: read`, and runs the mutation suite plus
@@ -134,8 +180,9 @@ blocks the release.
 3. Download the tarballs and `SHA256SUMS` from `pack`. The tag commit is checked out again for the
    changelog.
 4. Set up Node with the npm registry, read the version and run `release-check` again. Run
-   `sha256sum -c SHA256SUMS` before either package is published.
-5. Publish `nepdate-core`, then `nepdate-patro`, using only the downloaded tarballs. The publish job does
+   `sha256sum -c SHA256SUMS` before any package is published.
+5. Publish `nepdate-core`, then `nepdate-patro`, then `nepdate-datepicker`, using only the downloaded
+   tarballs. The publish job does
    not run `npm pack`. Each step first runs
    `npm view <name>@X.Y.Z version`; if the version already exists the step is skipped, so a
    half-finished release can be re-run without publishing twice. Publishing uses OIDC trusted
@@ -145,27 +192,29 @@ blocks the release.
 
 `verify` needs `publish` and calls `verify-published.yml` with the published version. It has
 `contents: read`, no `id-token`, no environment and no checkout. On Linux, macOS and Windows, each
-with Node 22 and 24, it creates a clean project and installs `nepdate-core@X.Y.Z` and
-`nepdate-patro@X.Y.Z` exactly from the public registry, retrying every 30 seconds for up to 15
-minutes. It checks both installed versions, runs `npm audit signatures` (registry signatures and
-provenance), then the README quick start (`NepaliDate.of(2081, 2, 15)`, `toGregorian`, `toJSON`,
-`long`) and one `info()` call that checks Republic Day. A failed verify job means the release is not
+with Node 22 and 24, it creates a clean project and installs `nepdate-core@X.Y.Z`,
+`nepdate-patro@X.Y.Z` and `nepdate-datepicker@X.Y.Z` exactly from the public registry, retrying every
+30 seconds for up to 15 minutes. It checks the three installed versions, runs `npm audit signatures`
+(registry signatures and provenance), then the README quick start (`NepaliDate.of(2081, 2, 15)`,
+`toGregorian`, `toJSON`, `long`), one `info()` call that checks Republic Day and one
+`monthGrid(2081, 4)` call that checks 6 rows. A failed verify job means the release is not
 done. `verify-published.yml` can also be dispatched by hand with any published version.
 
 `github-release` needs `publish` and `verify` and is the only job with `contents: write`. It checks
 out the tag, downloads the tarballs, runs `sha256sum -c SHA256SUMS` again, and creates the GitHub
-Release `vX.Y.Z` with both tarballs attached. `scripts/release-notes.ts` writes the notes from the
+Release `vX.Y.Z` with the three tarballs attached. `scripts/release-notes.ts` writes the notes from the
 changelog section plus an install block for the exact version and a verification block. A version
 with a pre-release part becomes a GitHub pre-release. Because the job waits for `verify`, a failed
 verify leaves no release page for packages that are about to be deprecated.
 
 If `verify` fails, do not publish the same files again and do not use a different build under the
-same version. Deprecate both packages with a reason, fix the cause on `main`, and publish the next
-patch version of both with this runbook:
+same version. Deprecate the three packages with a reason, fix the cause on `main`, and publish the
+next patch version of all three with this runbook:
 
 ```
 npm deprecate nepdate-core@X.Y.Z "reason, use X.Y.(Z+1)"
 npm deprecate nepdate-patro@X.Y.Z "reason, use X.Y.(Z+1)"
+npm deprecate nepdate-datepicker@X.Y.Z "reason, use X.Y.(Z+1)"
 ```
 
 The manual checks below remain useful evidence after `verify` passes.
@@ -177,11 +226,12 @@ Run these after the workflow finishes, before announcing the release:
 ```
 npm view nepdate-core@X.Y.Z version
 npm view nepdate-patro@X.Y.Z version peerDependencies
+npm view nepdate-datepicker@X.Y.Z version peerDependencies
 npm view nepdate-core@X.Y.Z dist.integrity dist.attestations
 ```
 
-`dist.attestations` must name the provenance attestation. On the npm page, both versions must show
-the provenance badge.
+`dist.attestations` must name the provenance attestation. On the npm page, the three versions must
+show the provenance badge.
 
 Install the published packages in a clean directory and verify the registry signatures:
 
@@ -202,16 +252,18 @@ npx publint nepdate-X.Y.Z.tgz
 npx attw nepdate-X.Y.Z.tgz --profile esm-only
 ```
 
-Repeat the install and `attw` check for `nepdate-patro@X.Y.Z`; it must install `nepdate-core@X.Y.Z` as its
-peer. A local `npm pack` before publishing is not evidence about the registry.
+Repeat the install and `attw` check for `nepdate-patro@X.Y.Z` and `nepdate-datepicker@X.Y.Z` (with
+`--exclude-entrypoints ./theme.css`); each must install `nepdate-core@X.Y.Z` as its peer. A local `npm pack` before publishing is not evidence about the registry.
 
 ## Smoke installs
 
-The `smoke` job runs the two installs on every release. Run them again by hand only if the job was
+The `smoke` job runs the three installs on every release. Run them again by hand only if the job was
 skipped or a tarball was rebuilt outside the workflow. Core only: a clean project installs
 `nepdate-core@X.Y.Z`, runs the README core example, and has no `node_modules/nepdate-patro`. Both
 packages: a second clean project installs both versions, runs the README patro example, and checks
-`coverage()` reports BS 2077-01-01 to 2084-08-20. If Deno is available, run the
+`coverage()` reports BS 2077-01-01 to 2084-08-20. Picker: a third clean project installs
+`nepdate-core@X.Y.Z` and `nepdate-datepicker@X.Y.Z` and runs `scripts/smoke.ts --mode picker`. If Deno
+is available, run the
 `npm:nepdate-core@X.Y.Z` example from the README. Record the Node, npm and Deno versions in the release
 notes.
 
@@ -222,19 +274,20 @@ the version, and does not fix a bad tarball.
 
 If a published version is wrong:
 
-1. Deprecate both packages with a reason:
+1. Deprecate the three packages with a reason:
 
    ```
    npm deprecate nepdate-core@X.Y.Z "reason, use X.Y.(Z+1)"
    npm deprecate nepdate-patro@X.Y.Z "reason, use X.Y.(Z+1)"
+   npm deprecate nepdate-datepicker@X.Y.Z "reason, use X.Y.(Z+1)"
    ```
 
 2. Fix the cause on `main`, add a changelog entry under `## [Unreleased]`, and release X.Y.(Z+1) of
-   both packages with this runbook.
+   the three packages with this runbook.
 3. Note the deprecation and the replacement in the changelog and the GitHub Release.
 
-If the failure is after `nepdate-core` is published and before `nepdate-patro` is, fix the cause and
-re-run the failed publish job. It skips the version that already exists. Do not lower the version.
+If the failure is after `nepdate-core` is published and before `nepdate-datepicker` is, fix the cause
+and re-run the failed publish job. It skips the version that already exists. Do not lower the version.
 
 ## Name fallback
 
@@ -258,6 +311,6 @@ names after the switch.
 
 ## After releasing
 
-1. Check both npm pages: version X.Y.Z, provenance badge, the right README.
+1. Check the three npm pages: version X.Y.Z, provenance badge, the right README.
 2. Add an empty `## [Unreleased]` section to `CHANGELOG.md` in a pull request.
 3. Close the release issue with the npm links, the GitHub Release link and the smoke results.
