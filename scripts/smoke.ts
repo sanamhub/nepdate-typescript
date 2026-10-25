@@ -3,6 +3,10 @@
 //
 //   node scripts/smoke.ts --mode core --project <clean project with nepdate-core installed>
 //   node scripts/smoke.ts --mode patro --project <clean project with both packages installed>
+//   node scripts/smoke.ts --mode picker --project <clean project with core and picker installed>
+//
+// The picker has no README example that runs without a DOM, so its mode checks the main entry in
+// plain Node and the two files the build adds after tsc (ADR-0015).
 //
 // The project must already have the tarballs installed. This script never installs, publishes or
 // reads a registry; the workflow installs the uploaded tarballs, and a local run can do the same
@@ -72,12 +76,63 @@ function coverageRange(): { start: string; end: string } {
   return { start: first[0] as string, end: last.at(-1) as string };
 }
 
+// The main entry must load where there is no DOM (Node, SSR): the elements extend an empty class
+// there and defineElements() does nothing. The standalone file must not import anything, the rule
+// gate 12 applies to the build.
+function pickerSmoke(project: string): void {
+  const dist = join(project, "node_modules", "nepdate-picker", "dist");
+  for (const name of ["theme.css", "nepdate-picker.js"]) {
+    if (!existsSync(join(dist, name))) throw new Error(`nepdate-picker has no dist/${name}`);
+  }
+  const standalone = readFileSync(join(dist, "nepdate-picker.js"), "utf8");
+  if (/\bfrom\s*["']|\bimport\s*["'(]/.test(standalone)) {
+    throw new Error("nepdate-picker dist/nepdate-picker.js imports a module");
+  }
+  const check = join(project, "picker-check.mjs");
+  writeFileSync(
+    check,
+    [
+      'import { defineElements, monthGrid } from "nepdate-picker";',
+      'if (typeof globalThis.customElements !== "undefined") {',
+      '  console.error("smoke: this check needs a runtime without customElements");',
+      "  process.exit(1);",
+      "}",
+      "const rows = monthGrid(2081, 4).length;",
+      "if (rows !== 6) {",
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: this is generated code.
+      "  console.error(`smoke: monthGrid(2081, 4) has ${rows} rows, expected 6`);",
+      "  process.exit(1);",
+      "}",
+      'if (typeof defineElements !== "function") {',
+      '  console.error("smoke: defineElements is not a function");',
+      "  process.exit(1);",
+      "}",
+      "defineElements();",
+      'console.log("smoke: picker entry loads without a DOM, monthGrid(2081, 4) has 6 rows");',
+      "",
+    ].join("\n"),
+  );
+  runNode(check, project, "picker check");
+  console.log(
+    `smoke: picker ${packageVersion(project, "nepdate-picker")} with core ${packageVersion(
+      project,
+      "nepdate-core",
+    )} ok, theme.css and a standalone file with no import`,
+  );
+}
+
 const mode = argument("mode");
 const project = resolve(argument("project"));
 const readme = resolve(process.env.SMOKE_README ?? join(ROOT, "README.md"));
-if (mode !== "core" && mode !== "patro") throw new Error(`unknown mode ${mode}`);
+if (mode !== "core" && mode !== "patro" && mode !== "picker") {
+  throw new Error(`unknown mode ${mode}`);
+}
 if (!existsSync(join(project, "package.json"))) {
   throw new Error(`${project} has no package.json; create a clean project first`);
+}
+if (mode === "picker") {
+  pickerSmoke(project);
+  process.exit(0);
 }
 const blocks = tsBlocks(readFileSync(readme, "utf8"));
 const block =
