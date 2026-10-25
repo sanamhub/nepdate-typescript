@@ -10,3 +10,6 @@ packages/nepdate/README.md
 .readme-check/
 reports/
 .stryker-tmp/
+
+# Vitest browser mode failure screenshots
+.vitest/

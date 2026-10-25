@@ -29,6 +29,7 @@ Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit (today
 | T11 | `T11-workflow-yaml.md` | workflow tests parse the YAML instead of matching text |
 | T12 | `T12-workflow-coverage.md` | parsed tests for every workflow, shared pin and expression rules |
 | T13 | `T13-ci-without-hub-remote.md` | shared checksum gate, no cross-repo reusable workflows |
+| T15 | `T15-picker.md` | package `nepdate-picker`: month grid, `<nepdate-calendar>`, form-associated `<nepdate-input>`, theme (ADR-0015) |
 
 ## Checkpoints
 

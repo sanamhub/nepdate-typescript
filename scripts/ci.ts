@@ -9,9 +9,14 @@ import { gunzipSync, gzipSync } from "node:zlib";
 
 const CORE = "packages/nepdate";
 const PATRO = "packages/nepdate-patro";
+const PICKER = "packages/nepdate-picker";
 const EVENT_SENTINEL = "World Day Against Human Trafficking";
 const CORE_GZIP_LIMIT = 8 * 1024;
 const PATRO_GZIP_LIMIT = 28 * 1024;
+// ADR-0015: the picker without the core (its peer) was 5,383 B gzip when it was added.
+const PICKER_GZIP_LIMIT = 6 * 1024;
+// The standalone file carries the core too: 10,447 B gzip when it was added.
+const STANDALONE_GZIP_LIMIT = 11 * 1024;
 
 class GateError extends Error {}
 
@@ -36,11 +41,12 @@ function capture(command: string): Buffer {
   return result.stdout;
 }
 
-function buildAndShape(pkg: string): void {
+function buildAndShape(pkg: string, afterBuild?: () => void, attwFlags = ""): void {
   rmSync(join(pkg, "dist"), { recursive: true, force: true });
   run(`npx tsc -p ${pkg}/tsconfig.build.json`);
+  afterBuild?.();
   run(`npx publint ${pkg}`);
-  run(`npx attw --pack ${pkg} --profile esm-only`);
+  run(`npx attw --pack ${pkg} --profile esm-only${attwFlags}`);
 }
 
 function jsFiles(dir: string): string[] {
@@ -113,6 +119,36 @@ function patroSize(): void {
   }
 }
 
+function pickerSize(): void {
+  const bundle = capture(
+    `npx esbuild ${PICKER}/dist/index.js --bundle --minify --format=esm --external:nepdate-core`,
+  );
+  const gzipped = gzipSync(bundle, { level: 9 }).length;
+  console.log(
+    `picker bundle: ${bundle.length} B minified, ${gzipped} B gzip (limit ${PICKER_GZIP_LIMIT} B)`,
+  );
+  if (gzipped > PICKER_GZIP_LIMIT) {
+    throw new GateError(`picker bundle is ${gzipped} B gzip, limit ${PICKER_GZIP_LIMIT} B`);
+  }
+}
+
+// dist/nepdate-picker.js must load from a plain <script type="module">: no import left in it, so
+// no bare "nepdate-core" that a browser without an import map cannot resolve.
+function pickerStandalone(): void {
+  const file = readFileSync(`${PICKER}/dist/nepdate-picker.js`);
+  const text = file.toString("utf8");
+  if (/\bfrom\s*["']|\bimport\s*["'(]/.test(text)) {
+    throw new GateError("dist/nepdate-picker.js still imports a module");
+  }
+  const gzipped = gzipSync(file, { level: 9 }).length;
+  console.log(
+    `picker standalone: ${file.length} B minified, ${gzipped} B gzip (limit ${STANDALONE_GZIP_LIMIT} B)`,
+  );
+  if (gzipped > STANDALONE_GZIP_LIMIT) {
+    throw new GateError(`picker standalone is ${gzipped} B gzip, limit ${STANDALONE_GZIP_LIMIT} B`);
+  }
+}
+
 // Packed smoke (T8-06): the pack, offline install and both smoke modes live in
 // scripts/packed-smoke.ts so gate 11 and the oldest-node job run one path (T9-01).
 const gates: [name: string, body: () => void][] = [
@@ -125,6 +161,23 @@ const gates: [name: string, body: () => void][] = [
   ["core isolation + size", coreIsolation],
   ["patro types", () => run(`npx tsc -p ${PATRO}/tsconfig.json`)],
   ["patro tests", () => run("npm test -w nepdate-patro")],
+  // Before gate 10: its script tests run the @examples, which import the built picker.
+  ["picker types", () => run(`npx tsc -p ${PICKER}/tsconfig.json`)],
+  ["picker tests", () => run("npm test -w nepdate-picker")],
+  [
+    "picker build + shape + size",
+    () => {
+      // The package's build script also runs picker-assets: theme.css and the standalone file.
+      buildAndShape(
+        PICKER,
+        () => run("node scripts/picker-assets.ts"),
+        // A stylesheet has no types to resolve.
+        " --exclude-entrypoints ./theme.css",
+      );
+      pickerSize();
+      pickerStandalone();
+    },
+  ],
   [
     "patro build + shape + tool types",
     () => {

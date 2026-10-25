@@ -125,7 +125,8 @@ jobs:
       - if: matrix.runtime == 'bun'
         run: bun -e "await import('./packages/nepdate/dist/index.js'); await import('./packages/nepdate-patro/dist/index.js')"
 
-  # Browser smoke test (ADR-0004): imports both built packages in Chromium through Vitest browser mode.
+  # Browser tests (ADR-0004, ADR-0015): the built packages load in Chromium, and the picker's
+  # elements run in Chromium, Firefox and WebKit, through Vitest browser mode.
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -137,6 +138,8 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run build
       - run: npm run test:browser -w nepdate-patro
+      # ADR-0015: the picker's elements in all three engines.
+      - run: npm run test:browser -w nepdate-picker

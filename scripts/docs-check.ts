@@ -30,7 +30,11 @@ function codeBlocks(text: string): Block[] {
   return blocks;
 }
 
-const README_FILES = ["README.md", "packages/nepdate-patro/README.md"];
+const README_FILES = [
+  "README.md",
+  "packages/nepdate-patro/README.md",
+  "packages/nepdate-picker/README.md",
+];
 const outDir = join(ROOT, ".readme-check");
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
@@ -59,7 +63,7 @@ for (const file of README_FILES) {
 
 const DECLARATION =
   /^export (?:declare )?(?:const|function|class|interface|type|let|enum)\s+[A-Za-z_$]/;
-for (const pkg of ["nepdate", "nepdate-patro"]) {
+for (const pkg of ["nepdate", "nepdate-patro", "nepdate-picker"]) {
   const dir = join(ROOT, "packages", pkg, "dist");
   if (!existsSync(dir)) {
     fail(`packages/${pkg}/dist is missing; run npm run build first`);
@@ -92,7 +96,7 @@ function documentationFiles(): string[] {
   }
   // packages/nepdate/README.md is a copy of the root README made by prepack, which is scanned
   // above; only the patro package carries its own README.
-  for (const pkg of ["nepdate-patro"]) {
+  for (const pkg of ["nepdate-patro", "nepdate-picker"]) {
     const path = `packages/${pkg}/README.md`;
     if (existsSync(join(ROOT, path))) files.push(path);
   }

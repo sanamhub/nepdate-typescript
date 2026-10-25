@@ -1,0 +1,134 @@
+/* nepdate-picker/theme.css: a ready-made look for <nepdate-calendar> and <nepdate-input>.
+   Optional. Without it the elements are unstyled apart from layout, and every piece can be styled
+   with ::part(). Change the look by setting these properties on the elements or any ancestor. */
+
+nepdate-calendar,
+nepdate-input {
+  /* light-dark() follows the page's color-scheme: declare `color-scheme: light dark` on the page
+     (or set it from a theme switch) and the picker follows. */
+  --nepdate-font: inherit;
+  --nepdate-text: light-dark(#211c17, #f1ece4);
+  --nepdate-muted: light-dark(#6e655c, #9b9288);
+  --nepdate-surface: light-dark(#ffffff, #201b16);
+  --nepdate-hover: light-dark(#f3eee7, #2c2620);
+  --nepdate-border: light-dark(#e7e0d6, #3a332c);
+  --nepdate-accent: light-dark(#3f6383, #8fb1d0);
+  --nepdate-on-accent: light-dark(#ffffff, #16120e);
+  --nepdate-today: light-dark(#c12b2b, #e05b5b);
+  --nepdate-radius: 0.5rem;
+  --nepdate-focus: 2px solid var(--nepdate-accent);
+  font-family: var(--nepdate-font);
+  color: var(--nepdate-text);
+}
+
+/* The calendar */
+
+nepdate-calendar::part(header),
+nepdate-input::part(header) {
+  padding-bottom: 0.5rem;
+}
+nepdate-calendar::part(previous),
+nepdate-calendar::part(next),
+nepdate-input::part(previous),
+nepdate-input::part(next) {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: var(--nepdate-radius);
+  background: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+nepdate-calendar::part(month-select),
+nepdate-calendar::part(year-select),
+nepdate-input::part(month-select),
+nepdate-input::part(year-select) {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--nepdate-border);
+  border-radius: calc(var(--nepdate-radius) - 0.15rem);
+  background: var(--nepdate-surface);
+  font-weight: 600;
+}
+nepdate-calendar::part(weekday),
+nepdate-input::part(weekday) {
+  padding: 0.35rem 0;
+  color: var(--nepdate-muted);
+  font-size: 0.75rem;
+}
+nepdate-calendar::part(day),
+nepdate-input::part(day) {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--nepdate-radius);
+  font-variant-numeric: tabular-nums;
+}
+nepdate-calendar::part(day):hover,
+nepdate-input::part(day):hover {
+  background: var(--nepdate-hover);
+}
+nepdate-calendar::part(today),
+nepdate-input::part(today) {
+  color: var(--nepdate-today);
+  font-weight: 700;
+}
+nepdate-calendar::part(selected),
+nepdate-input::part(selected) {
+  background: var(--nepdate-accent);
+  color: var(--nepdate-on-accent);
+}
+nepdate-calendar::part(disabled),
+nepdate-input::part(disabled) {
+  background: none;
+  opacity: 0.35;
+}
+nepdate-calendar::part(previous):focus-visible,
+nepdate-calendar::part(next):focus-visible,
+nepdate-calendar::part(day):focus-visible,
+nepdate-input::part(previous):focus-visible,
+nepdate-input::part(next):focus-visible,
+nepdate-input::part(day):focus-visible,
+nepdate-input::part(button):focus-visible {
+  outline: var(--nepdate-focus);
+  outline-offset: 1px;
+}
+nepdate-calendar::part(previous):disabled,
+nepdate-calendar::part(next):disabled,
+nepdate-input::part(previous):disabled,
+nepdate-input::part(next):disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* The input */
+
+nepdate-input::part(field) {
+  border: 1px solid var(--nepdate-border);
+  border-radius: var(--nepdate-radius);
+  background: var(--nepdate-surface);
+}
+nepdate-input::part(field):focus-within {
+  outline: var(--nepdate-focus);
+  outline-offset: 1px;
+}
+nepdate-input::part(input) {
+  padding: 0.5rem 0.65rem;
+  border: 0;
+  background: none;
+  outline: none;
+}
+nepdate-input::part(button) {
+  padding: 0 0.65rem;
+  border: 0;
+  border-left: 1px solid var(--nepdate-border);
+  background: none;
+  color: var(--nepdate-muted);
+}
+nepdate-input::part(popover) {
+  padding: 0.75rem;
+  border: 1px solid var(--nepdate-border);
+  border-radius: calc(var(--nepdate-radius) + 0.25rem);
+  background: var(--nepdate-surface);
+  color: var(--nepdate-text);
+  box-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.25);
+}

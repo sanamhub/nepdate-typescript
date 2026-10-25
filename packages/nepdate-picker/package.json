@@ -1,0 +1,60 @@
+{
+  "name": "nepdate-picker",
+  "version": "0.1.0-beta.1",
+  "description": "Bikram Sambat date picker web components: an unstyled calendar and a form input, with an optional theme.",
+  "license": "MIT",
+  "keywords": [
+    "bikram-sambat",
+    "nepali-date",
+    "nepali-date-picker",
+    "date-picker",
+    "web-components"
+  ],
+  "homepage": "https://github.com/sanamhub/nepdate-typescript#readme",
+  "bugs": "https://github.com/sanamhub/nepdate-typescript/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanamhub/nepdate-typescript.git",
+    "directory": "packages/nepdate-picker"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "sideEffects": [
+    "./dist/define.js",
+    "./dist/nepdate-picker.js",
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./define": {
+      "types": "./dist/define.d.ts",
+      "default": "./dist/define.js"
+    },
+    "./standalone": {
+      "types": "./dist/define.d.ts",
+      "default": "./dist/nepdate-picker.js"
+    },
+    "./theme.css": "./dist/theme.css"
+  },
+  "unpkg": "./dist/nepdate-picker.js",
+  "jsdelivr": "./dist/nepdate-picker.js",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/picker-assets.ts",
+    "test": "vitest run --coverage",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "prepack": "node -e \"require('node:fs').copyFileSync('../../LICENSE', 'LICENSE')\""
+  },
+  "peerDependencies": {
+    "nepdate-core": "~0.1.0-beta.1"
+  }
+}
