@@ -38,7 +38,7 @@ test("EPOCH_UNIX_DAYS is days_from_civil(1844, 4, 11)", () => {
   expect(Date.UTC(1844, 3, 11) / 86_400_000).toBe(EPOCH_UNIX_DAYS);
 });
 
-// T8 review: the packed table uses only part of the alphabet, so the decoder is checked against
+// The packed table uses only part of the alphabet, so the decoder is checked against
 // every base64 character here rather than through the table.
 test("base64Value maps the whole base64 alphabet", () => {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

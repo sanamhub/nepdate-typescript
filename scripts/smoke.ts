@@ -1,5 +1,5 @@
-// Runs the README examples against locally installed tarballs, for the release smoke job
-// (T7-01). The README is the source: a broken example breaks this script.
+// Runs the README examples against locally installed tarballs, for the release smoke job. The
+// README is the source: a broken example breaks this script.
 //
 //   node scripts/smoke.ts --mode core --project <clean project with nepdate-core installed>
 //   node scripts/smoke.ts --mode patro --project <clean project with both packages installed>
@@ -78,7 +78,7 @@ function coverageRange(): { start: string; end: string } {
 
 // The main entry must load where there is no DOM (Node, SSR): the elements extend an empty class
 // there and defineElements() does nothing. The standalone file must not import anything, the rule
-// gate 12 applies to the build.
+// the picker build gate applies to the build.
 function pickerSmoke(project: string): void {
   const dist = join(project, "node_modules", "nepdate-datepicker", "dist");
   for (const name of ["theme.css", "nepdate-datepicker.js"]) {

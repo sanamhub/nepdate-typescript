@@ -1,4 +1,4 @@
-// Tests for runnable TSDoc examples (T9-03). The negative controls are a new export without an
+// Tests for runnable TSDoc examples (ADR-0010). The failing cases are a new export without an
 // example, an example with a wrong `// =>` value, and an example with no result comment.
 
 import { strict as assert } from "node:assert";

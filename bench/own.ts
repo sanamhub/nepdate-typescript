@@ -1,10 +1,10 @@
 // B1 to B8 of shared/spec/BENCHMARK.md. Every row is measured in a fresh pinned process by
-// bench/measure.ts, so a row never shares a JIT, heap or import graph with another row (T6-01).
+// bench/measure.ts, so a row never shares a JIT, heap or import graph with another row.
 // Run from the repository root:
 //   node bench/own.ts
 //   node bench/own.ts --json > own.json
 // For the published numbers the parent is started from an idle shell; each child samples load
-// before its measurement and retries when all CPUs are busier than 15% (T6-04).
+// before its measurement and retries when all CPUs are busier than 15% (ADR-0006).
 
 import { outDir, writeReport } from "./out.ts";
 import { OWN_OPS, type RowResult, runMeasure } from "./protocol.ts";

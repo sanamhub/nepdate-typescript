@@ -7,7 +7,7 @@ import {
   weekdayShortName,
 } from "../src/index.js";
 
-describe("names and digits (T3-01)", () => {
+describe("names and digits", () => {
   test("toNepaliDigits maps by char-code offset", () => {
     expect(toNepaliDigits(2081)).toBe("२०८१");
     expect(toNepaliDigits(5, 2)).toBe("०५");

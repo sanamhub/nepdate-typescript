@@ -11,7 +11,7 @@ function kindOf(fn: () => unknown): string | undefined {
   return undefined;
 }
 
-describe("BS <-> AD (T1-04)", () => {
+describe("BS <-> AD", () => {
   test("MIN and MAX map to AD 1844-04-11 and 2143-04-15", () => {
     expect(NepaliDate.MIN.toGregorian()).toEqual({ year: 1844, month: 4, day: 11 });
     expect(NepaliDate.MAX.toGregorian()).toEqual({ year: 2143, month: 4, day: 15 });

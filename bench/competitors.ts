@@ -83,8 +83,7 @@ export async function loadCompetitor(id: string): Promise<CompetitorImplementati
           const g = NepaliDateConverter.fromAD(
             new Date(AD_YEARS[i], AD_MONTHS[i] - 1, AD_DAYS[i]),
           ).getBS();
-          // getBS() returns a 0-based month; the old harness compared this to an AD date and
-          // reported every B2 row as a mismatch at the first date (T6-03 fixes it).
+          // getBS() returns a 0-based month.
           return iso(g.year, g.month + 1, g.date);
         },
       };

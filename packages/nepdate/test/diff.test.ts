@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { NepaliDate } from "../src/index.js";
 import { bs } from "./helpers.js";
 
-// T2 plan table (from ALGORITHM §8a) plus the §8a examples.
+// The ALGORITHM §8a table plus the §8a examples.
 test.each([
   ["2081-04-32", "2081-06-30", false, 0, 2, 0, 61],
   ["2081-04-32", "2082-04-01", false, 0, 11, 1, 335],

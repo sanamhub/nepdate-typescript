@@ -1,4 +1,4 @@
-// Tests for the tarball member and manifest rules (T10-03). The tar reader itself is exercised by
+// Tests for the tarball member and manifest rules (ADR-0011). The tar reader itself is exercised by
 // the release pack job; these cases check the allow-list and the manifest with plain members.
 
 import { strict as assert } from "node:assert";

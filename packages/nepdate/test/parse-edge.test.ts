@@ -46,7 +46,7 @@ describe("strict parse messages and Devanagari boundaries", () => {
 });
 
 describe("lenient parse edges", () => {
-  // T8 review: inputs that reach the lenient-only branches; strict parse rejects each one first.
+  // Inputs that reach the lenient-only branches; strict parse rejects each one first.
   test.each([
     ["2081 1", "unrecognized", "unrecognized input"],
     ["Kartik Magh 2080 1 15", "unrecognized", "unrecognized input"],

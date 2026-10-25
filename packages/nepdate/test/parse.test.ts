@@ -15,7 +15,7 @@ const KIND: Record<string, ErrorKind> = {
   "ERR:Unrecognized": "unrecognized",
 };
 
-describe("strict parse (T3-04)", () => {
+describe("strict parse", () => {
   test("parse.tsv strict column (69 rows)", () => {
     const rows = readVectors("parse.tsv");
     expect(rows).toHaveLength(69);
@@ -42,7 +42,7 @@ describe("strict parse (T3-04)", () => {
   });
 });
 
-describe("lenient parse (T3-05)", () => {
+describe("lenient parse", () => {
   test("parse.tsv lenient column (69 rows)", () => {
     const rows = readVectors("parse.tsv");
     expect(rows).toHaveLength(69);

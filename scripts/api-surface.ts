@@ -1,5 +1,5 @@
-// Canonical public API surface (T9-02). The snapshot reader follows the re-export aliases in each
-// package's built `dist/index.d.ts` and records one canonical line per public item. The same
+// Canonical public API surface (ADR-0010). The snapshot reader follows the re-export aliases in
+// each package's built `dist/index.d.ts` and records one canonical line per public item. The same
 // canonical form is parsed from the TypeScript fences in docs/API.md, so the snapshot and the
 // contract are compared as signatures, not names in prose.
 //

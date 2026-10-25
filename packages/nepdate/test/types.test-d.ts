@@ -1,4 +1,4 @@
-// Type-level tests, checked by `tsc -p packages/nepdate/tsconfig.json` (CI gate 3).
+// Type-level tests, checked by `tsc -p packages/nepdate/tsconfig.json` (the core types gate).
 
 import { expectTypeOf } from "vitest";
 import { type GregorianDate, NepaliDate } from "../src/index.js";

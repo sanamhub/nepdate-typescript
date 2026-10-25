@@ -1,5 +1,5 @@
 // C# NepDate's own tests (shared/spec/vectors/csharp-tests/catalog.tsv), translated to this API.
-// One test per catalogue row (docs/plan/00-ROADMAP.md, "C# test catalogue").
+// One test per catalogue row (shared/spec/PORT-PLAN.md, "C# test catalogue").
 
 import { describe, expect, expectTypeOf, vi } from "vitest";
 import {
@@ -65,7 +65,7 @@ function forEachDay(fn: (date: NepaliDate) => void): number {
   return count;
 }
 
-// T4-03: the rows that read "today" run with a fixed clock, so their ranges are deterministic.
+// The rows that read "today" run with a fixed clock, so their ranges are deterministic.
 // 2024-07-30 18:30 UTC is 2081-04-16 in Nepal and 2081-04-15 in UTC.
 function withToday<T>(fn: (today: NepaliDate) => T): T {
   vi.useFakeTimers();
@@ -104,7 +104,7 @@ const equalsTakesOnlyDates: CatalogCase = () => {
   expectTypeOf(d1.equals).parameter(0).toEqualTypeOf<NepaliDate>();
 };
 
-const needsParse: CatalogCase = { pending: "T3-04: needs NepaliDate.parse" };
+const needsParse: CatalogCase = { pending: "needs NepaliDate.parse" };
 const autoAdjust: CatalogCase = { deviation: "D-06" };
 
 const cases: Record<string, CatalogCase> = {
@@ -352,12 +352,13 @@ const cases: Record<string, CatalogCase> = {
     expect(of(2080, 5, 15).equals(of(2080, 5, 15))).toBe(true),
   "OptimizationVerificationTests.Equals_DifferentDates_ReturnsFalse": () =>
     expect(of(2080, 5, 15).equals(of(2080, 5, 16))).toBe(false),
-  // JavaScript has no hash code; T3-02 checks that equal dates give the same toJSON() Map key.
+  // JavaScript has no hash code; the format tests check that equal dates give the same toJSON() Map
+  // key.
   "OptimizationVerificationTests.GetHashCode_EqualDates_SameHashCode": {
-    pending: "T3-02: needs toJSON as the Map key",
+    pending: "needs toJSON as the Map key",
   },
   "OptimizationVerificationTests.GetHashCode_StableAcrossMultipleCalls": {
-    pending: "T3-02: needs toJSON as the Map key",
+    pending: "needs toJSON as the Map key",
   },
   "OptimizationVerificationTests.IsLeapYear_ChecksEnglishYearCorrectly#1": { deviation: "D-12" },
   "OptimizationVerificationTests.IsLeapYear_ChecksEnglishYearCorrectly#2": { deviation: "D-12" },

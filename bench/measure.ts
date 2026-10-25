@@ -1,4 +1,4 @@
-// One benchmark row in one fresh process (T6-01). Run by bench/own.ts, bench/compare.ts and
+// One benchmark row in one fresh process. Run by bench/own.ts, bench/compare.ts and
 // bench/order.ts, never directly. It prints exactly one JSON object on stdout.
 
 import { setTimeout as delay } from "node:timers/promises";
@@ -22,7 +22,7 @@ async function sampleLoad(): Promise<{ core: number; all: number }> {
 }
 
 // Sample the background load while the measured function runs. CPU 2 is left out because the
-// benchmark keeps it busy by design (T8-05).
+// benchmark keeps it busy by design (ADR-0008).
 async function during<T>(body: () => Promise<T>): Promise<{ value: T; load: number }> {
   const samples: number[] = [];
   let running = true;

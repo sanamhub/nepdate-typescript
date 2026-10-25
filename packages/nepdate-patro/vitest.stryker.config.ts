@@ -1,5 +1,5 @@
-// Vitest settings for the Stryker runs only (T8). The patro suite is small; the longer timeout
-// keeps a shared machine from turning a slow worker into a failed dry run.
+// Vitest settings for the Stryker runs only (ADR-0007). The patro suite is small; the longer
+// timeout keeps a shared machine from turning a slow worker into a failed dry run.
 
 import type { Plugin } from "vite";
 import { mergeConfig } from "vitest/config";

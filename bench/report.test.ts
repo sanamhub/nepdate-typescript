@@ -1,4 +1,4 @@
-// Unit tests for the BenchmarkDotNet CSV reader (T7-03). Run from the repository root:
+// Unit tests for the BenchmarkDotNet CSV reader. Run from the repository root:
 //   node --test bench/report.test.ts
 
 import assert from "node:assert/strict";

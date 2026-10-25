@@ -24,7 +24,7 @@ test("fromGregorian(g).toGregorian() equals g, and weekday matches Date", () => 
   );
 });
 
-// T2-06: arithmetic round-trips and the clamp bound. Two serials keep addDays(n) and its inverse
+// Arithmetic round-trips and the clamp bound. Two serials keep addDays(n) and its inverse
 // inside the range, and addMonths draws n from the month index so the target month exists.
 test("addDays(n) then addDays(-n) round-trips, and daysUntil agrees", () => {
   const serial = fc.integer({ min: 0, max: 109211 });
@@ -55,7 +55,7 @@ test("addMonths(n, clamp) never moves past the original day", () => {
   );
 });
 
-// T3-06: the formatters and parsers round-trip every date.
+// The formatters and parsers round-trip every date.
 test("parse(toString()), parse(short ne) and parseLenient(long()) round-trip", () => {
   fc.assert(
     fc.property(fc.integer({ min: 0, max: 109211 }), (serial) => {
@@ -68,7 +68,7 @@ test("parse(toString()), parse(short ne) and parseLenient(long()) round-trip", (
   );
 });
 
-// T8 review: parseLenient tries strict parse first. Lenient parsing returns the same fields for
+// parseLenient tries strict parse first. Lenient parsing returns the same fields for
 // every strict-valid input, so the strict attempt is a fast path only; docs/mutation/equivalent.md
 // cites this property for the parseLenient try-block mutant.
 test("lenientParts equals strictParts on every strict-valid input", () => {

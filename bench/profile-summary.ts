@@ -1,4 +1,4 @@
-// Summarise a V8 .cpuprofile by self time (T7-05). Usage:
+// Summarise a V8 .cpuprofile by self time. Usage:
 //   node bench/profile-summary.ts <file.cpuprofile> [top]
 // The profile's samples and timeDeltas are in microseconds; a missing timeDelta counts as zero.
 

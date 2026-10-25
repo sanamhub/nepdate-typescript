@@ -1,5 +1,5 @@
-// Unit tests for the load split and the quiet decision (T8-05). These use synthetic samples and do
-// not spawn a benchmark.
+// Unit tests for the load split and the quiet decision (ADR-0008). These use synthetic samples and
+// do not spawn a benchmark.
 
 import { strict as assert } from "node:assert";
 import test from "node:test";
@@ -30,7 +30,7 @@ test("meanBusy rejects snapshots of different lengths", () => {
 });
 
 test("a background sample above 15% marks the row LOADED", () => {
-  // Negative control: the before-row all-CPU figure is quiet, the during-row figure is not.
+  // The before-row all-CPU figure is quiet, the during-row figure is not.
   assert.equal(decideLoaded(5, 20), true);
   assert.equal(decideLoaded(20, 5), true);
 });

@@ -11,7 +11,7 @@ function kindOf(fn: () => unknown): ErrorKind | undefined {
   return undefined;
 }
 
-describe("NepDateError (T1-02)", () => {
+describe("NepDateError", () => {
   test("is a RangeError named NepDateError with a kind", () => {
     let caught: unknown;
     try {
@@ -27,7 +27,7 @@ describe("NepDateError (T1-02)", () => {
   });
 });
 
-describe("NepaliDate.of (T1-03)", () => {
+describe("NepaliDate.of", () => {
   test("accepts 2081-04-32", () => {
     const d = NepaliDate.of(2081, 4, 32);
     expect([d.year, d.month, d.day]).toEqual([2081, 4, 32]);
