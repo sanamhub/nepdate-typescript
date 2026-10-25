@@ -82,7 +82,7 @@ AC:
 AC:
 - `docs/runbooks/release.md` covers three packages and has a "First publish of a new package"
   section for `nepdate-picker`: the owner runs `npm run build` and
-  `npm publish packages/nepdate-picker --access public --tag beta` once from a clean `main` checkout
+  `npm publish ./packages/nepdate-picker --access public --tag beta` once from a clean `main` checkout
   with npm 2FA, then adds the trusted publisher with the values the core and patro use.
 - `scripts/release-notes.ts` says three packages and gives the picker its own install line;
   `release-notes.test.ts` checks it.

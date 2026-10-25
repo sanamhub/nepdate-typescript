@@ -35,17 +35,24 @@ export function releaseNotes(changelog: string, version: string): string {
 
 \`\`\`bash
 npm install nepdate-core@${version} nepdate-patro@${version}
+\`\`\`
+
+The date picker installs with the core it peers on:
+
+\`\`\`bash
+npm install nepdate-core@${version} nepdate-picker@${version}
 \`\`\`${channel}
 
 ### Verification
 
-- Both packages were published from this tag by GitHub Actions with npm provenance. After
+- The three packages were published from this tag by GitHub Actions with npm provenance. After
   installing, \`npm audit signatures\` checks the registry signatures and the provenance
   attestations.
-- The two tarballs attached here are the ones that were published. \`SHA256SUMS\` in the workflow
-  run lists their hashes.
-- Before this release page was created, both versions were installed from the registry on Linux,
-  macOS and Windows with Node 22 and 24, and the README quick start and one patro lookup ran.
+- The three tarballs attached here are the ones that were published. \`SHA256SUMS\` in the
+  workflow run lists their hashes.
+- Before this release page was created, the three versions were installed from the registry on
+  Linux, macOS and Windows with Node 22 and 24, and the README quick start, one patro lookup and one
+  picker month grid ran.
 
 [Full changelog](${REPOSITORY}/blob/v${version}/CHANGELOG.md)
 `;
