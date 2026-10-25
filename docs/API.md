@@ -1,7 +1,7 @@
 # `nepdate-core`, `nepdate-patro` and `nepdate-datepicker` (TypeScript): exported API contract (v0.1)
 
 The complete exported surface of both packages for v0.1. Implement exactly this; a new export
-needs this file changed in the same PR, approved by the human. Behaviour: `shared/spec/`.
+needs this file changed in the same PR, approved by the maintainer. Behaviour: `shared/spec/`.
 Conventions: ADR-0003. Months are **1-based** everywhere (unlike JS `Date`). Every optional `lang`
 defaults to `"en"`. `nepdate-core` never imports `nepdate-patro` (ADR-0001 §2).
 
