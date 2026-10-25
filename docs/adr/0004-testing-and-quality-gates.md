@@ -22,7 +22,7 @@ the core builds and tests on its own.
 | 7 | patro types | `tsc -p packages/nepdate-patro/tsconfig.json` (needs the core `dist/` from gate 5) |
 | 8 | patro tests | `npm test -w nepdate-patro` (≥ 90 % lines of `packages/nepdate-patro/src/`) |
 | 9 | patro build + shape | `tsc -p packages/nepdate-patro/tsconfig.build.json`, `publint packages/nepdate-patro`, `attw --pack packages/nepdate-patro --profile esm-only` |
-| 10 | docs (from T5-01) | `node scripts/docs-check.ts`: README examples run, every export has a doc comment |
+| 10 | docs | `node scripts/docs-check.ts`: README examples run, every export has a doc comment |
 
 Gate 6 (`scripts/ci.ts` does these itself, no extra tool):
 - `packages/nepdate/package.json` has no `nepdate-patro` key in `dependencies`,
@@ -33,7 +33,7 @@ Gate 6 (`scripts/ci.ts` does these itself, no extra tool):
   the string `World Day Against Human Trafficking` (PORT-PLAN phase 4). The README in the tarball may name
   `nepdate-patro`; it must not contain event names.
 - `esbuild packages/nepdate/dist/index.js --bundle --minify --format=esm`, gzipped, is under 8 KB.
-  Over the limit: report the measured size to the human; don't drop features to fit.
+  Over the limit: report the measured size to the maintainer; don't drop features to fit.
 
 Tests:
 - **Vectors:** every file in `shared/spec/vectors/`, read with `node:fs` from the repository root

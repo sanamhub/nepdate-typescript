@@ -10,7 +10,7 @@
 
 ADR-0002 §10 prints 3× C# limits of 39.9 ns for B1, 55.9 ns for B2 and 143.8 ns for B7. They were
 computed from C# numbers measured on the hub machine, at another time, so they compare two machines
-and two sessions. T6 measures the C# column with the hub's `tools/dotnet-bench` on the reference
+and two sessions. This ADR measures the C# column with the hub's `tools/dotnet-bench` on the reference
 machine in the same session as the TypeScript rows (`bench/dotnet.ts`).
 
 The reference machine is rarely quiet. On 2026-10-18 the C# run ran at a median 66% all-CPU load

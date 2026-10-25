@@ -8,7 +8,7 @@
 ## Context
 
 ADR-0001 named the packages `nepdate` and `nepdate-patro`. On 2026-10-07 the registry had neither
-name. The first 0.1.0-beta.1 publish (run 39754182889) was refused with "403 Forbidden: Package name
+name. The first 0.1.0-beta.1 publish was refused with "403 Forbidden: Package name
 too similar to existing package nep-date". npm's similarity check ignores punctuation, so no
 unscoped `nepdate` is possible. Nothing was published.
 
