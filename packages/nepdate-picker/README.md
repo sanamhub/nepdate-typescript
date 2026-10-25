@@ -1,4 +1,4 @@
-# nepdate-picker
+# nepdate-datepicker
 
 A Bikram Sambat (BS) date picker for the web, built on
 [`nepdate-core`](https://www.npmjs.com/package/nepdate-core). Two custom elements that work in
@@ -9,7 +9,7 @@ plain HTML and in any framework, plus the month grid underneath them for anyone 
   like a native input: it submits, resets, disables and reports validity.
 
 The elements are unstyled apart from layout. Style any piece with `::part()`, or import
-`nepdate-picker/theme.css` for a ready-made look. About 5.5 KB gzip on top of the core, no other
+`nepdate-datepicker/theme.css` for a ready-made look. About 5.5 KB gzip on top of the core, no other
 dependencies; the standalone file below, core included, is about 10.5 KB.
 
 > **Pre-release.** The API may change before 0.1.0.
@@ -19,25 +19,25 @@ dependencies; the standalone file below, core included, is about 10.5 KB.
 With a bundler (Vite, webpack, esbuild and the like):
 
 ```sh
-npm install nepdate-core@beta nepdate-picker@beta
+npm install nepdate-core@beta nepdate-datepicker@beta
 ```
 
 ```js
-import "nepdate-picker/define";
-import "nepdate-picker/theme.css";
+import "nepdate-datepicker/define";
+import "nepdate-datepicker/theme.css";
 ```
 
 Without a build step, use the standalone file. It holds the elements and the core in one module
 and registers both elements, so the page needs no import map. Load it from a CDN:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nepdate-picker@0.1.0-beta.1/dist/theme.css" />
-<script type="module" src="https://cdn.jsdelivr.net/npm/nepdate-picker@0.1.0-beta.1/dist/nepdate-picker.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.1/dist/theme.css" />
+<script type="module" src="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.1/dist/nepdate-datepicker.js"></script>
 ```
 
-Or copy `dist/nepdate-picker.js` and `dist/theme.css` from the package into your site, such as an
-ASP.NET Core `wwwroot/lib/nepdate-picker/`, and point the same two tags at them. Don't load the
-standalone file and `nepdate-picker/define` on one page: both register the same element names.
+Or copy `dist/nepdate-datepicker.js` and `dist/theme.css` from the package into your site, such as an
+ASP.NET Core `wwwroot/lib/nepdate-datepicker/`, and point the same two tags at them. Don't load the
+standalone file and `nepdate-datepicker/define` on one page: both register the same element names.
 
 ## Use it
 
@@ -52,8 +52,8 @@ standalone file and `nepdate-picker/define` on one page: both register the same 
 The form submits `dob=2081-04-15`: BS, as `YYYY-MM-DD`. The visitor can type the date in English
 or Nepali digits or with the month name (`15 Shrawan 2081`), or pick it from the calendar.
 
-`import "nepdate-picker/define"` registers both elements. The main entry has no side effects:
-`import { defineElements } from "nepdate-picker"` and call it when you choose.
+`import "nepdate-datepicker/define"` registers both elements. The main entry has no side effects:
+`import { defineElements } from "nepdate-datepicker"` and call it when you choose.
 
 The `value` attribute is the date. Unlike a native input it keeps working after the visitor has
 edited the field, so a framework that renders the attribute can push a new date; a form reset
@@ -111,7 +111,7 @@ follows the page's `color-scheme`.
 
 Custom elements work without a wrapper. Render `<nepdate-input>` like any element, pass the date
 as `value`, and read `event.target.value` on `change`. Set `isDateDisallowed` and `dayParts` as
-properties. With server rendering, import `nepdate-picker/define` on the client only; the main
+properties. With server rendering, import `nepdate-datepicker/define` on the client only; the main
 entry imports safely on the server.
 
 React 19:
@@ -158,7 +158,7 @@ components:
 
 ```ts
 import { NepaliDate } from "nepdate-core";
-import { monthGrid, moveFocus } from "nepdate-picker";
+import { monthGrid, moveFocus } from "nepdate-datepicker";
 
 const weeks = monthGrid(2081, 4, { today: NepaliDate.of(2081, 4, 15) });
 console.log(weeks.length); // 6 rows of 7 cells; null where the month has no day

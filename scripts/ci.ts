@@ -132,13 +132,13 @@ function pickerSize(): void {
   }
 }
 
-// dist/nepdate-picker.js must load from a plain <script type="module">: no import left in it, so
+// dist/nepdate-datepicker.js must load from a plain <script type="module">: no import left in it, so
 // no bare "nepdate-core" that a browser without an import map cannot resolve.
 function pickerStandalone(): void {
-  const file = readFileSync(`${PICKER}/dist/nepdate-picker.js`);
+  const file = readFileSync(`${PICKER}/dist/nepdate-datepicker.js`);
   const text = file.toString("utf8");
   if (/\bfrom\s*["']|\bimport\s*["'(]/.test(text)) {
-    throw new GateError("dist/nepdate-picker.js still imports a module");
+    throw new GateError("dist/nepdate-datepicker.js still imports a module");
   }
   const gzipped = gzipSync(file, { level: 9 }).length;
   console.log(
@@ -163,7 +163,7 @@ const gates: [name: string, body: () => void][] = [
   ["patro tests", () => run("npm test -w nepdate-patro")],
   // Before gate 10: its script tests run the @examples, which import the built picker.
   ["picker types", () => run(`npx tsc -p ${PICKER}/tsconfig.json`)],
-  ["picker tests", () => run("npm test -w nepdate-picker")],
+  ["picker tests", () => run("npm test -w nepdate-datepicker")],
   [
     "picker build + shape + size",
     () => {

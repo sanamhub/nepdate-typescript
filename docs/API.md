@@ -1,4 +1,4 @@
-# `nepdate-core`, `nepdate-patro` and `nepdate-picker` (TypeScript): exported API contract (v0.1)
+# `nepdate-core`, `nepdate-patro` and `nepdate-datepicker` (TypeScript): exported API contract (v0.1)
 
 The complete exported surface of both packages for v0.1. Implement exactly this; a new export
 needs this file changed in the same PR, approved by the human. Behaviour: `shared/spec/`.
@@ -112,9 +112,9 @@ export function publicHolidays(): IterableIterator<NepaliDate>; // ascending
 ```
 
 ```ts
-// "nepdate-picker": a separate npm package (ADR-0015). Web components plus the DOM-free month grid.
-// peerDependencies: { "nepdate-core": "~X.Y.Z" }. `import "nepdate-picker/define"` registers both
-// elements; `nepdate-picker/theme.css` is an optional stylesheet. Neither is part of this surface.
+// "nepdate-datepicker": a separate npm package (ADR-0015). Web components plus the DOM-free month grid.
+// peerDependencies: { "nepdate-core": "~X.Y.Z" }. `import "nepdate-datepicker/define"` registers both
+// elements; `nepdate-datepicker/theme.css` is an optional stylesheet. Neither is part of this surface.
 import type { GregorianDate, NepaliDate } from "nepdate-core";
 // ElementBase (not exported) is HTMLElement, or an empty class where there is no DOM, so the entry
 // imports in Node and during server rendering.

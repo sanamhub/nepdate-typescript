@@ -1,5 +1,5 @@
 {
-  "name": "nepdate-picker",
+  "name": "nepdate-datepicker",
   "version": "0.1.0-beta.1",
   "description": "Bikram Sambat date picker web components: an unstyled calendar and a form input, with an optional theme.",
   "license": "MIT",
@@ -23,7 +23,7 @@
   },
   "sideEffects": [
     "./dist/define.js",
-    "./dist/nepdate-picker.js",
+    "./dist/nepdate-datepicker.js",
     "*.css"
   ],
   "exports": {
@@ -37,12 +37,12 @@
     },
     "./standalone": {
       "types": "./dist/define.d.ts",
-      "default": "./dist/nepdate-picker.js"
+      "default": "./dist/nepdate-datepicker.js"
     },
     "./theme.css": "./dist/theme.css"
   },
-  "unpkg": "./dist/nepdate-picker.js",
-  "jsdelivr": "./dist/nepdate-picker.js",
+  "unpkg": "./dist/nepdate-datepicker.js",
+  "jsdelivr": "./dist/nepdate-datepicker.js",
   "files": [
     "dist",
     "LICENSE",

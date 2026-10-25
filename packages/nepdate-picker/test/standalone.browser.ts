@@ -1,9 +1,9 @@
 import { expect, test } from "vitest";
 
-// dist/nepdate-picker.js is for a page with no bundler and no import map (ADR-0015). CI builds it
+// dist/nepdate-datepicker.js is for a page with no bundler and no import map (ADR-0015). CI builds it
 // before the browser job runs this file; locally, `npm run build` first.
 test("the standalone file registers both elements without loading the core separately", async () => {
-  const url = new URL("../dist/nepdate-picker.js", import.meta.url).href;
+  const url = new URL("../dist/nepdate-datepicker.js", import.meta.url).href;
   await import(/* @vite-ignore */ url);
   expect(customElements.get("nepdate-calendar")).toBeDefined();
   expect(customElements.get("nepdate-input")).toBeDefined();

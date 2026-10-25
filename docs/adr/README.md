@@ -21,3 +21,4 @@ ADR.
 | [0013](0013-core-package-name.md) | The core package is `nepdate-core` on npm | Accepted |
 | [0014](0014-typescript-7.md) | TypeScript 7 for tsc, the 6.x API for declaration tools | Accepted |
 | [0015](0015-date-picker-web-components.md) | A date picker as web components, in a third package | Accepted |
+| [0016](0016-picker-npm-name.md) | The picker package is `nepdate-datepicker` on npm | Accepted |

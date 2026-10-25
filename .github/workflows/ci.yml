@@ -142,4 +142,4 @@ jobs:
       - run: npm run build
       - run: npm run test:browser -w nepdate-patro
       # ADR-0015: the picker's elements in all three engines.
-      - run: npm run test:browser -w nepdate-picker
+      - run: npm run test:browser -w nepdate-datepicker

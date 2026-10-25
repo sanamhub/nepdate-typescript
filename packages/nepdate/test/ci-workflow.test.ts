@@ -302,8 +302,8 @@ describe("CI workflow", () => {
   it("reports a job with neither steps nor a timeout", () => {
     const text = readFileSync(WORKFLOW, "utf8");
     const edited = text.replace(
-      "      - run: npm run test:browser -w nepdate-picker\n",
-      "      - run: npm run test:browser -w nepdate-picker\n\n  idle:\n    runs-on: ubuntu-latest\n",
+      "      - run: npm run test:browser -w nepdate-datepicker\n",
+      "      - run: npm run test:browser -w nepdate-datepicker\n\n  idle:\n    runs-on: ubuntu-latest\n",
     );
     expect(edited).not.toEqual(text);
     expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(

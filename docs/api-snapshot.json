@@ -92,7 +92,7 @@
       "export interface CalendarInfo",
       "export interface Named"
     ],
-    "nepdate-picker": [
+    "nepdate-datepicker": [
       "GridOptions readonly firstDayOfWeek?: number",
       "GridOptions readonly isDateDisallowed?: ((date: NepaliDate) => boolean) | null",
       "GridOptions readonly max?: NepaliDate | null",
