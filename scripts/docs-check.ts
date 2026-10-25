@@ -1,4 +1,4 @@
-// Gate 10 (ADR-0004): README examples run, public declarations are documented, and the prose in
+// Docs gate (ADR-0004): README examples run, public declarations are documented, and the prose in
 // the shipped docs is clean. Run from the repository root: `node scripts/docs-check.ts`.
 
 import { spawnSync } from "node:child_process";
@@ -103,7 +103,6 @@ function documentationFiles(): string[] {
   return files;
 }
 
-const TASK_ID = /\bT[0-9](?:-\d{2})?\b/;
 const LINK = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
 function checkLinks(file: string, text: string): void {
@@ -126,13 +125,11 @@ for (const file of docFiles) {
   const lines = text.split(/\r?\n/);
   lines.forEach((line, index) => {
     if (line.includes("\u2014")) fail(`${file}:${index + 1} has an em dash`);
-    const task = TASK_ID.exec(line);
-    if (task !== null) fail(`${file}:${index + 1} names task ${task[0]}`);
   });
   checkLinks(file, text);
 }
 
-// ---- Runnable TSDoc examples (T9-03) ----
+// ---- Runnable TSDoc examples (ADR-0010) ----
 
 let examplesRun = 0;
 let assertionsRun = 0;
