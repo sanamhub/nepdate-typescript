@@ -20,7 +20,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const REGISTRY = "https://registry.npmjs.org";
 const USER_AGENT = "nepdate-verify-published";
@@ -84,18 +84,28 @@ function sleep(seconds) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
 }
 
-// Package specs, versions and flags: letters, digits and @ . / : = ^ ~ + - _ only, so nothing a
-// shell would interpret can reach the Windows command line below.
-const SAFE_ARGUMENT = /^[A-Za-z0-9@./:=^~+_-]+$/;
+// npm and corepack are .cmd shims on Windows, which spawnSync starts only through a shell. Their
+// JavaScript entry points sit next to node in the same install, so they run under node directly
+// and no shell ever sees an argument. bun and node are real executables.
+function windowsCommand(command, args) {
+  const nodeDir = dirname(process.execPath);
+  if (command === "npm") {
+    return [process.execPath, [join(nodeDir, "node_modules", "npm", "bin", "npm-cli.js"), ...args]];
+  }
+  if (command === "corepack") {
+    return [
+      process.execPath,
+      [join(nodeDir, "node_modules", "corepack", "dist", "corepack.js"), ...args],
+    ];
+  }
+  if (command === "bun" || command === "node") return [command, args];
+  fail(`${command} has no Windows entry point here; use corepack`);
+}
 
 function spawnIn(command, args, options) {
   if (!WINDOWS) return spawnSync(command, args, options);
-  // npm, pnpm, corepack and bun are .cmd shims on Windows, and only a shell runs those. The
-  // command is then one string, because an argument list plus a shell is deprecated.
-  for (const part of [command, ...args]) {
-    if (!SAFE_ARGUMENT.test(part)) fail(`refusing to pass ${JSON.stringify(part)} to a shell`);
-  }
-  return spawnSync([command, ...args].join(" "), { ...options, shell: true });
+  const [file, fileArgs] = windowsCommand(command, args);
+  return spawnSync(file, fileArgs, options);
 }
 
 function run(command, args, cwd) {
@@ -110,6 +120,8 @@ function run(command, args, cwd) {
 }
 
 function commandExists(command) {
+  // On Windows pnpm is reached through corepack, which windowsCommand knows how to start.
+  if (WINDOWS && command === "pnpm") return false;
   return spawnIn(command, ["--version"], { stdio: "ignore" }).status === 0;
 }
 
