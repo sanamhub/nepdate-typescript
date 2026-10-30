@@ -84,12 +84,18 @@ function sleep(seconds) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
 }
 
+// Package specs, versions and flags: letters, digits and @ . / : = ^ ~ + - _ only, so nothing a
+// shell would interpret can reach the Windows command line below.
+const SAFE_ARGUMENT = /^[A-Za-z0-9@./:=^~+_-]+$/;
+
 function spawnIn(command, args, options) {
+  if (!WINDOWS) return spawnSync(command, args, options);
   // npm, pnpm, corepack and bun are .cmd shims on Windows, and only a shell runs those. The
   // command is then one string, because an argument list plus a shell is deprecated.
-  return WINDOWS
-    ? spawnSync([command, ...args].join(" "), { ...options, shell: true })
-    : spawnSync(command, args, options);
+  for (const part of [command, ...args]) {
+    if (!SAFE_ARGUMENT.test(part)) fail(`refusing to pass ${JSON.stringify(part)} to a shell`);
+  }
+  return spawnSync([command, ...args].join(" "), { ...options, shell: true });
 }
 
 function run(command, args, cwd) {

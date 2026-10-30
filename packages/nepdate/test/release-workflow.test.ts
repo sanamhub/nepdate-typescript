@@ -134,8 +134,13 @@ function jobPermissionProblems(workflow: Workflow): string[] {
     found.push("verify must set contents: read");
   }
   if (verify?.["id-token"] !== undefined) found.push("verify must not request id-token");
-  else if (verify !== undefined && !isDeepStrictEqual(verify, { contents: "read" })) {
-    found.push("verify permissions must be exactly contents: read");
+  // issues: write is the ceiling the called workflow's report job needs; that job runs only on a
+  // schedule, so a release run never writes. Nothing else may be granted.
+  else if (
+    verify !== undefined &&
+    !isDeepStrictEqual(verify, { contents: "read", issues: "write" })
+  ) {
+    found.push("verify permissions must be exactly contents: read and issues: write");
   }
 
   const release = jobPermissions(workflow, "github-release");
