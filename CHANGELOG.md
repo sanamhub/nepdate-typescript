@@ -16,6 +16,12 @@ packages share one version (ADR-0005); an entry that concerns only one package s
   page with no bundler. After its first publish it is released with `nepdate-core` and
   `nepdate-patro` under the same version, with npm provenance.
 
+### Changed
+
+- The published check also runs weekly on Linux with npm, pnpm, Yarn in both linkers and bun, and
+  daily as a registry metadata check; a failed run opens or updates one issue labelled
+  `published-check`.
+
 ## [0.1.0-beta.1] - 2026-10-22
 
 First public pre-release. The API may still change before 0.1.0. The core package is

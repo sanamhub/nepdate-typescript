@@ -1,29 +1,72 @@
 name: verify-published
 
 # Installs one published version of the three packages from the public registry, the way a user
-# does, and checks it: the registry signatures and provenance, the README quick start, one patro
-# lookup and one picker month grid. release.yml calls it after publishing (ADR-0011); it can also be
-# dispatched by hand for any version already on npm. No checkout, no secret, no token: only the
-# registry is trusted here.
+# does, and checks it: the installed versions, the registry signatures, the README quick start, one
+# patro lookup and one picker month grid. release.yml calls it after publishing (ADR-0011); it can
+# also be dispatched by hand for any version already on npm, or with latest.
+#
+# Scheduled runs keep the published packages honest after the release page goes quiet. Every Monday
+# one Linux runner installs the newest version with each package manager and checks it, and every
+# day a metadata-only check confirms npm still lists the version and serves the three tarballs
+# without downloading them. A failure opens or updates one issue labelled published-check. Only the
+# report job writes; the check jobs read the repository and the registry and nothing else.
 on:
   workflow_call:
     inputs:
       version:
-        description: Published version, for example 0.1.0-beta.1
-        required: true
+        description: Published version, or latest for the newest version on npm
+        required: false
+        default: latest
         type: string
   workflow_dispatch:
     inputs:
       version:
-        description: Published version, for example 0.1.0-beta.1
-        required: true
+        description: Published version, or latest for the newest version on npm
+        required: false
+        default: latest
         type: string
+  schedule:
+    # The weekly install check, Monday 06:31 UTC.
+    - cron: "31 6 * * 1"
+    # The daily metadata check, which fetches no package file.
+    - cron: "27 3 * * *"
 
 permissions:
   contents: read
 
 jobs:
+  # One place resolves latest, so every job of a run checks the same version.
+  resolve:
+    name: resolve the version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Resolve
+        id: resolve
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="${INPUT_VERSION:-latest}"
+          if [ "$version" = latest ]; then
+            version="$(node scripts/verify-published.mjs latest --resolve)"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: \`$version\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # A release or a manual run: the same check on every runner OS.
   verify:
+    name: verify ${{ needs.resolve.outputs.version }}
+    if: github.event_name != 'schedule'
+    needs: resolve
     strategy:
       fail-fast: false
       matrix:
@@ -35,90 +78,163 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Set up Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
-      # The version reaches npm as an argument, so it is checked before any command uses it.
-      - name: Check the version
+      - name: Install and check the published packages
+        id: check
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.resolve.outputs.version }}
         run: |
-          if ! printf '%s' "$VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'; then
-            echo "verify: $VERSION is not X.Y.Z or X.Y.Z-PRERELEASE" >&2
-            exit 1
-          fi
-      # npm can take a few minutes to serve a new version from every region. The loop gives it 15.
-      - name: Install the published packages with retries
+          set -o pipefail
+          node scripts/verify-published.mjs "$VERSION" --manager npm 2>&1 | tee verify.log
+      - name: Step summary
+        if: always()
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          OUTCOME: ${{ steps.check.outcome }}
         run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/verify-packages"
-          cd "$RUNNER_TEMP/verify-packages"
-          npm init -y >/dev/null
-          deadline=$((SECONDS + 900))
-          while true; do
-            if npm install --no-audit --no-fund --save-exact "nepdate-core@$VERSION" "nepdate-patro@$VERSION" "nepdate-datepicker@$VERSION"; then
-              break
-            fi
-            now=$SECONDS
-            if [ "$now" -ge "$deadline" ]; then
-              echo "verify: install failed after 15 minutes" >&2
-              exit 1
-            fi
-            pause=$((deadline - now))
-            if [ "$pause" -gt 30 ]; then pause=30; fi
-            echo "verify: install failed, retrying in ${pause}s" >&2
-            sleep "$pause"
-          done
-      - name: Check the installed versions
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP/verify-packages"
-          for name in nepdate-core nepdate-patro nepdate-datepicker; do
-            installed=$(node -p "require('./node_modules/$name/package.json').version")
-            if [ "$installed" != "$VERSION" ]; then
-              echo "verify: $name is $installed, expected $VERSION" >&2
-              exit 1
-            fi
-          done
-      # Checks the registry signature of every installed package and the provenance attestation of
-      # each of ours, so a tarball that did not come from this repository's workflow fails here.
-      - name: Check the registry signatures
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP/verify-packages"
-          npm audit signatures
-      # The picker entry loads without a DOM, so a Node runner can check it too.
-      - name: Run the README quick start, one info() and one monthGrid() call
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP/verify-packages"
-          node --input-type=module - <<'JS'
-          import { NepaliDate } from "nepdate-core";
-          import { info } from "nepdate-patro";
-          import { monthGrid } from "nepdate-datepicker";
+          {
+            echo "### verify-published"
+            echo
+            echo "- Version: \`$VERSION\`"
+            echo "- Manager: npm"
+            echo "- Result: **$OUTCOME**"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the failing output
+        if: failure()
+        run: tail -n 40 verify.log > failure.txt || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure-verify-${{ matrix.os }}-node${{ matrix.node }}
+          path: failure.txt
+          if-no-files-found: ignore
+          retention-days: 7
 
-          const date = NepaliDate.of(2081, 2, 15);
-          const gregorian = date.toGregorian();
-          if (gregorian.year !== 2024 || gregorian.month !== 5 || gregorian.day !== 28) {
-            throw new Error(`verify: toGregorian returned ${JSON.stringify(gregorian)}`);
-          }
-          if (date.toJSON() !== "2081-02-15") {
-            throw new Error(`verify: toJSON returned ${date.toJSON()}`);
-          }
-          if (date.long({ weekday: true }) !== "Tuesday, Jestha 15, 2081") {
-            throw new Error(`verify: long returned ${date.long({ weekday: true })}`);
-          }
-          const day = info(date);
-          if (!day.isPublicHoliday || day.events[0]?.en !== "Republic Day") {
-            throw new Error("verify: info did not return Republic Day");
-          }
-          if (monthGrid(2081, 4).length !== 6) {
-            throw new Error("verify: monthGrid(2081, 4) did not return 6 rows");
-          }
-          console.log("verify: README quick start, one patro lookup and one picker grid passed");
-          JS
+  # The weekly check: Linux only, one entry per manager, so a failure names the manager.
+  weekly:
+    name: weekly ${{ needs.resolve.outputs.version }}
+    if: github.event_name == 'schedule' && github.event.schedule == '31 6 * * 1'
+    needs: resolve
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        manager: [npm, pnpm, yarn-node-modules, yarn-pnp, bun]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Set up bun
+        if: matrix.manager == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install and check the published packages
+        id: check
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          MANAGER: ${{ matrix.manager }}
+        run: |
+          set -o pipefail
+          node scripts/verify-published.mjs "$VERSION" --manager "$MANAGER" 2>&1 | tee verify.log
+      - name: Step summary
+        if: always()
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          MANAGER: ${{ matrix.manager }}
+          OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          {
+            echo "### verify-published (weekly)"
+            echo
+            echo "- Version: \`$VERSION\`"
+            echo "- Manager: \`$MANAGER\`"
+            echo "- Result: **$OUTCOME**"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the failing output
+        if: failure()
+        run: tail -n 40 verify.log > failure.txt || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure-weekly-${{ matrix.manager }}
+          path: failure.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The daily check: npm still lists the version and answers for the three tarballs, with no
+  # download, so it cannot look like install traffic.
+  metadata:
+    name: metadata ${{ needs.resolve.outputs.version }}
+    if: github.event_name == 'schedule' && github.event.schedule == '27 3 * * *'
+    needs: resolve
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Check the registry listing
+        id: check
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -o pipefail
+          node scripts/verify-published.mjs "$VERSION" --metadata 2>&1 | tee metadata.log
+      - name: Step summary
+        if: always()
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          {
+            echo "### verify-published (metadata)"
+            echo
+            echo "- Version: \`$VERSION\`"
+            echo "- Result: **$OUTCOME**"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the failing output
+        if: failure()
+        run: tail -n 40 metadata.log > failure.txt || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure-metadata
+          path: failure.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The only job with write access. It reads the artifacts the check jobs kept and opens or updates
+  # one issue; it never installs anything and never touches the registry.
+  report:
+    name: report
+    if: failure() && github.event_name == 'schedule'
+    needs: [resolve, verify, weekly, metadata]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: failure-*
+          path: failures
+      - name: Open or update the issue
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/published-issue.sh nepdate-core "${VERSION:-latest}" failures

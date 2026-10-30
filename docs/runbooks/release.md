@@ -199,6 +199,14 @@ with Node 22 and 24, it creates a clean project and installs `nepdate-core@X.Y.Z
 `monthGrid(2081, 4)` call that checks 6 rows. A failed verify job means the release is not
 done. `verify-published.yml` can also be dispatched by hand with any published version.
 
+The workflow also runs on a schedule. Every Monday at 06:31 UTC it installs `latest` on Linux once
+with npm, once with pnpm, once with Yarn in `node-modules` mode, once with Yarn Plug'n'Play and once
+with bun, and runs the same checks. Every day at 03:27 UTC it reads the registry document and sends
+a HEAD request for the three tarballs, without downloading them. A failed scheduled run opens or
+updates one issue labelled `published-check`, titled `Published nepdate-core <version> does not
+install or run`; a green run stays silent. Create the `published-check` label once in the repository
+settings.
+
 `github-release` needs `publish` and `verify` and is the only job with `contents: write`. It checks
 out the tag, downloads the tarballs, runs `sha256sum -c SHA256SUMS` again, and creates the GitHub
 Release `vX.Y.Z` with the three tarballs attached. `scripts/release-notes.ts` writes the notes from the
