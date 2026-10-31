@@ -1,6 +1,6 @@
 # ADR-0012: CI without the hub remote
 
-- Status: Accepted
+- Status: Superseded by [ADR-0017](0017-the-reusable-shared-check.md)
 - Date: 2026-10-21
 - Deciders: Sanam Pakuwal
 - Supersedes: the reusable-workflow sentence in ADR-0001 §7 and the weekly `shared-sync` line in

@@ -25,7 +25,15 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const WORKFLOW = join(ROOT, ".github", "workflows", "ci.yml");
 const PARSED = parseWorkflow(readFileSync(WORKFLOW, "utf8"));
 
-const EXPECTED_JOBS = ["browser", "ci", "oldest-node", "runtimes", "temporal", "time-zones"];
+const EXPECTED_JOBS = [
+  "browser",
+  "ci",
+  "oldest-node",
+  "runtimes",
+  "shared-check",
+  "temporal",
+  "time-zones",
+];
 const EXPECTED_OS = ["ubuntu-latest", "windows-latest", "macos-latest"];
 const EXPECTED_ZONES = ["America/Los_Angeles", "Asia/Kathmandu", "Pacific/Kiritimati"];
 const ADR_0009_OPTIONS = "--experimental-strip-types --disable-warning=ExperimentalWarning";
@@ -100,14 +108,17 @@ function jobHasWrite(jobValue: Record<string, unknown>): boolean {
 function triggerProblems(workflow: Workflow): string[] {
   const found: string[] = [];
   const names = [...triggers(workflow)].sort();
-  if (!isDeepStrictEqual(names, ["pull_request", "push"])) {
-    found.push("ci triggers must be exactly push and pull_request");
+  if (!isDeepStrictEqual(names, ["pull_request", "push", "workflow_dispatch"])) {
+    found.push("ci triggers must be exactly push, pull_request and workflow_dispatch");
   }
   if (!isDeepStrictEqual(trigger(workflow, "push"), { branches: ["main"] })) {
     found.push("push trigger must be exactly the main branch");
   }
   if (trigger(workflow, "pull_request") !== null) {
     found.push("pull_request trigger must have no filters");
+  }
+  if (trigger(workflow, "workflow_dispatch") !== null) {
+    found.push("workflow_dispatch trigger must have no filters");
   }
   if (trigger(workflow, "pull_request_target") !== undefined) {
     found.push("ci workflow must not use pull_request_target");
@@ -262,7 +273,7 @@ describe("CI workflow", () => {
     const edited = text.replace("  pull_request:\n", "  pull_request:\n  pull_request_target:\n");
     expect(edited).not.toEqual(text);
     expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(
-      "ci triggers must be exactly push and pull_request",
+      "ci triggers must be exactly push, pull_request and workflow_dispatch",
     );
   });
 
@@ -291,7 +302,7 @@ describe("CI workflow", () => {
     const text = readFileSync(WORKFLOW, "utf8");
     const edited = text.replace(
       "  ci:\n    strategy:",
-      "  shared-check:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n\n  ci:\n    strategy:",
+      "  adhoc:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n\n  ci:\n    strategy:",
     );
     expect(edited).not.toEqual(text);
     expect(ciWorkflowProblems(parseWorkflow(edited))).toContain(

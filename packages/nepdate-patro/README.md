@@ -45,7 +45,7 @@ import { coverage, publicHolidays } from "nepdate-patro";
 
 console.log(coverage().start.toJSON()); // "2077-01-01"
 console.log(coverage().end.toJSON()); // "2084-08-20"
-console.log([...publicHolidays()].length); // 294
+console.log([...publicHolidays()].length); // the data's holiday count
 ```
 
 ## Coverage

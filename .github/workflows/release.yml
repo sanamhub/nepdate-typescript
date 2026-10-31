@@ -73,7 +73,7 @@ jobs:
           --version "$VERSION"
           --dir release-tarballs
           --sums release-tarballs/SHA256SUMS
-      # A stylesheet has no types to resolve, so attw skips the picker's theme.css, as gate 12 does.
+      # A stylesheet has no types to resolve, so attw skips the picker's theme.css, as gate 11 does.
       - name: Check every tarball
         run: |
           for tarball in release-tarballs/*.tgz; do

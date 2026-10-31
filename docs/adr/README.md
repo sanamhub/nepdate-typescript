@@ -17,8 +17,9 @@ ADR.
 | [0009](0009-oldest-node-in-ci.md) | Test the oldest supported Node | Accepted |
 | [0010](0010-api-snapshot-and-examples.md) | Public API snapshot and runnable examples | Accepted |
 | [0011](0011-release-gates.md) | Release gates and post-publish verification | Accepted |
-| [0012](0012-ci-without-hub-remote.md) | CI without the hub remote | Accepted |
+| [0012](0012-ci-without-hub-remote.md) | CI without the hub remote | Superseded by 0017 |
 | [0013](0013-core-package-name.md) | The core package is `nepdate-core` on npm | Accepted |
 | [0014](0014-typescript-7.md) | TypeScript 7 for tsc, the 6.x API for declaration tools | Accepted |
 | [0015](0015-date-picker-web-components.md) | A date picker as web components, in a third package | Accepted |
 | [0016](0016-picker-npm-name.md) | The picker package is `nepdate-datepicker` on npm | Accepted |
+| [0017](0017-the-reusable-shared-check.md) | The reusable shared check, without the manifest | Accepted |

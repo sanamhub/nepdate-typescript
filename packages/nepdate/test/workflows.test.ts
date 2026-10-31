@@ -27,6 +27,7 @@ export const DEDICATED_TESTS: Readonly<Record<string, string>> = {
   "mutation.yml": "mutation-workflow.test.ts",
   "release.yml": "release-workflow.test.ts",
   "scorecard.yml": "scorecard-workflow.test.ts",
+  "shared-sync.yml": "shared-sync-workflow.test.ts",
   "verify-published.yml": "verify-published-workflow.test.ts",
 };
 
@@ -118,6 +119,7 @@ describe("workflow coverage", () => {
       "mutation.yml",
       "release.yml",
       "scorecard.yml",
+      "shared-sync.yml",
       "verify-published.yml",
     ]);
   });
@@ -139,9 +141,11 @@ describe("workflow coverage", () => {
     expect(found).toContain("new.yml has no dedicated test file");
   });
 
-  it("reports a deleted shared-sync workflow coming back without a test", () => {
-    const found = coverageProblems([...FILES, "shared-sync.yml"], DEDICATED_TESTS, testExists);
-    expect(found).toContain("shared-sync.yml has no dedicated test file");
+  it("reports a workflow whose dedicated test file is missing", () => {
+    const tests = { ...DEDICATED_TESTS, "ci.yml": "gone.test.ts" };
+    expect(coverageProblems(FILES, tests, testExists)).toContain(
+      "ci.yml points to a missing test file gone.test.ts",
+    );
   });
 
   it("reports a map entry whose test does not read the workflow", () => {
@@ -151,15 +155,27 @@ describe("workflow coverage", () => {
     );
   });
 
-  it("reports a non-local reusable workflow", () => {
+  it("reports a remote reusable workflow outside the hub", () => {
     const edited = replaceFirst(
       CI_TEXT,
-      "jobs:\n  ci:\n",
-      "jobs:\n  hub:\n    uses: sanamhub/nepdate/.github/workflows/shared-check.yml@f86f9e5feb9bb9fba46ee477b34d7b42ddd30910\n\n  ci:\n",
+      "  shared-check:\n",
+      "  foreign:\n    uses: example/actions/.github/workflows/check.yml@f86f9e5feb9bb9fba46ee477b34d7b42ddd30910\n\n  shared-check:\n",
     );
     expect(edited).not.toEqual(CI_TEXT);
     expect(remoteReusableProblems(parseWorkflow(edited))).toContain(
-      "job hub calls a non-local reusable workflow; the hub has no GitHub remote (ADR-0012)",
+      "job foreign calls example/actions/.github/workflows/check.yml@f86f9e5feb9bb9fba46ee477b34d7b42ddd30910, which is not a hub reusable workflow pinned by a 40-character SHA (ADR-0017)",
+    );
+  });
+
+  it("reports an unpinned hub reusable workflow", () => {
+    const edited = replaceFirst(
+      CI_TEXT,
+      "shared-check.yml@f94d67c0c85de7909cf54d7e4e96f226ca750129 # main 2026-10-31",
+      "shared-check.yml@main # main 2026-10-31",
+    );
+    expect(edited).not.toEqual(CI_TEXT);
+    expect(remoteReusableProblems(parseWorkflow(edited))).toContain(
+      "job shared-check calls sanamhub/nepdate/.github/workflows/shared-check.yml@main, which is not a hub reusable workflow pinned by a 40-character SHA (ADR-0017)",
     );
   });
 
