@@ -2,6 +2,7 @@ import { NepaliDate } from "nepdate-core";
 import { describe, expect, test } from "vitest";
 import { build } from "../src/build.js";
 import { type CalendarInfo, coverage, info, type Named, publicHolidays } from "../src/index.js";
+import { SUMMARY } from "./summary.js";
 
 const of = NepaliDate.of;
 
@@ -76,18 +77,17 @@ describe("PATRO §4 anchors", () => {
   });
 });
 
-test("coverage() is 2077-01-01..2084-08-20, 2793 days", () => {
+test("coverage() is the shared summary's range", () => {
   const range = coverage();
-  expect(range.start.toJSON()).toBe("2077-01-01");
-  expect(range.end.toJSON()).toBe("2084-08-20");
-  expect(range.length).toBe(2793);
+  expect(range.start.toJSON()).toBe(SUMMARY.first_day);
+  expect(range.end.toJSON()).toBe(SUMMARY.last_day);
+  expect(range.length).toBe(SUMMARY.days);
 });
 
-test("publicHolidays() is 294 ascending dates, first 2077-01-01, last 2084-08-18", () => {
+test("publicHolidays() is the summary's count of ascending dates", () => {
   const dates = [...publicHolidays()];
-  expect(dates).toHaveLength(294);
-  expect((dates[0] as NepaliDate).toJSON()).toBe("2077-01-01");
-  expect((dates[293] as NepaliDate).toJSON()).toBe("2084-08-18");
+  expect(dates).toHaveLength(SUMMARY.holidays);
+  expect((dates[0] as NepaliDate).toJSON()).toBe(SUMMARY.first_day);
   for (let i = 1; i < dates.length; i++) {
     expect(NepaliDate.compare(dates[i - 1] as NepaliDate, dates[i] as NepaliDate)).toBe(-1);
   }

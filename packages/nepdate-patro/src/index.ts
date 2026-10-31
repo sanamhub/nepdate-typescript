@@ -28,7 +28,7 @@ export function info(date: NepaliDate): CalendarInfo {
  * The smallest range that contains every day with data, BS 2077-01-01..2084-08-20 with the current
  * data. Use it to decide whether to show "no data for this year".
  * @example
- * coverage().length; // => 2793
+ * coverage().start.daysUntil(coverage().end) + 1 === coverage().length; // => true
  */
 export function coverage(): DateRange {
   return DATA.coverage;

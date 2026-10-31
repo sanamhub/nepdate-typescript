@@ -16,6 +16,7 @@ import {
 } from "../src/tables.gen.js";
 import { type CatalogCase, checkCatalog } from "./catalog.js";
 import { decodeBytes, decodeInt32, decodeUint16 } from "./decode.js";
+import { SUMMARY } from "./summary.js";
 
 const of = NepaliDate.of;
 const MAX_SERIAL = 109211;
@@ -115,7 +116,7 @@ const cases: Record<string, CatalogCase> = {
         count++;
       }
     }
-    expect(count).toBe(2190);
+    expect(count).toBe(SUMMARY.tithi_days);
     expect(last - first + 1).toBe(count);
   },
   "CalendarDataTests.TithiData_AllPoolIds_AreInRange": () => {
@@ -124,7 +125,7 @@ const cases: Record<string, CatalogCase> = {
   "CalendarDataTests.TithiData_EntryCount_Matches2190": () => {
     let count = 0;
     for (const date of coverage()) if (info(date).tithi !== null) count++;
-    expect(count).toBe(2190);
+    expect(count).toBe(SUMMARY.tithi_days);
   },
   "CalendarDataTests.EventData_DayOffsets_IsStrictlySorted": () => {
     expectStrictlyIncreasing(EVENT_SERIALS);
@@ -146,13 +147,13 @@ const cases: Record<string, CatalogCase> = {
     for (const id of EVENT_IDS) expect(id).toBeLessThan(NAMES_NP.length);
   },
   "CalendarDataTests.EventData_DayCount_Matches1671": () => {
-    expect(EVENT_SERIALS).toHaveLength(1671);
+    expect(EVENT_SERIALS).toHaveLength(SUMMARY.event_days);
   },
   "CalendarDataTests.HolidayData_DayOffsets_IsStrictlySorted": () => {
     expectStrictlyIncreasing(HOLIDAYS);
   },
   "CalendarDataTests.HolidayData_Count_Matches294": () => {
-    expect(HOLIDAYS).toHaveLength(294);
+    expect(HOLIDAYS).toHaveLength(SUMMARY.holidays);
   },
   "CalendarDataTests.CalendarOffsets_GetOffset_BaseYear_Month1_Day1_ReturnsZero": () => {
     expect(serialOf(NepaliDate.MIN)).toBe(0);
@@ -261,7 +262,7 @@ const cases: Record<string, CatalogCase> = {
     }
   },
   "CalendarDataTests.HolidayCount_ViaApi_Matches294": () => {
-    expect([...publicHolidays()]).toHaveLength(294);
+    expect([...publicHolidays()]).toHaveLength(SUMMARY.holidays);
   },
   "CalendarDataTests.CalendarInfo_EventArrays_AreNeverNull": () => {
     for (const date of coverage()) expect(Array.isArray(info(date).events)).toBe(true);

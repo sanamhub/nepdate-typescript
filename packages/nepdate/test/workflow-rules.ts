@@ -111,15 +111,19 @@ export function topPermissionsProblems(workflow: Workflow): string[] {
     : [];
 }
 
-// The hub has no GitHub remote yet, so a remote reusable workflow would stop the whole file at
-// startup (ADR-0012). A local reusable workflow would still resolve.
+// A remote reusable workflow must be the hub's, pinned to a full commit (ADR-0017). Any other
+// remote workflow is a dependency this repository does not review, and a floating ref would let the
+// hub change the check without a change here.
+const HUB_REUSABLE = /^sanamhub\/nepdate\/\.github\/workflows\/[^@\s]+\.yml@[0-9a-f]{40}$/;
+
 export function remoteReusableProblems(workflow: Workflow): string[] {
   const found: string[] = [];
   for (const [jobName, jobValue] of Object.entries(jobsOf(workflow))) {
     if (!isMapping(jobValue) || typeof jobValue.uses !== "string") continue;
-    if (!jobValue.uses.startsWith("./")) {
+    if (jobValue.uses.startsWith("./")) continue;
+    if (!HUB_REUSABLE.test(jobValue.uses)) {
       found.push(
-        `job ${jobName} calls a non-local reusable workflow; the hub has no GitHub remote (ADR-0012)`,
+        `job ${jobName} calls ${jobValue.uses}, which is not a hub reusable workflow pinned by a 40-character SHA (ADR-0017)`,
       );
     }
   }

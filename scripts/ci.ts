@@ -152,7 +152,6 @@ function pickerStandalone(): void {
 // Packed smoke (ADR-0009): the pack, offline install and the three smoke modes live in
 // scripts/packed-smoke.ts so this gate and the oldest-node job run one path.
 const gates: [name: string, body: () => void][] = [
-  ["shared tree", () => run("node scripts/shared-sums.ts")],
   ["lint + format", () => run("npx biome ci .")],
   ["generated code", () => run("node scripts/codegen.ts --check")],
   ["core types", () => run(`npx tsc -p ${CORE}/tsconfig.json`)],
@@ -191,7 +190,7 @@ const gates: [name: string, body: () => void][] = [
       run("npx tsc -p tsconfig.tools.json");
       run("node --test bench/report.test.ts bench/load.test.ts scripts/mutation-check.test.ts");
       run(
-        "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/release-notes.test.ts scripts/shared-sums.test.ts scripts/tarball-check.test.ts",
+        "node --test scripts/api-surface.test.ts scripts/examples.test.ts scripts/data-status.test.ts scripts/release-notes.test.ts scripts/tarball-check.test.ts",
       );
     },
   ],

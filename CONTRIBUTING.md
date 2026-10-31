@@ -29,7 +29,7 @@ Playwright browsers: `npx playwright install chromium firefox webkit`.
 ## Gates
 
 `npm run ci` runs every gate in [ADR-0004](docs/adr/0004-testing-and-quality-gates.md) in order and
-stops at the first failure. The last line reads `ci: 16/16 gates passed`. The mutation run
+stops at the first failure. The last line reads `ci: 15/15 gates passed`. The mutation run
 (`npm run mutation`, then `npm run mutation:check`) is slow and has its own workflow.
 
 ## Pull requests

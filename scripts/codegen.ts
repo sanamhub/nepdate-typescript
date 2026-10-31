@@ -1,4 +1,5 @@
-// Writes the generated tables from shared/data (ADR-0001 §8). Run from the repository root:
+// Writes the generated tables from shared/data (ADR-0001 §8) and checks every data-derived count
+// against the hub's shared/spec/vectors/patro-summary.json (ADR-0017). Run from the repository root:
 //   node scripts/codegen.ts           write the files
 //   node scripts/codegen.ts --check   exit 1 if a file on disk differs from what would be written
 
@@ -32,6 +33,29 @@ interface PatroJson {
   schema: number;
   year: number;
   days: Record<string, DayJson>;
+}
+
+/** The hub's counts for the vendored patro data (shared/spec/vectors/patro-summary.json). */
+interface PatroSummary {
+  schema: number;
+  first_year: number;
+  last_year: number;
+  first_day: string;
+  last_day: string;
+  first_serial: number;
+  last_serial: number;
+  days: number;
+  tithi_first_day: string;
+  tithi_last_day: string;
+  tithi_first_serial: number;
+  tithi_days: number;
+  tithi_names: number;
+  holidays: number;
+  event_days: number;
+  events: number;
+  event_names: number;
+  names: number;
+  name_bytes: number;
 }
 
 function fail(message: string): never {
@@ -143,7 +167,11 @@ function readNamed(value: unknown, where: string): Named {
 interface Patro {
   coverageFirst: number;
   coverageLast: number;
+  coverageFirstDay: string;
+  coverageLastDay: string;
   tithiFirst: number;
+  tithiFirstDay: string;
+  tithiLastDay: string;
   tithiIds: Uint8Array;
   holidayDays: number[];
   eventDays: number[];
@@ -214,16 +242,18 @@ function readPatro(starts: Int32Array): Patro {
     return id;
   };
 
-  const tithiDays: { serial: number; named: Named }[] = [];
+  const tithiDays: { serial: number; label: string; named: Named }[] = [];
   const holidayDays: number[] = [];
   const eventsByDay = new Map<number, Named[]>();
   let coverageFirst = Number.POSITIVE_INFINITY;
   let coverageLast = Number.NEGATIVE_INFINITY;
+  let coverageFirstDay = "";
+  let coverageLastDay = "";
   for (const { serial, label, day } of entries) {
     let hasData = false;
     if (day.tithi !== undefined) {
       const named = readNamed(day.tithi, `${label}.tithi`);
-      tithiDays.push({ serial, named });
+      tithiDays.push({ serial, label, named });
       poolId(named);
       hasData = true;
     }
@@ -246,8 +276,14 @@ function readPatro(starts: Int32Array): Patro {
     }
     if (serial > MAX_SERIAL) fail(`${label}: serial ${serial} is past MAX_SERIAL`);
     if (hasData) {
-      if (serial < coverageFirst) coverageFirst = serial;
-      if (serial > coverageLast) coverageLast = serial;
+      if (serial < coverageFirst) {
+        coverageFirst = serial;
+        coverageFirstDay = label;
+      }
+      if (serial > coverageLast) {
+        coverageLast = serial;
+        coverageLastDay = label;
+      }
     }
   }
   if (tithiDays.length === 0) fail("no tithi data");
@@ -256,6 +292,8 @@ function readPatro(starts: Int32Array): Patro {
 
   const tithiFirst = (tithiDays[0] as { serial: number }).serial;
   const tithiLast = (tithiDays[tithiDays.length - 1] as { serial: number }).serial;
+  const tithiFirstDay = (tithiDays[0] as { label: string }).label;
+  const tithiLastDay = (tithiDays[tithiDays.length - 1] as { label: string }).label;
   const gaps = new Int16Array(tithiLast - tithiFirst + 1).fill(-1);
   for (const { serial, named } of tithiDays) {
     const offset = serial - tithiFirst;
@@ -282,7 +320,11 @@ function readPatro(starts: Int32Array): Patro {
   return {
     coverageFirst,
     coverageLast,
+    coverageFirstDay,
+    coverageLastDay,
     tithiFirst,
+    tithiFirstDay,
+    tithiLastDay,
     tithiIds,
     holidayDays,
     eventDays,
@@ -291,6 +333,58 @@ function readPatro(starts: Int32Array): Patro {
     namesNp,
     namesEn,
   };
+}
+
+function readSummary(): PatroSummary {
+  const path = "shared/spec/vectors/patro-summary.json";
+  let summary: PatroSummary;
+  try {
+    summary = JSON.parse(readFileSync(path, "utf8")) as PatroSummary;
+  } catch {
+    fail(`cannot read ${path}; run the hub sync to vendor the shared spec vectors`);
+  }
+  if (summary.schema !== 1) fail(`${path}: schema ${summary.schema}, expected 1`);
+  return summary;
+}
+
+function checkCount(field: string, summary: number, data: number): void {
+  if (summary !== data) fail(`patro-summary ${field} is ${summary}, the data has ${data}`);
+}
+
+function checkDay(field: string, summary: string, data: string): void {
+  if (summary !== data) fail(`patro-summary ${field} is ${summary}, the data has ${data}`);
+}
+
+function nameBytes(patro: Patro): number {
+  let total = 0;
+  for (let i = 0; i < patro.namesNp.length; i++) {
+    total += Buffer.byteLength(patro.namesNp[i] as string, "utf8");
+    total += Buffer.byteLength(patro.namesEn[i] as string, "utf8");
+  }
+  return total;
+}
+
+/** Fails when the vendored data and the hub's counts disagree, naming the field and both values. */
+function validateSummary(patro: Patro): void {
+  const summary = readSummary();
+  checkCount("first_year", summary.first_year, Number(patro.coverageFirstDay.slice(0, 4)));
+  checkCount("last_year", summary.last_year, Number(patro.coverageLastDay.slice(0, 4)));
+  checkDay("first_day", summary.first_day, patro.coverageFirstDay);
+  checkDay("last_day", summary.last_day, patro.coverageLastDay);
+  checkCount("first_serial", summary.first_serial, patro.coverageFirst);
+  checkCount("last_serial", summary.last_serial, patro.coverageLast);
+  checkCount("days", summary.days, patro.coverageLast - patro.coverageFirst + 1);
+  checkDay("tithi_first_day", summary.tithi_first_day, patro.tithiFirstDay);
+  checkDay("tithi_last_day", summary.tithi_last_day, patro.tithiLastDay);
+  checkCount("tithi_first_serial", summary.tithi_first_serial, patro.tithiFirst);
+  checkCount("tithi_days", summary.tithi_days, patro.tithiIds.length);
+  checkCount("tithi_names", summary.tithi_names, new Set(patro.tithiIds).size);
+  checkCount("holidays", summary.holidays, patro.holidayDays.length);
+  checkCount("event_days", summary.event_days, patro.eventDays.length);
+  checkCount("events", summary.events, patro.eventNameIds.length);
+  checkCount("event_names", summary.event_names, new Set(patro.eventNameIds).size);
+  checkCount("names", summary.names, patro.namesNp.length);
+  checkCount("name_bytes", summary.name_bytes, nameBytes(patro));
 }
 
 function stringArray(name: string, values: readonly string[], comment: string): string {
@@ -332,9 +426,11 @@ ${stringArray("NAMES_EN", patro.namesEn, "The en side of the deduplicated name p
 }
 
 const years = readCalendar();
+const patro = readPatro(monthStarts(years));
+validateSummary(patro);
 const outputs: [path: string, content: string][] = [
   ["packages/nepdate/src/calendar.gen.ts", calendarSource(years)],
-  ["packages/nepdate-patro/src/tables.gen.ts", patroSource(readPatro(monthStarts(years)))],
+  ["packages/nepdate-patro/src/tables.gen.ts", patroSource(patro)],
 ];
 
 const check = process.argv.includes("--check");
