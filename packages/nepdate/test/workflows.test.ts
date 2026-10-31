@@ -27,6 +27,7 @@ export const DEDICATED_TESTS: Readonly<Record<string, string>> = {
   "mutation.yml": "mutation-workflow.test.ts",
   "release.yml": "release-workflow.test.ts",
   "scorecard.yml": "scorecard-workflow.test.ts",
+  "shared-sync.yml": "shared-sync-workflow.test.ts",
   "verify-published.yml": "verify-published-workflow.test.ts",
 };
 
@@ -118,6 +119,7 @@ describe("workflow coverage", () => {
       "mutation.yml",
       "release.yml",
       "scorecard.yml",
+      "shared-sync.yml",
       "verify-published.yml",
     ]);
   });
@@ -139,9 +141,11 @@ describe("workflow coverage", () => {
     expect(found).toContain("new.yml has no dedicated test file");
   });
 
-  it("reports a deleted shared-sync workflow coming back without a test", () => {
-    const found = coverageProblems([...FILES, "shared-sync.yml"], DEDICATED_TESTS, testExists);
-    expect(found).toContain("shared-sync.yml has no dedicated test file");
+  it("reports a workflow whose dedicated test file is missing", () => {
+    const tests = { ...DEDICATED_TESTS, "ci.yml": "gone.test.ts" };
+    expect(coverageProblems(FILES, tests, testExists)).toContain(
+      "ci.yml points to a missing test file gone.test.ts",
+    );
   });
 
   it("reports a map entry whose test does not read the workflow", () => {
