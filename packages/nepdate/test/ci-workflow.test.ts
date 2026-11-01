@@ -33,6 +33,7 @@ const EXPECTED_JOBS = [
   "shared-check",
   "temporal",
   "time-zones",
+  "version",
 ];
 const EXPECTED_OS = ["ubuntu-latest", "windows-latest", "macos-latest"];
 const EXPECTED_ZONES = ["America/Los_Angeles", "Asia/Kathmandu", "Pacific/Kiritimati"];

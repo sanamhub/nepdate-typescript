@@ -170,7 +170,7 @@ describe("workflow coverage", () => {
   it("reports an unpinned hub reusable workflow", () => {
     const edited = replaceFirst(
       CI_TEXT,
-      "shared-check.yml@f94d67c0c85de7909cf54d7e4e96f226ca750129 # main 2026-10-31",
+      "shared-check.yml@f636b7d476bc5959eb5689a950b73c8943860eef # main 2026-11-01",
       "shared-check.yml@main # main 2026-10-31",
     );
     expect(edited).not.toEqual(CI_TEXT);
