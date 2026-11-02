@@ -1,15 +1,17 @@
 name: verify-published
 
-# Installs one published version of the three packages from the public registry, the way a user
-# does, and checks it: the installed versions, the registry signatures, the README quick start, one
-# patro lookup and one picker month grid. release.yml calls it after publishing (ADR-0011); it can
-# also be dispatched by hand for any version already on npm, or with latest.
+# Installs published versions from the public registry, the way a user does, and checks them: the
+# installed versions, the registry signatures, the README quick start, one patro lookup and one
+# picker month grid. release.yml calls it after publishing (ADR-0011), with the kind of tag that
+# released. An SDK tag verifies the core and patro; a picker tag verifies the picker and the core it
+# peers on (ADR-0018). It can also be dispatched by hand for any version already on npm, or with
+# latest.
 #
 # Scheduled runs keep the published packages honest after the release page goes quiet. Every Monday
-# one Linux runner installs the newest version with each package manager and checks it, and every
-# day a metadata-only check confirms npm still lists the version and serves the three tarballs
-# without downloading them. A failure opens or updates one issue labelled published-check. Only the
-# report job writes; the check jobs read the repository and the registry and nothing else.
+# one Linux runner installs the latest of both version lines with each package manager and checks
+# them, and every day a metadata-only check confirms npm still lists those versions and serves the
+# tarballs without downloading them. A failure opens or updates one issue labelled published-check.
+# Only the report job writes; the check jobs read the repository and the registry and nothing else.
 on:
   workflow_call:
     inputs:
@@ -18,12 +20,42 @@ on:
         required: false
         default: latest
         type: string
+      kind:
+        description: sdk checks the core and patro, picker checks the picker, all checks both lines
+        required: false
+        default: all
+        type: string
+      core-version:
+        description: Core version a picker release peers on, empty to resolve latest
+        required: false
+        default: ""
+        type: string
+      picker-version:
+        description: Picker version for an all check, empty to resolve latest
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       version:
         description: Published version, or latest for the newest version on npm
         required: false
         default: latest
+        type: string
+      kind:
+        description: sdk checks the core and patro, picker checks the picker, all checks both lines
+        required: false
+        default: all
+        type: string
+      core-version:
+        description: Core version a picker release peers on, empty to resolve latest
+        required: false
+        default: ""
+        type: string
+      picker-version:
+        description: Picker version for an all check, empty to resolve latest
+        required: false
+        default: ""
         type: string
   schedule:
     # The weekly install check, Monday 06:31 UTC.
@@ -35,13 +67,16 @@ permissions:
   contents: read
 
 jobs:
-  # One place resolves latest, so every job of a run checks the same version.
+  # One place resolves the version of each line, so every job of a run checks the same versions.
   resolve:
     name: resolve the version
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       version: ${{ steps.resolve.outputs.version }}
+      kind: ${{ steps.resolve.outputs.kind }}
+      core-version: ${{ steps.resolve.outputs.core-version }}
+      picker-version: ${{ steps.resolve.outputs.picker-version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,14 +88,50 @@ jobs:
         id: resolve
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          INPUT_KIND: ${{ inputs.kind }}
+          INPUT_CORE_VERSION: ${{ inputs.core-version }}
+          INPUT_PICKER_VERSION: ${{ inputs.picker-version }}
         run: |
           set -euo pipefail
+          kind="${INPUT_KIND:-all}"
           version="${INPUT_VERSION:-latest}"
-          if [ "$version" = latest ]; then
-            version="$(node scripts/verify-published.mjs latest --resolve)"
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Resolved version: \`$version\`" >> "$GITHUB_STEP_SUMMARY"
+          core="${INPUT_CORE_VERSION:-}"
+          picker="${INPUT_PICKER_VERSION:-}"
+          case "$kind" in
+            sdk)
+              if [ "$version" = latest ]; then
+                version="$(node scripts/verify-published.mjs --resolve --kind sdk)"
+              fi
+              core="$version"
+              ;;
+            picker)
+              if [ "$version" = latest ]; then
+                version="$(node scripts/verify-published.mjs --resolve --kind picker)"
+              fi
+              if [ -z "$core" ]; then
+                core="$(node scripts/verify-published.mjs --resolve --kind sdk)"
+              fi
+              picker="$version"
+              ;;
+            all)
+              version="$(node scripts/verify-published.mjs --resolve --kind sdk)"
+              core="$version"
+              if [ -z "$picker" ]; then
+                picker="$(node scripts/verify-published.mjs --resolve --kind picker)"
+              fi
+              ;;
+            *)
+              echo "verify-published: unknown kind $kind, expected sdk, picker or all" >&2
+              exit 1
+              ;;
+          esac
+          {
+            echo "version=$version"
+            echo "kind=$kind"
+            echo "core-version=$core"
+            echo "picker-version=$picker"
+          } >> "$GITHUB_OUTPUT"
+          echo "Resolved \`$kind\`: \`$version\` (core \`$core\`, picker \`$picker\`)" >> "$GITHUB_STEP_SUMMARY"
 
   # A release or a manual run: the same check on every runner OS.
   verify:
@@ -88,19 +159,26 @@ jobs:
         id: check
         env:
           VERSION: ${{ needs.resolve.outputs.version }}
+          KIND: ${{ needs.resolve.outputs.kind }}
+          CORE_VERSION: ${{ needs.resolve.outputs.core-version }}
+          PICKER_VERSION: ${{ needs.resolve.outputs.picker-version }}
         run: |
           set -o pipefail
-          node scripts/verify-published.mjs "$VERSION" --manager npm 2>&1 | tee verify.log
+          node scripts/verify-published.mjs --kind "$KIND" --version "$VERSION" \
+            --core-version "$CORE_VERSION" --picker-version "$PICKER_VERSION" \
+            --manager npm 2>&1 | tee verify.log
       - name: Step summary
         if: always()
         env:
           VERSION: ${{ needs.resolve.outputs.version }}
+          KIND: ${{ needs.resolve.outputs.kind }}
           OUTCOME: ${{ steps.check.outcome }}
         run: |
           {
             echo "### verify-published"
             echo
             echo "- Version: \`$VERSION\`"
+            echo "- Kind: \`$KIND\`"
             echo "- Manager: npm"
             echo "- Result: **$OUTCOME**"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -140,14 +218,20 @@ jobs:
         id: check
         env:
           VERSION: ${{ needs.resolve.outputs.version }}
+          KIND: ${{ needs.resolve.outputs.kind }}
+          CORE_VERSION: ${{ needs.resolve.outputs.core-version }}
+          PICKER_VERSION: ${{ needs.resolve.outputs.picker-version }}
           MANAGER: ${{ matrix.manager }}
         run: |
           set -o pipefail
-          node scripts/verify-published.mjs "$VERSION" --manager "$MANAGER" 2>&1 | tee verify.log
+          node scripts/verify-published.mjs --kind "$KIND" --version "$VERSION" \
+            --core-version "$CORE_VERSION" --picker-version "$PICKER_VERSION" \
+            --manager "$MANAGER" 2>&1 | tee verify.log
       - name: Step summary
         if: always()
         env:
           VERSION: ${{ needs.resolve.outputs.version }}
+          KIND: ${{ needs.resolve.outputs.kind }}
           MANAGER: ${{ matrix.manager }}
           OUTCOME: ${{ steps.check.outcome }}
         run: |
@@ -155,6 +239,7 @@ jobs:
             echo "### verify-published (weekly)"
             echo
             echo "- Version: \`$VERSION\`"
+            echo "- Kind: \`$KIND\`"
             echo "- Manager: \`$MANAGER\`"
             echo "- Result: **$OUTCOME**"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -169,8 +254,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # The daily check: npm still lists the version and answers for the three tarballs, with no
-  # download, so it cannot look like install traffic.
+  # The daily check: npm still lists the versions and answers for the tarballs, with no download,
+  # so it cannot look like install traffic.
   metadata:
     name: metadata ${{ needs.resolve.outputs.version }}
     if: github.event_name == 'schedule' && github.event.schedule == '27 3 * * *'
@@ -188,19 +273,26 @@ jobs:
         id: check
         env:
           VERSION: ${{ needs.resolve.outputs.version }}
+          KIND: ${{ needs.resolve.outputs.kind }}
+          CORE_VERSION: ${{ needs.resolve.outputs.core-version }}
+          PICKER_VERSION: ${{ needs.resolve.outputs.picker-version }}
         run: |
           set -o pipefail
-          node scripts/verify-published.mjs "$VERSION" --metadata 2>&1 | tee metadata.log
+          node scripts/verify-published.mjs --kind "$KIND" --version "$VERSION" \
+            --core-version "$CORE_VERSION" --picker-version "$PICKER_VERSION" \
+            --metadata 2>&1 | tee metadata.log
       - name: Step summary
         if: always()
         env:
           VERSION: ${{ needs.resolve.outputs.version }}
+          KIND: ${{ needs.resolve.outputs.kind }}
           OUTCOME: ${{ steps.check.outcome }}
         run: |
           {
             echo "### verify-published (metadata)"
             echo
             echo "- Version: \`$VERSION\`"
+            echo "- Kind: \`$KIND\`"
             echo "- Result: **$OUTCOME**"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Keep the failing output

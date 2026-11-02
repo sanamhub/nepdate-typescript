@@ -1,12 +1,16 @@
-// Rehearses the three release tarballs before the pack job uploads them (ADR-0011). It reads the
-// tar members, checks the allow-list and the manifest, and writes SHA256SUMS for the publish job.
+// Rehearses the release tarballs before the pack job uploads them (ADR-0011, ADR-0018). It reads
+// the tar members, checks the allow-list and the manifest, and writes SHA256SUMS for the publish
+// job. An SDK tag produces the core and patro tarballs; a picker tag produces only the picker.
 //
 //   node scripts/tarball-check.ts --version 0.1.0 --dir release-tarballs --sums release-tarballs/SHA256SUMS
+//   node scripts/tarball-check.ts --version 0.1.0-beta.2 --kind picker --core-version 0.1.0-rc.1 --dir release-tarballs
 
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
+import { satisfies, validRange } from "semver";
+import type { ReleaseKind } from "./release-semver.ts";
 
 interface Member {
   readonly name: string;
@@ -28,6 +32,9 @@ interface ExpectedManifest {
   readonly name: string;
   readonly version: string;
   readonly peer: string | undefined;
+  // When set, the peer range must accept this core version rather than equal ~version. The picker
+  // releases on its own version line (ADR-0018), so its core peer is a range across SDK releases.
+  readonly peerCoreVersion?: string;
   readonly directory: string;
   // DEFAULT_MEMBERS (core and patro) when absent.
   readonly members?: MemberRule;
@@ -112,12 +119,27 @@ function manifestErrors(member: Member, expected: ExpectedManifest): string[] {
     if (peers !== undefined && Object.keys(peers).length > 0) {
       errors.push(`package.json has peerDependencies, expected none for ${expected.name}`);
     }
-  } else if (peers?.[expected.peer] !== `~${expected.version}`) {
-    errors.push(
-      `package.json peerDependencies["${expected.peer}"] is ${String(
-        peers?.[expected.peer],
-      )}, expected ~${expected.version}`,
-    );
+  } else {
+    const declared = peers?.[expected.peer];
+    if (expected.peerCoreVersion !== undefined) {
+      if (
+        typeof declared !== "string" ||
+        validRange(declared) === null ||
+        !satisfies(expected.peerCoreVersion, declared)
+      ) {
+        errors.push(
+          `package.json peerDependencies["${expected.peer}"] is ${String(
+            declared,
+          )}, expected a range that accepts ${expected.peerCoreVersion}`,
+        );
+      }
+    } else if (declared !== `~${expected.version}`) {
+      errors.push(
+        `package.json peerDependencies["${expected.peer}"] is ${String(
+          declared,
+        )}, expected ~${expected.version}`,
+      );
+    }
   }
   if (manifest.devDependencies !== undefined) {
     errors.push(`package.json has devDependencies, expected none`);
@@ -194,6 +216,8 @@ function sha256(path: string): string {
 
 function run(args: readonly string[]): number {
   let version: string | undefined;
+  let kind: ReleaseKind = "sdk";
+  let coreVersion: string | undefined;
   let dir: string | undefined;
   let sums: string | undefined;
   for (let index = 0; index < args.length; index++) {
@@ -201,6 +225,16 @@ function run(args: readonly string[]): number {
     const value = args[index + 1];
     if (argument === "--version" && value !== undefined) {
       version = value;
+      index++;
+    } else if (argument === "--kind" && value !== undefined) {
+      if (value !== "sdk" && value !== "picker") {
+        console.error(`tarball-check: --kind must be sdk or picker, got ${value}`);
+        return 2;
+      }
+      kind = value;
+      index++;
+    } else if (argument === "--core-version" && value !== undefined) {
+      coreVersion = value;
       index++;
     } else if (argument === "--dir" && value !== undefined) {
       dir = value;
@@ -210,7 +244,7 @@ function run(args: readonly string[]): number {
       index++;
     } else if (argument === "--help" || argument === "-h") {
       console.log(
-        "usage: node scripts/tarball-check.ts --version X.Y.Z --dir <dir> [--sums <file>]",
+        "usage: node scripts/tarball-check.ts --version X.Y.Z [--kind sdk|picker] [--core-version X.Y.Z] --dir <dir> [--sums <file>]",
       );
       return 0;
     } else {
@@ -220,8 +254,12 @@ function run(args: readonly string[]): number {
   }
   if (version === undefined || dir === undefined) {
     console.error(
-      "usage: node scripts/tarball-check.ts --version X.Y.Z --dir <dir> [--sums <file>]",
+      "usage: node scripts/tarball-check.ts --version X.Y.Z [--kind sdk|picker] [--core-version X.Y.Z] --dir <dir> [--sums <file>]",
     );
+    return 2;
+  }
+  if (kind === "picker" && coreVersion === undefined) {
+    console.error("tarball-check: --kind picker needs --core-version for the picker's peer range");
     return 2;
   }
   const root = resolve(dir);
@@ -235,35 +273,47 @@ function run(args: readonly string[]): number {
   const core = tarballs.find((name) => name.startsWith("nepdate-core-"));
   const patro = tarballs.find((name) => name.startsWith("nepdate-patro-"));
   const picker = tarballs.find((name) => name.startsWith("nepdate-datepicker-"));
-  if (core === undefined || patro === undefined || picker === undefined || tarballs.length !== 3) {
-    console.error(
-      `tarball-check: expected the three ${version} tarballs, found ${tarballs.join(", ") || "none"}`,
-    );
+  const expectedCount = kind === "picker" ? 1 : 2;
+  const picked = kind === "picker" ? [picker] : [core, patro];
+  if (picked.some((name) => name === undefined) || tarballs.length !== expectedCount) {
+    const expected =
+      kind === "picker"
+        ? `the picker ${version} tarball`
+        : `the core and patro ${version} tarballs`;
+    console.error(`tarball-check: expected ${expected}, found ${tarballs.join(", ") || "none"}`);
     return 1;
   }
   const errors: string[] = [];
-  const checks: [string, ExpectedManifest][] = [
-    [core, { name: "nepdate-core", version, peer: undefined, directory: "packages/nepdate" }],
-    [
-      patro,
-      {
-        name: "nepdate-patro",
-        version,
-        peer: "nepdate-core",
-        directory: "packages/nepdate-patro",
-      },
-    ],
-    [
-      picker,
-      {
-        name: "nepdate-datepicker",
-        version,
-        peer: "nepdate-core",
-        directory: "packages/nepdate-picker",
-        members: PICKER_MEMBERS,
-      },
-    ],
-  ];
+  const checks: [string, ExpectedManifest][] =
+    kind === "picker"
+      ? [
+          [
+            picker as string,
+            {
+              name: "nepdate-datepicker",
+              version,
+              peer: "nepdate-core",
+              ...(coreVersion === undefined ? {} : { peerCoreVersion: coreVersion }),
+              directory: "packages/nepdate-picker",
+              members: PICKER_MEMBERS,
+            },
+          ],
+        ]
+      : [
+          [
+            core as string,
+            { name: "nepdate-core", version, peer: undefined, directory: "packages/nepdate" },
+          ],
+          [
+            patro as string,
+            {
+              name: "nepdate-patro",
+              version,
+              peer: "nepdate-core",
+              directory: "packages/nepdate-patro",
+            },
+          ],
+        ];
   for (const [name, expected] of checks) {
     const members = tarMembers(join(root, name));
     const found = checkMembers(members, expected);
@@ -282,7 +332,9 @@ function run(args: readonly string[]): number {
     writeFileSync(resolve(sums), `${lines.join("\n")}\n`);
     console.log(`tarball-check: wrote ${resolve(sums)}`);
   }
-  console.log("tarball-check: the three tarballs checked");
+  console.log(
+    `tarball-check: ${kind === "picker" ? "the picker tarball" : "the core and patro tarballs"} checked`,
+  );
   return 0;
 }
 

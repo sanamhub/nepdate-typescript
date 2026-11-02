@@ -1,11 +1,16 @@
 name: release
 
-# One tag vX.Y.Z or vX.Y.Z-PRERELEASE releases the three packages with one version (ADR-0005). A
-# manual dispatch only packs and checks the tarballs: publishing needs a tag push and the
-# production environment. A pre-release goes to its own npm dist-tag, never to latest.
+# Two tag shapes share this workflow (ADR-0018). vX.Y.Z or vX.Y.Z-PRERELEASE releases nepdate-core
+# and nepdate-patro, which share a version. datepicker-vX.Y.Z or datepicker-vX.Y.Z-PRERELEASE releases
+# nepdate-datepicker on its own version line. One tag releases one line: the jobs pack, smoke,
+# publish, verify and attach only the packages that tag names. A manual dispatch only packs and
+# checks the SDK tarballs: publishing needs a tag push and the production environment. A pre-release
+# goes to its own npm dist-tag, never to latest. The v* filter cannot match a tag that begins with
+# datepicker-, because GitHub matches a tag filter from the start of the tag name.
+
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*", "datepicker-v*"]
   workflow_dispatch:
     inputs:
       dry-run:
@@ -26,6 +31,9 @@ jobs:
     timeout-minutes: 30
     outputs:
       version: ${{ steps.version.outputs.version }}
+      kind: ${{ steps.version.outputs.kind }}
+      core-version: ${{ steps.version.outputs.core-version }}
+      dist-tag: ${{ steps.version.outputs.dist-tag }}
     env:
       EVENT_NAME: ${{ github.event_name }}
       REF_NAME: ${{ github.ref_name }}
@@ -41,7 +49,7 @@ jobs:
       - name: Keep workflow_dispatch a dry run
         if: github.event_name == 'workflow_dispatch' && inputs.dry-run != true
         run: |
-          echo "workflow_dispatch only packs; push a vX.Y.Z tag to publish" >&2
+          echo "workflow_dispatch only packs; push a vX.Y.Z or datepicker-vX.Y.Z tag to publish" >&2
           exit 1
       - name: Install
         run: npm ci
@@ -53,24 +61,46 @@ jobs:
       - name: Check the manifests and the changelog
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: node scripts/release-check.ts "$VERSION"
+          KIND: ${{ steps.version.outputs.kind }}
+        run: node scripts/release-check.ts "$VERSION" --kind "$KIND"
       - name: Data status
+        # The picker has no patro data, and a picker tag does not pack the patro, so this gate is
+        # part of the SDK release only.
+        if: steps.version.outputs.kind == 'sdk'
         # Fails a release with fewer than 183 days of public holiday data left.
         run: node scripts/data-status.ts
-      - name: Build
-        run: npm run build
-      - name: Pack the three packages
+      - name: Build the packages the tag releases
+        env:
+          KIND: ${{ steps.version.outputs.kind }}
+        run: |
+          set -euo pipefail
+          npm run build -w nepdate-core
+          if [ "$KIND" = picker ]; then
+            npm run build -w nepdate-datepicker
+          else
+            npm run build -w nepdate-patro
+          fi
+      - name: Pack the SDK packages
+        if: steps.version.outputs.kind == 'sdk'
         run: |
           mkdir -p release-tarballs
           npm pack -w nepdate-core --pack-destination release-tarballs
           npm pack -w nepdate-patro --pack-destination release-tarballs
+      - name: Pack the picker
+        if: steps.version.outputs.kind == 'picker'
+        run: |
+          mkdir -p release-tarballs
           npm pack -w nepdate-datepicker --pack-destination release-tarballs
       - name: Check the tarball contents and write SHA256SUMS
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          KIND: ${{ steps.version.outputs.kind }}
+          CORE_VERSION: ${{ steps.version.outputs.core-version }}
         run: >-
           node scripts/tarball-check.ts
           --version "$VERSION"
+          --kind "$KIND"
+          --core-version "$CORE_VERSION"
           --dir release-tarballs
           --sums release-tarballs/SHA256SUMS
       # A stylesheet has no types to resolve, so attw skips the picker's theme.css, as gate 11 does.
@@ -92,9 +122,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # ADR-0005 smoke job: install the packed tarballs in three clean projects and run the README
-  # examples, plus the picker's DOM-free check. No registry login, no secrets; the tarballs come
-  # from the pack job.
+  # ADR-0005 smoke job: install the packed tarballs in clean projects and run the README examples.
+  # An SDK release installs the core alone and the core with the patro. A picker release installs
+  # the published core at the picker's peer version (the picker tag produces no core tarball) and
+  # the picker tarball. No registry login, no secrets.
   smoke:
     needs: pack
     runs-on: ubuntu-latest
@@ -116,6 +147,7 @@ jobs:
         with:
           node-version: 24
       - name: Core only, from the README
+        if: needs.pack.outputs.kind == 'sdk'
         env:
           VERSION: ${{ needs.pack.outputs.version }}
         run: |
@@ -126,6 +158,7 @@ jobs:
           npm install --no-audit --no-fund "../release-tarballs/nepdate-core-$VERSION.tgz"
           node ../scripts/smoke.ts --mode core --project "$PWD"
       - name: Core plus patro, from the README
+        if: needs.pack.outputs.kind == 'sdk'
         env:
           VERSION: ${{ needs.pack.outputs.version }}
         run: |
@@ -138,15 +171,17 @@ jobs:
             "../release-tarballs/nepdate-patro-$VERSION.tgz"
           node ../scripts/smoke.ts --mode patro --project "$PWD"
       - name: Core plus picker
+        if: needs.pack.outputs.kind == 'picker'
         env:
           VERSION: ${{ needs.pack.outputs.version }}
+          CORE_VERSION: ${{ needs.pack.outputs.core-version }}
         run: |
           set -euo pipefail
           mkdir smoke-picker
           cd smoke-picker
           npm init -y >/dev/null
           npm install --no-audit --no-fund \
-            "../release-tarballs/nepdate-core-$VERSION.tgz" \
+            "nepdate-core@$CORE_VERSION" \
             "../release-tarballs/nepdate-datepicker-$VERSION.tgz"
           node ../scripts/smoke.ts --mode picker --project "$PWD"
 
@@ -180,7 +215,9 @@ jobs:
 
   publish:
     needs: [pack, smoke, mutation]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event_name == 'push' &&
+      (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/datepicker-v'))
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -189,6 +226,9 @@ jobs:
       id-token: write
     outputs:
       version: ${{ steps.version.outputs.version }}
+      kind: ${{ steps.version.outputs.kind }}
+      core-version: ${{ steps.version.outputs.core-version }}
+      tag: ${{ steps.version.outputs.tag }}
     env:
       EVENT_NAME: ${{ github.event_name }}
       REF_NAME: ${{ github.ref_name }}
@@ -222,71 +262,76 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later. A publish-time dist-tag over OIDC needs
+      # 11.21.0, and `npm trust` needs 11.15.0. 11.21.1 is newer than all three and was published
+      # on 2026-10-15, so it has aged past the two-week dependency floor. It runs on any Node 24;
+      # npm 12 wants Node 24.15 or newer. Node 24's bundled npm is older, so install the CLI here.
+      # This job installs no dependencies.
+      - name: Install the npm CLI trusted publishing needs
+        run: |
+          npm install --global npm@11.21.1
+          npm --version
       - name: Read and validate the version
         id: version
         run: node scripts/release-version.ts >> "$GITHUB_OUTPUT"
       - name: Check the manifests and the changelog
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: node scripts/release-check.ts "$VERSION"
+          KIND: ${{ steps.version.outputs.kind }}
+        run: node scripts/release-check.ts "$VERSION" --kind "$KIND"
       - name: Verify the checked tarballs
         run: cd release-tarballs && sha256sum -c SHA256SUMS
       # --tag is not optional: npm points latest at anything published without it, so a beta
-      # would become what `npm install nepdate-core` installs. release-version.ts gives a stable version
-      # latest and a pre-release its own tag (beta for 0.1.0-beta.1).
+      # would become what `npm install nepdate-core` installs. release-version.ts gives a stable
+      # version latest and a pre-release its own tag (beta for 0.1.0-beta.1). npm adds provenance
+      # automatically for a trusted publish from a public repository, so the publish steps do not
+      # ask for it.
       - name: Publish nepdate-core
+        if: steps.version.outputs.kind == 'sdk'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           DIST_TAG: ${{ steps.version.outputs.dist-tag }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            unset NODE_AUTH_TOKEN
-          fi
           if npm view "nepdate-core@$VERSION" version >/dev/null 2>&1; then
             echo "nepdate-core@$VERSION is already on npm"
           else
-            npm publish "./release-tarballs/nepdate-core-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
+            npm publish "./release-tarballs/nepdate-core-$VERSION.tgz" --access public --tag "$DIST_TAG"
           fi
       - name: Publish nepdate-patro
+        if: steps.version.outputs.kind == 'sdk'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           DIST_TAG: ${{ steps.version.outputs.dist-tag }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            unset NODE_AUTH_TOKEN
-          fi
           if npm view "nepdate-patro@$VERSION" version >/dev/null 2>&1; then
             echo "nepdate-patro@$VERSION is already on npm"
           else
-            npm publish "./release-tarballs/nepdate-patro-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
+            npm publish "./release-tarballs/nepdate-patro-$VERSION.tgz" --access public --tag "$DIST_TAG"
           fi
-      # The first nepdate-datepicker version was published by hand (runbook, "First publish of a new
-      # package"); from then on it is published here like the other two.
+      # The picker has its own version line and tag (ADR-0018). Its first version was published by
+      # hand (runbook, "First publish of a new package"); from then on it is published here.
       - name: Publish nepdate-datepicker
+        if: steps.version.outputs.kind == 'picker'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           DIST_TAG: ${{ steps.version.outputs.dist-tag }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            unset NODE_AUTH_TOKEN
-          fi
           if npm view "nepdate-datepicker@$VERSION" version >/dev/null 2>&1; then
             echo "nepdate-datepicker@$VERSION is already on npm"
           else
-            npm publish "./release-tarballs/nepdate-datepicker-$VERSION.tgz" --provenance --access public --tag "$DIST_TAG"
+            npm publish "./release-tarballs/nepdate-datepicker-$VERSION.tgz" --access public --tag "$DIST_TAG"
           fi
 
-  # Post-publish verification (ADR-0011): verify-published.yml installs the three exact versions from
+  # Post-publish verification (ADR-0011): verify-published.yml installs the released packages from
   # the public registry on Linux, macOS and Windows with Node 22 and 24, checks the registry
-  # signatures and runs the README quick start, one info() call and one monthGrid() call. Called,
-  # not triggered: a release created with GITHUB_TOKEN fires no event. It can also be dispatched by
-  # hand for any published version.
+  # signatures and runs the README quick start. An SDK release verifies the core and patro; a picker
+  # release verifies the picker and the core it peers on. Called, not triggered: a release created
+  # with GITHUB_TOKEN fires no event. It can also be dispatched by hand for any published version.
   verify:
     needs: publish
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event_name == 'push' &&
+      (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/datepicker-v'))
     permissions:
       contents: read
       # The called workflow's report job opens an issue when a scheduled check fails; a caller
@@ -295,13 +340,17 @@ jobs:
     uses: ./.github/workflows/verify-published.yml
     with:
       version: ${{ needs.publish.outputs.version }}
+      kind: ${{ needs.publish.outputs.kind }}
+      core-version: ${{ needs.publish.outputs.core-version }}
 
   # The GitHub release appears only after verify has installed every version from the registry, so a
   # failed verify leaves no release page for packages that are about to be deprecated (ADR-0011).
   # This is the only job with contents: write; it publishes nothing to npm.
   github-release:
     needs: [publish, verify]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event_name == 'push' &&
+      (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/datepicker-v'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -324,16 +373,19 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      # Notes come from the CHANGELOG section plus install and verification blocks, not from the
-      # commit log. A pre-release version becomes a GitHub pre-release, so it is never shown as
+      # Notes come from the tag's changelog section plus install and verification blocks, not from
+      # the commit log. A pre-release version becomes a GitHub pre-release, so it is never shown as
       # the latest release.
       - name: Create the GitHub release
         env:
           VERSION: ${{ needs.publish.outputs.version }}
+          KIND: ${{ needs.publish.outputs.kind }}
+          CORE_VERSION: ${{ needs.publish.outputs.core-version }}
+          TAG: ${{ needs.publish.outputs.tag }}
         run: |
           set -euo pipefail
-          node scripts/release-notes.ts "$VERSION" > RELEASE_NOTES.md
+          node scripts/release-notes.ts "$VERSION" --kind "$KIND" --core-version "$CORE_VERSION" > RELEASE_NOTES.md
           prerelease=()
           case "$VERSION" in *-*) prerelease=(--prerelease) ;; esac
-          gh release create "v$VERSION" release-tarballs/*.tgz --title "v$VERSION" \
+          gh release create "$TAG" release-tarballs/*.tgz --title "$TAG" \
             --notes-file RELEASE_NOTES.md --verify-tag "${prerelease[@]}"
