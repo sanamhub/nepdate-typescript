@@ -274,11 +274,13 @@ jobs:
       - name: Read and validate the version
         id: version
         run: node scripts/release-version.ts >> "$GITHUB_OUTPUT"
+      # No npm ci here, so the check runs on Node alone. The picker's peer range needs semver; the
+      # pack job checked it on this commit, and the checksums below tie the tarballs to that job.
       - name: Check the manifests and the changelog
         env:
           VERSION: ${{ steps.version.outputs.version }}
           KIND: ${{ steps.version.outputs.kind }}
-        run: node scripts/release-check.ts "$VERSION" --kind "$KIND"
+        run: node scripts/release-check.ts "$VERSION" --kind "$KIND" --no-peer-range
       - name: Verify the checked tarballs
         run: cd release-tarballs && sha256sum -c SHA256SUMS
       # --tag is not optional: npm points latest at anything published without it, so a beta

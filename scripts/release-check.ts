@@ -5,12 +5,17 @@
 //
 //   node scripts/release-check.ts 0.1.0-beta.1
 //   node scripts/release-check.ts 0.1.0-beta.2 --kind picker
+//   node scripts/release-check.ts 0.1.0-beta.2 --kind picker --no-peer-range
+//
+// The publish job installs no dependencies, so this script must run on Node alone. semver is loaded
+// only for the picker's peer range check, and the publish job skips that check with
+// --no-peer-range: the pack job ran it on the same commit, and the publish job verifies the packed
+// tarballs against their checksums.
 //
 // Every failed check names the value it expected.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { satisfies, validRange } from "semver";
 import { changelogOf, type ReleaseKind, SEMVER, SEMVER_HINT } from "./release-semver.ts";
 
 function escapeRegExp(text: string): string {
@@ -58,12 +63,15 @@ function sectionErrors(changelog: string, version: string, file: string): string
 
 function parseArguments(
   argv: readonly string[],
-): { version: string; kind: ReleaseKind } | undefined {
+): { version: string; kind: ReleaseKind; peerRange: boolean } | undefined {
   let version: string | undefined;
   let kind: ReleaseKind = "sdk";
+  let peerRange = true;
   for (let index = 0; index < argv.length; index++) {
     const argument = argv[index];
-    if (argument === "--kind") {
+    if (argument === "--no-peer-range") {
+      peerRange = false;
+    } else if (argument === "--kind") {
       const value = argv[++index];
       if (value !== "sdk" && value !== "picker") return undefined;
       kind = value;
@@ -74,12 +82,14 @@ function parseArguments(
     }
   }
   if (version === undefined || !SEMVER.test(version)) return undefined;
-  return { version, kind };
+  return { version, kind, peerRange };
 }
 
 const parsed = parseArguments(process.argv.slice(2));
 if (parsed === undefined) {
-  console.error("usage: node scripts/release-check.ts X.Y.Z[-PRERELEASE] [--kind sdk|picker]");
+  console.error(
+    "usage: node scripts/release-check.ts X.Y.Z[-PRERELEASE] [--kind sdk|picker] [--no-peer-range]",
+  );
   console.error(
     `release-check: expected ${SEMVER_HINT} and --kind sdk or --kind picker, got ${process.argv
       .slice(2)
@@ -87,7 +97,7 @@ if (parsed === undefined) {
   );
   process.exit(2);
 }
-const { version, kind } = parsed;
+const { version, kind, peerRange } = parsed;
 
 const root = process.cwd();
 const core = readManifest(join(root, "packages/nepdate/package.json"));
@@ -110,16 +120,21 @@ if (kind === "sdk") {
   // The picker keeps its own version, so its core peer is a range rather than ~<picker version>.
   // It must accept the core version in the repository, which is the SDK version it was built on.
   const peer = picker.peerDependencies?.["nepdate-core"];
-  if (core.version === undefined) {
+  if (!peerRange) {
+    console.log("release-check: the picker peer range is not checked here (--no-peer-range)");
+  } else if (core.version === undefined) {
     errors.push("nepdate-core has no version, so the picker peer range cannot be checked");
-  } else if (typeof peer !== "string" || validRange(peer) === null) {
-    errors.push(
-      `nepdate-datepicker peerDependencies["nepdate-core"] is ${String(peer)}, expected a valid range that accepts ${core.version}`,
-    );
-  } else if (!satisfies(core.version, peer)) {
-    errors.push(
-      `nepdate-datepicker peerDependencies["nepdate-core"] is ${peer}, expected a range that accepts ${core.version}`,
-    );
+  } else {
+    const { satisfies, validRange } = await import("semver");
+    if (typeof peer !== "string" || validRange(peer) === null) {
+      errors.push(
+        `nepdate-datepicker peerDependencies["nepdate-core"] is ${String(peer)}, expected a valid range that accepts ${core.version}`,
+      );
+    } else if (!satisfies(core.version, peer)) {
+      errors.push(
+        `nepdate-datepicker peerDependencies["nepdate-core"] is ${peer}, expected a range that accepts ${core.version}`,
+      );
+    }
   }
 }
 
