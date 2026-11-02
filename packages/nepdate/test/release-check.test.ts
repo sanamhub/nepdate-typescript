@@ -299,7 +299,7 @@ test("an SDK tag selects the core and patro line", () => {
     packages: "nepdate-core,nepdate-patro",
     tag: "v0.1.0-rc.1",
   });
-  expect(output["core-version"]).toBe("0.1.0-beta.1");
+  expect(output["core-version"]).toBe("0.1.0-rc.1");
 });
 
 test("a picker tag selects only the picker", () => {
