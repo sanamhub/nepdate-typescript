@@ -16,4 +16,4 @@ B5   262.3    64   10%   12%      9%      2  final   6 B approx.       long({wee
 B6    76.5    64   10%   25%     11%      1  final   313 B approx.     parse('YYYY/MM/DD')
 B7     5.1    64   11%    0%      6%      1  final   0 B approx.       patro info(date)
 B8   383.1    64    5%    0%      6%      1  final   2 B approx.       month grid: of + info for every day
-wrote E:\github\sanamhub\worktrees\bench-top-libs\nepdate-typescript\docs\raw\2026-11-02\own.json
+wrote docs\raw\2026-11-02\own.json

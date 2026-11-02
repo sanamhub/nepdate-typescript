@@ -26,4 +26,4 @@ world-calendars@1.0.4
         first mismatch: BS 2033-03-07: 1976-06-29, expected 1976-06-20
   B2      832.9 ns/op  n=64  in-range 64/64  out none  core  22%  all   9%  during   9%  1 tries  final   DISAGREES
         first mismatch: AD 1976-06-20: 2033-02-29, expected 2033-03-07
-wrote E:\github\sanamhub\worktrees\bench-top-libs\nepdate-typescript\docs\raw\2026-11-02\compare.json
+wrote docs\raw\2026-11-02\compare.json

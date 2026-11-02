@@ -42,11 +42,13 @@ strings are built once in setup, as for B6, and a returned string is consumed by
 
 ## Correctness
 
-- `world-calendars` agrees with `shared/data` on all 64 dates in both directions.
-- `nepali-date-converter` differs at BS 2088-01-04 and 2089-06-10.
-- `bikram-sambat` differs at BS 2086-07-23, 2088-01-04 and 2089-06-10.
+None of the three agrees with `shared/data` on all 64 dates. The first mismatch for each:
 
-The report lists every differing date. A fast wrong answer is listed, never ranked first.
+- `world-calendars` at BS 2033-03-07: it returns 1976-06-29, the hub data has 1976-06-20.
+- `nepali-date-converter` at BS 2086-07-23: it returns 2029-11-09, the hub data has 2029-11-08.
+- `bikram-sambat` at BS 2088-01-04: it returns 2031-04-18, the hub data has 2031-04-19.
+
+The [benchmark report](benchmarks.md) links the raw run. A fast wrong answer is listed, never ranked first.
 
 ## Sources
 
