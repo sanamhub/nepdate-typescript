@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -217,6 +217,37 @@ test("a picker peer range that misses the core version fails", () => {
   expect(result.stderr).toContain(
     'nepdate-datepicker peerDependencies["nepdate-core"] is ~0.2.0, expected a range that accepts 0.1.0-rc.1',
   );
+});
+
+// The publish job runs release-check with no node_modules. A copy of the scripts outside the
+// repository has none either, so an import of a dependency on the SDK path or under
+// --no-peer-range fails here the way it failed on the release runner.
+function isolatedScript(): string {
+  const dir = mkdtempSync(join(tmpdir(), "release-check-alone-"));
+  fixtures.push(dir);
+  copyFileSync(SCRIPT, join(dir, "release-check.ts"));
+  copyFileSync(join(ROOT, "scripts/release-semver.ts"), join(dir, "release-semver.ts"));
+  return join(dir, "release-check.ts");
+}
+
+test("an SDK check runs without installed dependencies", () => {
+  const result = spawnSync(process.execPath, [isolatedScript(), "0.1.0"], {
+    cwd: fixture(),
+    encoding: "utf8",
+  });
+  expect(result.stderr).toBe("");
+  expect(result.status).toBe(0);
+});
+
+test("a picker check with --no-peer-range runs without installed dependencies", () => {
+  const result = spawnSync(
+    process.execPath,
+    [isolatedScript(), "0.1.0-beta.2", "--kind", "picker", "--no-peer-range"],
+    { cwd: pickerFixture({ pickerPeer: "~0.2.0" }), encoding: "utf8" },
+  );
+  expect(result.stderr).toBe("");
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("--no-peer-range");
 });
 
 test("a picker peer range accepts 0.1.0-rc.N and 0.1.x", () => {

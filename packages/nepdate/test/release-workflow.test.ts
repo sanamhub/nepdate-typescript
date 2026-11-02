@@ -519,8 +519,8 @@ function publishProblems(workflow: Workflow): string[] {
       workflow,
       "publish",
       "Check the manifests and the changelog",
-      "publish must check the manifests and the changelog by tag kind",
-      (item) => runHas(item, "scripts/release-check.ts", '--kind "$KIND"'),
+      "publish must check the manifests and the changelog by tag kind, without the semver-based range",
+      (item) => runHas(item, "scripts/release-check.ts", '--kind "$KIND"', "--no-peer-range"),
     ),
   );
   found.push(
