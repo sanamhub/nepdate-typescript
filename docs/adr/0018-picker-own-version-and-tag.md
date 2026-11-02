@@ -35,15 +35,16 @@ to one trusted publisher per package.
 3. **One tag releases one line.** The pack job packs, the smoke job installs, the publish job
    publishes and the release job attaches only the packages that the tag names. An SDK tag never
    packs, publishes or verifies the picker, and a picker tag never touches the SDK packages. The
-   picker smoke installs the published `nepdate-core` at the picker's peer range from the registry,
-   because the picker tag does not produce a core tarball.
+   picker smoke installs the published `nepdate-core` at the core version in the repository, because
+   the picker tag does not produce a core tarball. That core version must be on npm before a picker
+   tag is pushed.
 4. **Preflight follows the tag kind.** `scripts/release-check.ts` takes `--kind sdk|picker`. An SDK
    tag checks that the core and patro manifests equal the tag, that the patro peer is `~X.Y.Z`, and
    that the root `CHANGELOG.md` has the dated section and an empty `[Unreleased]`. A picker tag checks
    the picker manifest against the tag, that its `nepdate-core` peer range accepts the core version
    in the repository, and that `packages/nepdate-picker/CHANGELOG.md` has the dated section and an
    empty `[Unreleased]`. It does not compare the picker version with the SDK version.
-5. **The picker peer stays `~0.1.0-beta.1`.** npm reads that as `>=0.1.0-beta.1 <0.2.0`, so it
+5. **The picker peer stays `~0.1.0-beta.1`.** npm reads that as `>=0.1.0-beta.1 <0.2.0-0`, so it
    accepts `0.1.0-rc.N`, `0.1.0` and every `0.1.x` stable release. It does not accept a prerelease
    of a later patch such as `0.1.1-beta.1`, because a prerelease range admits prereleases only on
    the tuple that carries one. That is the conservative choice: a later patch's prerelease joins the

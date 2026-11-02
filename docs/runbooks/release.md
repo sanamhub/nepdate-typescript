@@ -194,7 +194,8 @@ step that follows is limited to that line.
    and the picker tarball, and runs `scripts/smoke.ts --mode picker`: the main entry loads in Node
    with no DOM, `monthGrid(2081, 4)` has 6 rows, and the package has `dist/theme.css` and a
    `dist/nepdate-datepicker.js` with no import. The core comes from the registry because a picker
-   tag does not pack the SDK.
+   tag does not pack the SDK, so the core version in the repository must already be on npm: after
+   an SDK version bump, push the SDK tag and let it publish before a picker tag.
 5. No registry login is used. A broken README example fails this job, so the published npm page and
    the tarballs are checked against the same text.
 

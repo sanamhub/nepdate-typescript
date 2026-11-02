@@ -114,7 +114,9 @@ jobs:
               picker="$version"
               ;;
             all)
-              version="$(node scripts/verify-published.mjs --resolve --kind sdk)"
+              if [ "$version" = latest ]; then
+                version="$(node scripts/verify-published.mjs --resolve --kind sdk)"
+              fi
               core="$version"
               if [ -z "$picker" ]; then
                 picker="$(node scripts/verify-published.mjs --resolve --kind picker)"
