@@ -32,11 +32,39 @@ jobs:
       - run: npm ci
       - run: npm run ci
 
-  # Fails when shared/ differs from the hub at the commit in shared/VERSION (ADR-0017).
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Read the core and patro version
+        id: version
+        run: |
+          set -euo pipefail
+          # Assigned first: a failing command inside echo's argument would not stop the step.
+          if ! version="$(node scripts/version.ts)"; then
+            echo "$version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  # Fails when shared/ differs from the hub at the commit in shared/VERSION (ADR-0017), and when
+  # the packages' version is on another MAJOR.MINOR line (ADR-0007).
   shared-check:
+    needs: version
     permissions:
       contents: read
-    uses: sanamhub/nepdate/.github/workflows/shared-check.yml@f94d67c0c85de7909cf54d7e4e96f226ca750129 # main 2026-10-31
+    uses: sanamhub/nepdate/.github/workflows/shared-check.yml@f636b7d476bc5959eb5689a950b73c8943860eef # main 2026-11-01
+    with:
+      sdk: typescript
+      version: ${{ needs.version.outputs.version }}
 
   # The packages declare node >=22.12, so the floor runs the two test suites and the packed smoke,
   # not the full gate script. Node 22.12 has type stripping behind a flag (ADR-0009); the tests
