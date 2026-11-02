@@ -1,6 +1,6 @@
 # ADR-0005: Releases
 
-- Status: Accepted
+- Status: Accepted (amended by ADR-0018)
 - Date: 2026-09-25
 - Updated: 2026-10-07 (hub ADR-0004: two packages, one version, one tag)
 - Deciders: Sanam Pakuwal

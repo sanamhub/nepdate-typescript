@@ -15,7 +15,7 @@ Bikram Sambat (Nepali calendar) for TypeScript and JavaScript. Part of the NepDa
 data and spec live in the hub [`sanamhub/nepdate`](https://github.com/sanamhub/nepdate); the C#
 original is [NepDate](https://github.com/RajuPrasai/NepDate).
 
-Two npm packages, released together with the same version:
+Two npm packages, `nepdate-core` and `nepdate-patro`, released together with the same version:
 
 - [`nepdate-core`](https://www.npmjs.com/package/nepdate-core): dates, conversion, arithmetic, formatting and
   parsing. ESM only, types included, zero dependencies, no event data.
@@ -23,8 +23,9 @@ Two npm packages, released together with the same version:
   almanac): tithi, public holidays and events from BS 2077-01-01 to 2084-08-20. It needs `nepdate-core`
   as a peer dependency.
 
-A third package, [`nepdate-datepicker`](https://github.com/sanamhub/nepdate-typescript/tree/main/packages/nepdate-picker),
-is a BS date picker as web components (a calendar and a form input). It is not on npm yet.
+A third package, [`nepdate-datepicker`](https://www.npmjs.com/package/nepdate-datepicker), is a BS
+date picker as web components (a calendar and a form input). It has its own version and releases on
+its own `datepicker-v*` tag.
 
 Pure TypeScript, no WASM and no time zone guessing. BS 1901-01-01 to 2199-12-30 (AD 1844-04-11 to
 2143-04-15). Node 22.12.0 and later (the floor is tested in CI), Deno, Bun and current browsers.

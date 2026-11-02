@@ -1,7 +1,8 @@
 // The release workflow keeps its permissions, pins, shell inputs and job order in the right places.
 // The checks run on the parsed YAML tree, so a comment, an indentation change or a step moved to
-// another job cannot satisfy a rule by accident. This is the TypeScript counterpart of the Python
-// port's test_release_workflow.py.
+// another job cannot satisfy a rule by accident. Two tag shapes share the workflow (ADR-0018): the
+// rules below also prove that a picker tag cannot run an SDK publish step and the other way round.
+// This is the TypeScript counterpart of the Python port's test_release_workflow.py.
 
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -38,6 +39,7 @@ const WORKFLOW = join(ROOT, ".github", "workflows", "release.yml");
 const TEXT = readFileSync(WORKFLOW, "utf8");
 const SHIPPED = parseWorkflow(TEXT);
 const EXPRESSION = "${{";
+const TAGS = ["v*", "datepicker-v*"];
 
 function expression(name: string): string {
   return `${EXPRESSION} ${name} }}`;
@@ -64,6 +66,14 @@ function stepProblems(
 function runHas(value: Step, ...needles: string[]): boolean {
   const run = stepRun(value);
   return needles.every((needle) => run.includes(needle));
+}
+
+function condition(value: Step | Job | undefined): string {
+  return value !== undefined && typeof value.if === "string" ? value.if : "";
+}
+
+function hasCondition(value: Step | Job | undefined, ...needles: string[]): boolean {
+  return needles.every((needle) => condition(value).includes(needle));
 }
 
 function orderProblems(
@@ -93,8 +103,8 @@ function triggerProblems(workflow: Workflow): string[] {
     found.push("release triggers must be exactly push and workflow_dispatch");
   }
   const push = trigger(workflow, "push");
-  if (!isDeepStrictEqual(push, { tags: ["v*"] })) {
-    found.push("push trigger must be exactly the v* tag");
+  if (!isDeepStrictEqual(push, { tags: TAGS })) {
+    found.push('push trigger must be exactly the ["v*", "datepicker-v*"] tags');
   }
   const dispatch = trigger(workflow, "workflow_dispatch");
   const inputs = isMapping(dispatch) ? dispatch.inputs : undefined;
@@ -198,11 +208,43 @@ function jobProblems(workflow: Workflow): string[] {
   return found;
 }
 
+function secretProblems(workflow: Workflow): string[] {
+  return stringValues(workflow).some((text) => text.includes("secrets."))
+    ? ["release must not read a secret: npm trusted publishing uses OIDC"]
+    : [];
+}
+
 function packProblems(workflow: Workflow): string[] {
   const found: string[] = [];
   found.push(
-    ...stepProblems(workflow, "pack", "Data status", "pack must run the data status", (value) =>
-      runHas(value, "scripts/data-status.ts"),
+    ...stepProblems(
+      workflow,
+      "pack",
+      "Read and validate the version",
+      "pack must read and validate the version",
+      (value) => runHas(value, "scripts/release-version.ts") && value.id === "version",
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "pack",
+      "Check the manifests and the changelog",
+      "pack must check the manifests and the changelog by tag kind",
+      (value) =>
+        runHas(value, "scripts/release-check.ts", '--kind "$KIND"') &&
+        envValue(value, "KIND") === expression("steps.version.outputs.kind"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "pack",
+      "Data status",
+      "pack must run the data status for an SDK release only",
+      (value) =>
+        runHas(value, "scripts/data-status.ts") &&
+        hasCondition(value, "steps.version.outputs.kind == 'sdk'"),
     ),
   );
   found.push(
@@ -218,9 +260,51 @@ function packProblems(workflow: Workflow): string[] {
     ...stepProblems(
       workflow,
       "pack",
+      "Build the packages the tag releases",
+      "pack must build only the packages the tag releases",
+      (value) =>
+        runHas(value, "npm run build -w nepdate-core", 'if [ "$KIND" = picker ]') &&
+        runHas(value, "npm run build -w nepdate-patro", "npm run build -w nepdate-datepicker"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "pack",
+      "Pack the SDK packages",
+      "pack must pack the core and patro on an SDK tag",
+      (value) =>
+        hasCondition(value, "steps.version.outputs.kind == 'sdk'") &&
+        runHas(value, "npm pack -w nepdate-core", "npm pack -w nepdate-patro") &&
+        !runHas(value, "nepdate-datepicker"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "pack",
+      "Pack the picker",
+      "pack must pack the picker on a picker tag",
+      (value) =>
+        hasCondition(value, "steps.version.outputs.kind == 'picker'") &&
+        runHas(value, "npm pack -w nepdate-datepicker") &&
+        !runHas(value, "npm pack -w nepdate-core"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "pack",
       "Check the tarball contents and write SHA256SUMS",
-      "pack must check the tarball contents and write SHA256SUMS",
-      (value) => runHas(value, "scripts/tarball-check.ts", "--sums"),
+      "pack must check the tarball contents by tag kind",
+      (value) =>
+        runHas(
+          value,
+          "scripts/tarball-check.ts",
+          '--kind "$KIND"',
+          '--core-version "$CORE_VERSION"',
+          "--sums",
+        ),
     ),
   );
   found.push(
@@ -243,21 +327,6 @@ function packProblems(workflow: Workflow): string[] {
       "Check the tarball contents and write SHA256SUMS",
       "Upload the tarballs",
       "pack must check the tarball contents before uploading",
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "pack",
-      "Pack the three packages",
-      "pack must pack the three packages",
-      (value) =>
-        runHas(
-          value,
-          "npm pack -w nepdate-core",
-          "npm pack -w nepdate-patro",
-          "npm pack -w nepdate-datepicker",
-        ),
     ),
   );
   found.push(
@@ -297,49 +366,35 @@ function smokeProblems(workflow: Workflow): string[] {
       workflow,
       "smoke",
       "Core only, from the README",
-      "smoke must run both README examples and the picker check",
-      (item) => runHas(item, "--mode core", "scripts/smoke.ts"),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "smoke",
-      "Core plus patro, from the README",
-      "smoke must run both README examples and the picker check",
-      (item) => runHas(item, "--mode patro", "scripts/smoke.ts"),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "smoke",
-      "Core plus patro, from the README",
-      "smoke must install the patro tarball",
-      (item) => runHas(item, "release-tarballs/nepdate-patro-$VERSION.tgz"),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "smoke",
-      "Core plus picker",
-      "smoke must run both README examples and the picker check",
-      (item) => runHas(item, "--mode picker", "scripts/smoke.ts"),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "smoke",
-      "Core plus picker",
-      "smoke must install the core and picker tarballs",
+      "smoke must run the core example on an SDK tag",
       (item) =>
-        runHas(
-          item,
-          "release-tarballs/nepdate-core-$VERSION.tgz",
-          "release-tarballs/nepdate-datepicker-$VERSION.tgz",
-        ),
+        runHas(item, "--mode core", "scripts/smoke.ts") &&
+        hasCondition(item, "needs.pack.outputs.kind == 'sdk'"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "smoke",
+      "Core plus patro, from the README",
+      "smoke must run the patro example on an SDK tag",
+      (item) =>
+        runHas(item, "--mode patro", "scripts/smoke.ts") &&
+        runHas(item, "release-tarballs/nepdate-patro-$VERSION.tgz") &&
+        hasCondition(item, "needs.pack.outputs.kind == 'sdk'"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "smoke",
+      "Core plus picker",
+      "smoke must run the picker check on a picker tag",
+      (item) =>
+        runHas(item, "--mode picker", "scripts/smoke.ts") &&
+        hasCondition(item, "needs.pack.outputs.kind == 'picker'") &&
+        runHas(item, "nepdate-core@$CORE_VERSION") &&
+        runHas(item, "release-tarballs/nepdate-datepicker-$VERSION.tgz"),
     ),
   );
   found.push(
@@ -349,15 +404,6 @@ function smokeProblems(workflow: Workflow): string[] {
       "Download the tarballs",
       "Core only, from the README",
       "smoke must download the tarballs before the examples",
-    ),
-  );
-  found.push(
-    ...orderProblems(
-      workflow,
-      "smoke",
-      "Core only, from the README",
-      "Core plus patro, from the README",
-      "smoke must run the core example before the patro example",
     ),
   );
   return found;
@@ -389,17 +435,11 @@ function mutationProblems(workflow: Workflow): string[] {
       (item) => runHas(item, "npm run mutation:check"),
     ),
   );
-  found.push(
-    ...orderProblems(
-      workflow,
-      "mutation",
-      "Run mutation testing",
-      "Check the floor and the equivalent list",
-      "mutation must run the suite before the floor check",
-    ),
-  );
   return found;
 }
+
+const TAG_PUSH =
+  "github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/datepicker-v'))";
 
 function publishProblems(workflow: Workflow): string[] {
   const value = job(workflow, "publish");
@@ -413,9 +453,8 @@ function publishProblems(workflow: Workflow): string[] {
       "publish must need pack, smoke and mutation",
     ),
   );
-  const condition = typeof value.if === "string" ? value.if : "";
-  if (!condition.includes("github.event_name == 'push'") || !condition.includes("refs/tags/v")) {
-    found.push("publish must run only on a tag push");
+  if (condition(value) !== TAG_PUSH) {
+    found.push("publish must run only on an SDK or picker tag push");
   }
   found.push(
     ...stepProblems(
@@ -431,17 +470,8 @@ function publishProblems(workflow: Workflow): string[] {
       workflow,
       "publish",
       "Check the tag commit is on origin/main",
-      "publish must fetch origin/main",
-      (item) => runHas(item, "git fetch --no-tags origin main"),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "publish",
-      "Check the tag commit is on origin/main",
       "publish must verify the tag is on origin/main",
-      (item) => runHas(item, "git merge-base --is-ancestor"),
+      (item) => runHas(item, "git fetch --no-tags origin main", "git merge-base --is-ancestor"),
     ),
   );
   found.push(
@@ -451,15 +481,6 @@ function publishProblems(workflow: Workflow): string[] {
       "Check the tag commit is on origin/main",
       "publish must pass github.sha through env",
       (item) => envValue(item, "COMMIT_SHA") === expression("github.sha"),
-    ),
-  );
-  found.push(
-    ...orderProblems(
-      workflow,
-      "publish",
-      "Check the tag commit is on origin/main",
-      "Publish nepdate-core",
-      "publish must check main before publishing",
     ),
   );
   found.push(
@@ -479,6 +500,15 @@ function publishProblems(workflow: Workflow): string[] {
     ...stepProblems(
       workflow,
       "publish",
+      "Install the npm CLI trusted publishing needs",
+      "publish must install npm 11.21.1 for trusted publishing and dist-tags",
+      (item) => runHas(item, "npm install --global npm@11.21.1", "npm --version"),
+    ),
+  );
+  found.push(
+    ...stepProblems(
+      workflow,
+      "publish",
       "Read and validate the version",
       "publish must read and validate the version",
       (item) => runHas(item, "scripts/release-version.ts") && item.id === "version",
@@ -489,8 +519,8 @@ function publishProblems(workflow: Workflow): string[] {
       workflow,
       "publish",
       "Check the manifests and the changelog",
-      "publish must check the manifests and the changelog",
-      (item) => runHas(item, "scripts/release-check.ts"),
+      "publish must check the manifests and the changelog by tag kind",
+      (item) => runHas(item, "scripts/release-check.ts", '--kind "$KIND"'),
     ),
   );
   found.push(
@@ -512,62 +542,57 @@ function publishProblems(workflow: Workflow): string[] {
     ),
   );
 
-  for (const pkg of ["nepdate-core", "nepdate-patro", "nepdate-datepicker"] as const) {
-    const name = `Publish ${pkg}`;
-    const tarball = `${pkg}-$VERSION.tgz`;
+  for (const [name, kind] of [
+    ["nepdate-core", "sdk"],
+    ["nepdate-patro", "sdk"],
+    ["nepdate-datepicker", "picker"],
+  ] as const) {
+    const stepName = `Publish ${name}`;
+    const tarball = `${name}-$VERSION.tgz`;
     found.push(
       ...stepProblems(
         workflow,
         "publish",
-        name,
-        "publish must publish the three packages",
+        stepName,
+        `${stepName} must publish only on its own tag kind`,
+        (item) => hasCondition(item, `steps.version.outputs.kind == '${kind}'`),
+      ),
+    );
+    found.push(
+      ...stepProblems(
+        workflow,
+        "publish",
+        stepName,
+        "every publish step must skip a version already on npm",
+        (item) => runHas(item, `npm view "${name}@$VERSION" version`),
+      ),
+    );
+    found.push(
+      ...stepProblems(
+        workflow,
+        "publish",
+        stepName,
+        "every publish step must publish the checked tarball with a dist-tag",
         (item) =>
           // "./" keeps npm from reading "release-tarballs/x.tgz" as a GitHub user/repo shorthand,
           // which made the 0.1.0-beta.1 publish try `git ls-remote` over SSH and fail.
           runHas(
             item,
             `npm publish "./release-tarballs/${tarball}"`,
-            "--provenance",
             "--access public",
-          ),
-      ),
-    );
-    found.push(
-      ...stepProblems(
-        workflow,
-        "publish",
-        name,
-        "every publish step must skip a version already on npm",
-        (item) => runHas(item, `npm view "${pkg}@$VERSION" version`),
-      ),
-    );
-    found.push(
-      ...stepProblems(
-        workflow,
-        "publish",
-        name,
-        "every publish step needs NODE_AUTH_TOKEN",
-        (item) => envValue(item, "NODE_AUTH_TOKEN") === expression("secrets.NPM_TOKEN"),
-      ),
-    );
-    found.push(
-      ...stepProblems(
-        workflow,
-        "publish",
-        name,
-        "every publish step must unset an empty NODE_AUTH_TOKEN",
-        (item) => runHas(item, "unset NODE_AUTH_TOKEN"),
-      ),
-    );
-    found.push(
-      ...stepProblems(
-        workflow,
-        "publish",
-        name,
-        "every publish step must publish under the version's dist-tag",
-        (item) =>
-          runHas(item, '--tag "$DIST_TAG"') &&
+            '--tag "$DIST_TAG"',
+          ) &&
+          !runHas(item, "--provenance") &&
           envValue(item, "DIST_TAG") === expression("steps.version.outputs.dist-tag"),
+      ),
+    );
+    found.push(
+      ...stepProblems(
+        workflow,
+        "publish",
+        stepName,
+        "every publish step must use trusted publishing, not a token",
+        (item) => envValue(item, "NODE_AUTH_TOKEN") === undefined,
       ),
     );
   }
@@ -575,16 +600,18 @@ function publishProblems(workflow: Workflow): string[] {
     ...orderProblems(
       workflow,
       "publish",
+      "Check the tag commit is on origin/main",
       "Publish nepdate-core",
-      "Publish nepdate-patro",
-      "publish must publish core, patro, then the picker",
+      "publish must check main before publishing",
     ),
+  );
+  found.push(
     ...orderProblems(
       workflow,
       "publish",
+      "Publish nepdate-core",
       "Publish nepdate-patro",
-      "Publish nepdate-datepicker",
-      "publish must publish core, patro, then the picker",
+      "publish must publish the core before the patro",
     ),
   );
   // A publish without --tag moves latest, so a pre-release would become the default install.
@@ -593,7 +620,9 @@ function publishProblems(workflow: Workflow): string[] {
       found.push('every npm publish must pass --tag "$DIST_TAG"');
     }
   }
-
+  if (jobRun(workflow, "publish").includes("NODE_AUTH_TOKEN")) {
+    found.push("publish must not use NODE_AUTH_TOKEN");
+  }
   if (jobRun(workflow, "publish").includes("npm pack")) {
     found.push("publish must not rebuild the tarballs");
   }
@@ -615,9 +644,14 @@ export function verifyProblems(workflow: Workflow): string[] {
   if (withMap?.version !== expression("needs.publish.outputs.version")) {
     found.push("verify must pass the published version");
   }
-  const condition = typeof value.if === "string" ? value.if : "";
-  if (!condition.includes("github.event_name == 'push'") || !condition.includes("refs/tags/v")) {
-    found.push("verify must run only on a tag push");
+  if (withMap?.kind !== expression("needs.publish.outputs.kind")) {
+    found.push("verify must pass the tag kind");
+  }
+  if (withMap?.["core-version"] !== expression("needs.publish.outputs.core-version")) {
+    found.push("verify must pass the core version the picker peers on");
+  }
+  if (condition(value) !== TAG_PUSH) {
+    found.push("verify must run only on an SDK or picker tag push");
   }
   if (
     value.secrets !== undefined ||
@@ -657,19 +691,17 @@ export function githubReleaseProblems(workflow: Workflow): string[] {
       workflow,
       "github-release",
       "Create the GitHub release",
-      "github-release must create the GitHub release",
+      "github-release must use the tag and notes of the tag's line",
       (item) =>
-        runHas(item, "gh release create") &&
-        envValue(item, "VERSION") === expression("needs.publish.outputs.version"),
-    ),
-  );
-  found.push(
-    ...stepProblems(
-      workflow,
-      "github-release",
-      "Create the GitHub release",
-      "github-release must write the notes from the changelog and mark a pre-release",
-      (item) => runHas(item, "scripts/release-notes.ts", "--prerelease", "*-*"),
+        runHas(
+          item,
+          'gh release create "$TAG"',
+          'scripts/release-notes.ts "$VERSION" --kind "$KIND" --core-version "$CORE_VERSION"',
+          "--verify-tag",
+          "*-*",
+        ) &&
+        envValue(item, "TAG") === expression("needs.publish.outputs.tag") &&
+        envValue(item, "KIND") === expression("needs.publish.outputs.kind"),
     ),
   );
   found.push(
@@ -693,6 +725,7 @@ export function problems(workflow: Workflow): string[] {
     ...jobPermissionProblems(workflow),
     ...environmentProblems(workflow),
     ...jobProblems(workflow),
+    ...secretProblems(workflow),
     ...packProblems(workflow),
     ...smokeProblems(workflow),
     ...mutationProblems(workflow),
@@ -719,29 +752,85 @@ function rawStepIndex(steps: unknown[], name: string): number {
   return index;
 }
 
-function replaceOnce(text: string, from: string, to: string): string {
-  expect(text.split(from).length - 1, `expected one ${from}`).toBe(1);
-  return text.replace(from, to);
-}
-
 describe("release workflow", () => {
   it("satisfies every rule", () => {
     expect(problems(SHIPPED)).toEqual([]);
   });
 
-  it("reports a missing main check", () => {
+  it("keeps the two tag globs apart", () => {
+    // GitHub matches a tag filter from the start of the tag name and `*` does not cross `/`, so
+    // the SDK filter cannot match the picker's prefix. This is the rule the workflow relies on.
+    const sdk = /^v[^/]*$/;
+    const picker = /^datepicker-v[^/]*$/;
+    expect(sdk.test("v0.1.0-rc.1")).toBe(true);
+    expect(sdk.test("datepicker-v0.1.0-beta.2")).toBe(false);
+    expect(picker.test("datepicker-v0.1.0-beta.2")).toBe(true);
+    expect(picker.test("v0.1.0-rc.1")).toBe(false);
+  });
+
+  it("reports an SDK publish step that a picker tag could run", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
-    steps.splice(rawStepIndex(steps, "Check the tag commit is on origin/main"), 1);
-    expect(problems(workflow)).toContain("publish must verify the tag is on origin/main");
+    const core = steps[rawStepIndex(steps, "Publish nepdate-core")] as Record<string, unknown>;
+    delete core.if;
+    expect(problems(workflow)).toContain(
+      "Publish nepdate-core must publish only on its own tag kind",
+    );
+  });
+
+  it("reports a picker publish step that an SDK tag could run", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "publish"));
+    const picker = steps[rawStepIndex(steps, "Publish nepdate-datepicker")] as Record<
+      string,
+      unknown
+    >;
+    picker.if = "steps.version.outputs.kind == 'sdk'";
+    expect(problems(workflow)).toContain(
+      "Publish nepdate-datepicker must publish only on its own tag kind",
+    );
+  });
+
+  it("reports an SDK pack step that a picker tag could run", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "pack"));
+    const pack = steps[rawStepIndex(steps, "Pack the SDK packages")] as Record<string, unknown>;
+    delete pack.if;
+    expect(problems(workflow)).toContain("pack must pack the core and patro on an SDK tag");
+  });
+
+  it("reports a picker smoke step that installs the SDK tarballs", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "smoke"));
+    const smoke = steps[rawStepIndex(steps, "Core plus picker")] as Record<string, unknown>;
+    smoke.run = String(smoke.run).replace(
+      "nepdate-core@$CORE_VERSION",
+      "nepdate-core-$VERSION.tgz",
+    );
+    expect(problems(workflow)).toContain("smoke must run the picker check on a picker tag");
+  });
+
+  it("reports a reintroduced npm token", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "publish"));
+    const core = steps[rawStepIndex(steps, "Publish nepdate-core")] as Record<string, unknown>;
+    core.env = { NODE_AUTH_TOKEN: `${EXPRESSION} secrets.NPM_TOKEN }}` };
+    const found = problems(workflow);
+    expect(found).toContain("every publish step must use trusted publishing, not a token");
+    expect(found).toContain("release must not read a secret: npm trusted publishing uses OIDC");
+  });
+
+  it("reports a missing npm CLI install", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "publish"));
+    steps.splice(rawStepIndex(steps, "Install the npm CLI trusted publishing needs"), 1);
+    expect(problems(workflow)).toContain(
+      "publish must install npm 11.21.1 for trusted publishing and dist-tags",
+    );
   });
 
   it("does not accept a rule that is only met inside a comment", () => {
-    const commented = replaceOnce(
-      TEXT,
-      "          fetch-depth: 0\n",
-      "          # fetch-depth: 0\n",
-    );
+    const commented = TEXT.replace("          fetch-depth: 0\n", "          # fetch-depth: 0\n");
     expect(problems(parseWorkflow(commented))).toContain(
       "publish checkout must fetch full history",
     );
@@ -753,81 +842,11 @@ describe("release workflow", () => {
     expect(problems(workflow)).toContain("release workflow must have a mutation job");
   });
 
-  it("reports every other rule in one negative example", () => {
-    const bad = `on:
-  workflow_dispatch:
-permissions:
-  contents: write
-jobs:
-  pack:
-    outputs:
-      version: ${EXPRESSION} steps.version.outputs.version }}
-  smoke:
-    needs: build
-    environment: production
-    env:
-      TOKEN: ${EXPRESSION} secrets.NPM_TOKEN }}
-  mutation:
-    environment: production
-    env:
-      TOKEN: ${EXPRESSION} secrets.NPM_TOKEN }}
-    steps:
-      - run: npm ci
-  publish:
-    if: github.event_name == 'workflow_dispatch'
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v7
-      - run: echo "${EXPRESSION} inputs.version }}"
-      - name: Publish nepdate-core
-        run: npm publish
-      - name: Check the tag commit is on origin/main
-        run: git fetch --no-tags origin main && git merge-base --is-ancestor "$COMMIT_SHA" origin/main
-`;
-    const found = problems(parseWorkflow(bad));
-    for (const message of [
-      "default permissions",
-      "not pinned",
-      "expression inside run",
-      "tag push",
-      "check main before publishing",
-      "fetch full history",
-      "pass github.sha",
-      "NODE_AUTH_TOKEN",
-      "unset an empty",
-      "need pack, smoke and mutation",
-      "mutation must need pack",
-      "mutation must not use an environment",
-      "mutation must not read a secret",
-      "run the mutation suite",
-      "check the floor and equivalents",
-      "smoke must need pack",
-      "smoke must not use an environment",
-      "smoke must not read a secret",
-      "download the packed tarballs",
-      "both README examples and the picker check",
-      "install the patro tarball",
-      "check the tarball contents",
-      "upload the tarballs",
-      "verify job",
-      "github-release job",
-    ]) {
-      expect(
-        found.some((candidate) => candidate.includes(message)),
-        message,
-      ).toBe(true);
-    }
-  });
-
   it("reports a missing tarball check", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "pack"));
     steps.splice(rawStepIndex(steps, "Check the tarball contents and write SHA256SUMS"), 1);
-    expect(problems(workflow)).toContain(
-      "pack must check the tarball contents and write SHA256SUMS",
-    );
+    expect(problems(workflow)).toContain("pack must check the tarball contents by tag kind");
   });
 
   it("reports a publish job that rebuilds the tarballs", () => {
@@ -844,44 +863,16 @@ jobs:
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
     steps.splice(rawStepIndex(steps, "Publish nepdate-datepicker"), 1);
-    expect(problems(workflow)).toContain("publish must publish the three packages");
+    expect(problems(workflow)).toContain(
+      "Publish nepdate-datepicker must publish only on its own tag kind",
+    );
   });
 
-  it("reports the picker published before patro", () => {
+  it("reports a missing main check", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
-    const [picker] = steps.splice(rawStepIndex(steps, "Publish nepdate-datepicker"), 1);
-    steps.splice(rawStepIndex(steps, "Publish nepdate-patro"), 0, picker);
-    expect(problems(workflow)).toContain("publish must publish core, patro, then the picker");
-  });
-
-  it("reports a picker publish without the npm view guard", () => {
-    const workflow = structuredClone(SHIPPED);
-    const steps = rawSteps(requireJob(workflow, "publish"));
-    const publish = steps[rawStepIndex(steps, "Publish nepdate-datepicker")] as Record<
-      string,
-      unknown
-    >;
-    publish.run = String(publish.run).replace('npm view "nepdate-datepicker@$VERSION"', "false");
-    expect(problems(workflow)).toContain("every publish step must skip a version already on npm");
-  });
-
-  it("reports a missing picker smoke step and an unpacked picker", () => {
-    const workflow = structuredClone(SHIPPED);
-    const smoke = rawSteps(requireJob(workflow, "smoke"));
-    smoke.splice(rawStepIndex(smoke, "Core plus picker"), 1);
-    const pack = rawSteps(requireJob(workflow, "pack"));
-    const step = pack[rawStepIndex(pack, "Pack the three packages")] as Record<string, unknown>;
-    step.run = String(step.run).replace("npm pack -w nepdate-datepicker", "true");
-    const found = problems(workflow);
-    expect(found).toContain("smoke must run both README examples and the picker check");
-    expect(found).toContain("pack must pack the three packages");
-  });
-
-  it("reports a missing verify job", () => {
-    const workflow = structuredClone(SHIPPED);
-    delete jobsOf(workflow).verify;
-    expect(problems(workflow)).toContain("release workflow must have a verify job");
+    steps.splice(rawStepIndex(steps, "Check the tag commit is on origin/main"), 1);
+    expect(problems(workflow)).toContain("publish must verify the tag is on origin/main");
   });
 
   it("reports a publish step without the dist-tag", () => {
@@ -890,29 +881,24 @@ jobs:
     const publish = steps[rawStepIndex(steps, "Publish nepdate-patro")] as Record<string, unknown>;
     publish.run = String(publish.run).replace(' --tag "$DIST_TAG"', "");
     const found = problems(workflow);
-    expect(found).toContain("every publish step must publish under the version's dist-tag");
+    expect(found).toContain("every publish step must publish the checked tarball with a dist-tag");
     expect(found).toContain('every npm publish must pass --tag "$DIST_TAG"');
   });
 
-  it("reports a tarball path npm would read as a GitHub shorthand", () => {
+  it("reports a publish step that asks npm for provenance again", () => {
     const workflow = structuredClone(SHIPPED);
     const steps = rawSteps(requireJob(workflow, "publish"));
     const publish = steps[rawStepIndex(steps, "Publish nepdate-core")] as Record<string, unknown>;
-    publish.run = String(publish.run).replace('"./release-tarballs/', '"release-tarballs/');
-    expect(problems(workflow)).toContain("publish must publish the three packages");
+    publish.run = String(publish.run).replace("--access public", "--provenance --access public");
+    expect(problems(workflow)).toContain(
+      "every publish step must publish the checked tarball with a dist-tag",
+    );
   });
 
-  it("reports a GitHub release that does not mark a pre-release", () => {
+  it("reports a missing verify job", () => {
     const workflow = structuredClone(SHIPPED);
-    const steps = rawSteps(requireJob(workflow, "github-release"));
-    const create = steps[rawStepIndex(steps, "Create the GitHub release")] as Record<
-      string,
-      unknown
-    >;
-    create.run = String(create.run).replace("prerelease=(--prerelease)", "prerelease=()");
-    expect(problems(workflow)).toContain(
-      "github-release must write the notes from the changelog and mark a pre-release",
-    );
+    delete jobsOf(workflow).verify;
+    expect(problems(workflow)).toContain("release workflow must have a verify job");
   });
 
   it("reports a verify job that runs its own steps instead of verify-published", () => {
@@ -956,6 +942,19 @@ jobs:
     expect(problems(workflow)).toContain("publish must not create the GitHub release");
   });
 
+  it("reports a GitHub release that always uses the SDK tag", () => {
+    const workflow = structuredClone(SHIPPED);
+    const steps = rawSteps(requireJob(workflow, "github-release"));
+    const create = steps[rawStepIndex(steps, "Create the GitHub release")] as Record<
+      string,
+      unknown
+    >;
+    create.run = String(create.run).replace('"$TAG"', '"v$VERSION"');
+    expect(problems(workflow)).toContain(
+      "github-release must use the tag and notes of the tag's line",
+    );
+  });
+
   it("reports contents: write on publish", () => {
     const workflow = structuredClone(SHIPPED);
     requireJob(workflow, "publish").permissions = {
@@ -965,27 +964,10 @@ jobs:
     expect(problems(workflow)).toContain("publish must not have contents: write");
   });
 
-  it("reports a GitHub release step moved into another job", () => {
-    const workflow = structuredClone(SHIPPED);
-    const releaseSteps = rawSteps(requireJob(workflow, "github-release"));
-    const moved = releaseSteps.splice(rawStepIndex(releaseSteps, "Create the GitHub release"), 1);
-    rawSteps(requireJob(workflow, "publish")).push(...moved);
-    expect(
-      stepsOf(workflow, "publish").some((item) => item.name === "Create the GitHub release"),
-    ).toBe(true);
-    expect(
-      stepsOf(workflow, "github-release").some((item) => item.name === "Create the GitHub release"),
-    ).toBe(false);
-    expect(problems(workflow)).toContain("publish must not create the GitHub release");
-    expect(problems(workflow)).toContain("github-release must create the GitHub release");
-  });
-
   it("reports id-token granted at the workflow level", () => {
     const workflow = structuredClone(SHIPPED);
     workflow.permissions = { contents: "read", "id-token": "write" };
     requireJob(workflow, "publish").permissions = { contents: "read" };
-    expect(workflow.permissions).toEqual({ contents: "read", "id-token": "write" });
-    expect(requireJob(workflow, "publish").permissions).toEqual({ contents: "read" });
     expect(problems(workflow)).toContain("default permissions must be exactly contents: read");
     expect(problems(workflow)).toContain("publish needs contents: read and id-token: write");
   });
@@ -995,7 +977,9 @@ jobs:
     const push = trigger(workflow, "push");
     if (!isMapping(push)) throw new Error("push trigger must be a mapping");
     push.branches = ["main"];
-    expect(problems(workflow)).toContain("push trigger must be exactly the v* tag");
+    expect(problems(workflow)).toContain(
+      'push trigger must be exactly the ["v*", "datepicker-v*"] tags',
+    );
   });
 
   it("reports a job outside the release path", () => {
@@ -1017,5 +1001,82 @@ jobs:
       stepIndex(workflow, "pack", "Check the tarball contents and write SHA256SUMS"),
     ).toBeGreaterThan(stepIndex(workflow, "pack", "Upload the tarballs"));
     expect(problems(workflow)).toContain("pack must check the tarball contents before uploading");
+  });
+
+  it("reports every other rule in one negative example", () => {
+    const bad = `on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  pack:
+    outputs:
+      version: ${EXPRESSION} steps.version.outputs.version }}
+    steps:
+      - run: npm pack
+  smoke:
+    needs: build
+    environment: production
+    env:
+      TOKEN: ${EXPRESSION} secrets.NPM_TOKEN }}
+  mutation:
+    environment: production
+    env:
+      TOKEN: ${EXPRESSION} secrets.NPM_TOKEN }}
+    steps:
+      - run: npm ci
+  publish:
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      NODE_AUTH_TOKEN: ${EXPRESSION} secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: echo "${EXPRESSION} inputs.version }}"
+      - name: Publish nepdate-core
+        run: npm publish --provenance
+      - name: Check the tag commit is on origin/main
+        run: git fetch --no-tags origin main && git merge-base --is-ancestor "$COMMIT_SHA" origin/main
+`;
+    const found = problems(parseWorkflow(bad));
+    for (const message of [
+      "default permissions",
+      "not pinned",
+      "expression inside run",
+      "SDK or picker tag push",
+      "check main before publishing",
+      "fetch full history",
+      "pass github.sha",
+      "need pack, smoke and mutation",
+      "mutation must need pack",
+      "mutation must not use an environment",
+      "mutation must not read a secret",
+      "run the mutation suite",
+      "check the floor and equivalents",
+      "smoke must need pack",
+      "smoke must not use an environment",
+      "smoke must not read a secret",
+      "download the packed tarballs",
+      "core example on an SDK tag",
+      "patro example on an SDK tag",
+      "picker check on a picker tag",
+      "tarball contents by tag kind",
+      "upload the tarballs",
+      "verify job",
+      "github-release job",
+      "must not read a secret",
+      "npm 11.21.1",
+      "manifest",
+      "dist-tag",
+    ]) {
+      expect(
+        found.some((candidate) => candidate.includes(message)),
+        message,
+      ).toBe(true);
+    }
   });
 });

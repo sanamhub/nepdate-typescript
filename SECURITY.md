@@ -1,13 +1,14 @@
 # Security policy
 
-`nepdate-core` and `nepdate-patro` have no runtime dependencies, no network access and no file access.
+`nepdate-core` and `nepdate-patro` share one version, and `nepdate-datepicker` has its own. All three
+packages have no runtime dependencies, no network access and no file access.
 A security problem is most likely an exception other than `NepDateError`, or a hang, on hostile
 input to `parse`, `tryParse` or `parseLenient`, or a problem in a workflow (`.github/workflows/`).
 
 ## Supported versions
 
-The latest `0.x` release of both packages gets fixes. A version with a known problem is deprecated
-on npm (ADR-0005).
+The latest `0.x` release of each version line gets fixes. A version with a known problem is
+deprecated on npm (ADR-0005, ADR-0018).
 
 ## Reporting a vulnerability
 

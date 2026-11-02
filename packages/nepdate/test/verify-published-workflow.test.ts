@@ -1,6 +1,7 @@
-// verify-published.yml checks a version that is already on npm, the way a user installs it, and
-// runs the same check weekly with every package manager and daily as metadata only. The rules run
-// on the parsed tree, so a commented-out step cannot satisfy them.
+// verify-published.yml checks already-published versions the way a user installs them, and runs the
+// same check weekly with every package manager and daily as metadata only. Two version lines exist
+// (ADR-0018), so the workflow resolves the core and the picker separately and passes both to the
+// script. The rules run on the parsed tree, so a commented-out step cannot satisfy them.
 
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -32,22 +33,21 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const TEXT = readFileSync(join(ROOT, ".github", "workflows", "verify-published.yml"), "utf8");
 const SHIPPED = parseWorkflow(TEXT);
 const VERSION = "${{ needs.resolve.outputs.version }}";
+const KIND = "${{ needs.resolve.outputs.kind }}";
+const CORE_VERSION = "${{ needs.resolve.outputs.core-version }}";
+const PICKER_VERSION = "${{ needs.resolve.outputs.picker-version }}";
 const INPUT_VERSION = "${{ inputs.version }}";
+const INPUT_KIND = "${{ inputs.kind }}";
 const WEEKLY = "31 6 * * 1";
 const DAILY = "27 3 * * *";
 const MANAGERS = ["npm", "pnpm", "yarn-node-modules", "yarn-pnp", "bun"];
 const CHECK_JOBS = ["verify", "weekly", "metadata"];
 
-function versionInput(workflow: Workflow, name: string): boolean {
-  const value = trigger(workflow, name);
+function inputOf(workflow: Workflow, triggerName: string, name: string): Mapping | undefined {
+  const value = trigger(workflow, triggerName);
   const inputs = isMapping(value) ? value.inputs : undefined;
-  const version = isMapping(inputs) ? inputs.version : undefined;
-  return (
-    isMapping(version) &&
-    version.required === false &&
-    version.default === "latest" &&
-    version.type === "string"
-  );
+  const input = isMapping(inputs) ? inputs[name] : undefined;
+  return isMapping(input) ? input : undefined;
 }
 
 function matrixOf(workflow: Workflow, name: string): Mapping | undefined {
@@ -74,8 +74,32 @@ export function problems(workflow: Workflow): string[] {
     found.push("verify-published must be workflow_call, workflow_dispatch and schedule only");
   }
   for (const name of ["workflow_call", "workflow_dispatch"]) {
-    if (!versionInput(workflow, name)) {
+    const version = inputOf(workflow, name, "version");
+    if (
+      version === undefined ||
+      version.required !== false ||
+      version.default !== "latest" ||
+      version.type !== "string"
+    ) {
       found.push(`${name} must take an optional string version that defaults to latest`);
+    }
+    const kind = inputOf(workflow, name, "kind");
+    if (
+      kind === undefined ||
+      kind.required !== false ||
+      kind.default !== "all" ||
+      kind.type !== "string"
+    ) {
+      found.push(`${name} must take an optional string kind that defaults to all`);
+    }
+    for (const [field, label] of [
+      ["core-version", "core"],
+      ["picker-version", "picker"],
+    ] as const) {
+      const input = inputOf(workflow, name, field);
+      if (input === undefined || input.required !== false || input.default !== "") {
+        found.push(`${name} must take an optional ${label} version that defaults to empty`);
+      }
     }
   }
   const schedule = trigger(workflow, "schedule");
@@ -109,15 +133,40 @@ export function problems(workflow: Workflow): string[] {
   if (resolveJob["runs-on"] !== "ubuntu-24.04") found.push("resolve must run on ubuntu-24.04");
   if (resolveJob["timeout-minutes"] !== 10) found.push("resolve must time out after 10 minutes");
   const outputs = isMapping(resolveJob.outputs) ? resolveJob.outputs : undefined;
-  if (outputs?.version !== "${{ steps.resolve.outputs.version }}") {
-    found.push("resolve must publish the version output");
+  for (const [output, value] of [
+    ["version", "${{ steps.resolve.outputs.version }}"],
+    ["kind", "${{ steps.resolve.outputs.kind }}"],
+    ["core-version", "${{ steps.resolve.outputs.core-version }}"],
+    ["picker-version", "${{ steps.resolve.outputs.picker-version }}"],
+  ] as const) {
+    if (outputs?.[output] !== value) found.push(`resolve must publish the ${output} output`);
   }
-  if (!has(workflow, "resolve", "Resolve", "--resolve", "GITHUB_OUTPUT", "Resolved version:")) {
-    found.push("resolve must resolve the version in one place and write the summary");
+  if (
+    !has(
+      workflow,
+      "resolve",
+      "Resolve",
+      "GITHUB_OUTPUT",
+      "core-version=$core",
+      "picker-version=$picker",
+      "Resolved",
+    )
+  ) {
+    found.push("resolve must resolve both lines in one place and write the summary");
+  }
+  if (!has(workflow, "resolve", "Resolve", "--resolve --kind sdk", "--resolve --kind picker")) {
+    found.push("resolve must resolve each version line through the script");
   }
   const resolveStep = step(workflow, "resolve", "Resolve");
-  if (resolveStep === undefined || envValue(resolveStep, "INPUT_VERSION") !== INPUT_VERSION) {
-    found.push("resolve must read the input version through env");
+  for (const [key, value] of [
+    ["INPUT_VERSION", INPUT_VERSION],
+    ["INPUT_KIND", INPUT_KIND],
+    ["INPUT_CORE_VERSION", "${{ inputs.core-version }}"],
+    ["INPUT_PICKER_VERSION", "${{ inputs.picker-version }}"],
+  ] as const) {
+    if (resolveStep === undefined || envValue(resolveStep, key) !== value) {
+      found.push(`resolve must read ${key} through env`);
+    }
   }
 
   const verifyJob = job(workflow, "verify") as Mapping;
@@ -145,17 +194,27 @@ export function problems(workflow: Workflow): string[] {
       "verify",
       "Install and check the published packages",
       "node scripts/verify-published.mjs",
-      '"$VERSION"',
+      '--kind "$KIND"',
+      '--version "$VERSION"',
+      '--core-version "$CORE_VERSION"',
+      '--picker-version "$PICKER_VERSION"',
       "--manager npm",
       "set -o pipefail",
       "tee verify.log",
     )
   ) {
-    found.push("verify must install and check the three packages with npm through the script");
+    found.push("verify must install and check the released line with npm through the script");
   }
   const verifyStep = step(workflow, "verify", "Install and check the published packages");
-  if (verifyStep === undefined || envValue(verifyStep, "VERSION") !== VERSION) {
-    found.push("verify must read the version through env");
+  for (const [key, value] of [
+    ["VERSION", VERSION],
+    ["KIND", KIND],
+    ["CORE_VERSION", CORE_VERSION],
+    ["PICKER_VERSION", PICKER_VERSION],
+  ] as const) {
+    if (verifyStep === undefined || envValue(verifyStep, key) !== value) {
+      found.push(`verify must read ${key} through env`);
+    }
   }
 
   const weeklyJob = job(workflow, "weekly") as Mapping;
@@ -180,12 +239,15 @@ export function problems(workflow: Workflow): string[] {
       workflow,
       "weekly",
       "Install and check the published packages",
-      '"$VERSION"',
+      '--kind "$KIND"',
+      '--version "$VERSION"',
       '--manager "$MANAGER"',
       "tee verify.log",
     )
   ) {
-    found.push("weekly must install and check through the script with the matrix manager");
+    found.push(
+      "weekly must install and check both lines through the script with the matrix manager",
+    );
   }
   const weeklyStep = step(workflow, "weekly", "Install and check the published packages");
   if (weeklyStep === undefined || envValue(weeklyStep, "MANAGER") !== "${{ matrix.manager }}") {
@@ -216,16 +278,17 @@ export function problems(workflow: Workflow): string[] {
       workflow,
       "metadata",
       "Check the registry listing",
-      '"$VERSION"',
+      '--kind "$KIND"',
+      '--version "$VERSION"',
       "--metadata",
       "tee metadata.log",
     )
   ) {
-    found.push("metadata must check the registry listing through the script");
+    found.push("metadata must check both lines through the script");
   }
   const metadataStep = step(workflow, "metadata", "Check the registry listing");
-  if (metadataStep === undefined || envValue(metadataStep, "VERSION") !== VERSION) {
-    found.push("metadata must read the version through env");
+  if (metadataStep === undefined || envValue(metadataStep, "CORE_VERSION") !== CORE_VERSION) {
+    found.push("metadata must read the core version through env");
   }
 
   for (const name of CHECK_JOBS) {
@@ -315,9 +378,20 @@ describe("verify-published.yml", () => {
     expect(problems(SHIPPED)).toEqual([]);
   });
 
+  it("checks both version lines by default", () => {
+    expect(inputOf(SHIPPED, "workflow_call", "kind")?.default).toBe("all");
+    expect(inputOf(SHIPPED, "workflow_call", "version")?.default).toBe("latest");
+  });
+
   it("reports a required version input", () => {
     expect(problems(edit("required: false", "required: true"))).toContain(
       "workflow_call must take an optional string version that defaults to latest",
+    );
+  });
+
+  it("reports a kind input that defaults to one line", () => {
+    expect(problems(edit("        default: all\n", "        default: sdk\n"))).toContain(
+      "workflow_call must take an optional string kind that defaults to all",
     );
   });
 
@@ -335,7 +409,7 @@ describe("verify-published.yml", () => {
 
   it("reports a verify job that skips the script", () => {
     expect(problems(edit(" --manager npm", ""))).toContain(
-      "verify must install and check the three packages with npm through the script",
+      "verify must install and check the released line with npm through the script",
     );
   });
 

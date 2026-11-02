@@ -38,13 +38,30 @@ test("releaseNotes adds the install and verification blocks for the exact versio
   const notes = releaseNotes(CHANGELOG, "0.1.0-beta.1");
   assert.ok(notes.startsWith("First public pre-release."));
   assert.ok(notes.includes("npm install nepdate-core@0.1.0-beta.1 nepdate-patro@0.1.0-beta.1"));
-  assert.ok(
-    notes.includes("npm install nepdate-core@0.1.0-beta.1 nepdate-datepicker@0.1.0-beta.1"),
-  );
-  assert.ok(notes.includes("The three tarballs attached here"));
+  assert.ok(!notes.includes("nepdate-datepicker"));
+  assert.ok(notes.includes("The two tarballs attached here"));
   assert.ok(notes.includes("pre-release on the `beta` dist-tag"));
   assert.ok(notes.includes("npm audit signatures"));
   assert.ok(!notes.includes("## [0.0.9]"));
+  assert.ok(notes.includes("/blob/v0.1.0-beta.1/CHANGELOG.md"));
+});
+
+test("picker releaseNotes names the picker and the core version it peers on", () => {
+  const notes = releaseNotes(CHANGELOG, "0.1.0-beta.1", {
+    kind: "picker",
+    coreVersion: "0.1.0-rc.1",
+  });
+  assert.ok(notes.includes("npm install nepdate-core@0.1.0-rc.1 nepdate-datepicker@0.1.0-beta.1"));
+  assert.ok(notes.includes("The tarball attached here"));
+  assert.ok(notes.includes("one month grid ran"));
+  assert.ok(notes.includes("/blob/datepicker-v0.1.0-beta.1/packages/nepdate-picker/CHANGELOG.md"));
+});
+
+test("picker releaseNotes needs the core version", () => {
+  assert.throws(
+    () => releaseNotes(CHANGELOG, "0.1.0-beta.1", { kind: "picker" }),
+    /needs the core version/,
+  );
 });
 
 test("releaseNotes for a stable version says nothing about a dist-tag", () => {

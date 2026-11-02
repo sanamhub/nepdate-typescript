@@ -220,6 +220,7 @@ const PICKER = {
   name: "nepdate-datepicker",
   version: "0.1.0",
   peer: "nepdate-core",
+  peerCoreVersion: "0.1.0",
   directory: "packages/nepdate-picker",
   members: PICKER_MEMBERS,
 } as const;
@@ -275,12 +276,66 @@ test("the picker manifest needs its own directory and the core peer", () => {
     member.name === "package/package.json"
       ? packageJson({
           name: "nepdate-datepicker",
-          peerDependencies: { "nepdate-core": "^0.1.0" },
+          peerDependencies: { "nepdate-core": "~0.2.0" },
         })
       : member,
   );
   const errors = checkMembers(members, PICKER);
   assert.equal(errors.length, 2);
-  assert.match(errors[0] as string, /peerDependencies\["nepdate-core"\] is \^0\.1\.0/);
+  assert.match(
+    errors[0] as string,
+    /peerDependencies\["nepdate-core"\] is ~0\.2\.0, expected a range that accepts 0\.1\.0/,
+  );
   assert.match(errors[1] as string, /directory packages\/nepdate-picker/);
+});
+
+function pickerAt(version: string, peer: string): TestMember[] {
+  return pickerMembers().map((member) =>
+    member.name === "package/package.json"
+      ? packageJson({
+          name: "nepdate-datepicker",
+          version,
+          repository: { type: "git", url: REPOSITORY_URL, directory: "packages/nepdate-picker" },
+          peerDependencies: { "nepdate-core": peer },
+        })
+      : member,
+  );
+}
+
+test("a picker version on its own line accepts the SDK line's prerelease and patches", () => {
+  for (const core of ["0.1.0-rc.1", "0.1.0", "0.1.5"]) {
+    const expected = {
+      name: "nepdate-datepicker",
+      version: "0.1.0-beta.2",
+      peer: "nepdate-core",
+      peerCoreVersion: core,
+      directory: "packages/nepdate-picker",
+      members: PICKER_MEMBERS,
+    } as const;
+    assert.deepEqual(checkMembers(pickerAt("0.1.0-beta.2", "~0.1.0-beta.1"), expected), [], core);
+  }
+});
+
+test("a picker peer range that misses the core version fails", () => {
+  for (const [core, peer] of [
+    ["0.1.0-rc.1", "~0.2.0"],
+    // A prerelease range admits prereleases only on the tuple that carries one, so 0.1.1-beta.1
+    // is outside ~0.1.0-beta.1 even though 0.1.1 would be inside.
+    ["0.1.1-beta.1", "~0.1.0-beta.1"],
+  ] as const) {
+    const expected = {
+      name: "nepdate-datepicker",
+      version: "0.1.0-beta.2",
+      peer: "nepdate-core",
+      peerCoreVersion: core,
+      directory: "packages/nepdate-picker",
+      members: PICKER_MEMBERS,
+    } as const;
+    const errors = checkMembers(pickerAt("0.1.0-beta.2", peer), expected);
+    assert.equal(errors.length, 1, core);
+    assert.match(
+      errors[0] as string,
+      new RegExp(`expected a range that accepts ${core.replaceAll(".", "\\.")}`),
+    );
+  }
 });

@@ -41,7 +41,8 @@ stops at the first failure. The last line reads `ci: 15/15 gates passed`. The mu
 - Public API changes go in `docs/API.md` and `docs/api-snapshot.json` (`node scripts/api-check.ts
   --write`) in the same commit.
 - Add a line to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md) for anything a user would
-  notice.
+  notice in the SDK, or of
+  [`packages/nepdate-picker/CHANGELOG.md`](packages/nepdate-picker/CHANGELOG.md) for the date picker.
 - A significant design decision gets an ADR in `docs/adr/`. Accepted ADRs are not edited; a later
   ADR supersedes an earlier one.
 - CI must pass.
