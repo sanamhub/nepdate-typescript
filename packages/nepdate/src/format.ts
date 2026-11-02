@@ -76,9 +76,14 @@ function compile(pattern: string): Token[] {
   while (i < pattern.length) {
     const c = pattern.charCodeAt(i);
     if (c === 0x5c) {
-      // `\x` writes the literal `x`; a trailing `\` writes nothing.
-      if (i + 1 < pattern.length) tokens.push({ kind: "lit", text: pattern[i + 1] as string });
-      i += 2;
+      // `\x` writes the literal `x`; a `\` at the very end writes a literal `\` (FORMATTING §5).
+      if (i + 1 < pattern.length) {
+        tokens.push({ kind: "lit", text: pattern[i + 1] as string });
+        i += 2;
+      } else {
+        tokens.push({ kind: "lit", text: "\\" });
+        i += 1;
+      }
     } else if (c === 0x27) {
       // `'...'` is literal text; an unterminated quote runs to the end.
       let j = i + 1;

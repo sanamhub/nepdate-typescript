@@ -17,8 +17,9 @@ describe("format pattern edge cases", () => {
     expect(format("yyyy'x'MM")).toBe("2081x04");
   });
 
-  test("a trailing backslash writes nothing and escapes the next character", () => {
-    expect(format("yyyy\\")).toBe("2081");
+  test("a trailing backslash writes a literal backslash, and a backslash escapes the next character", () => {
+    expect(format("yyyy\\")).toBe("2081\\");
+    expect(format("\\")).toBe("\\");
     expect(format("\\y")).toBe("y");
     expect(format("\\M\\M")).toBe("MM");
   });

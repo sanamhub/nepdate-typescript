@@ -9,6 +9,58 @@ name. `nepdate-datepicker` has its own version and changelog in
 
 ## [Unreleased]
 
+The full API of the NepDate family, with the vectors and the deliberate deviations the hub's
+`spec/API.md` and `spec/PARITY.md` name. `nepdate-core` gains the range set operations and the
+fiscal-year, batch, integer and year-length members it was missing; the changes below are allowed
+because the line is still 0.x.
+
+### Added
+
+- `nepdate-core`: `NepaliDate#yearLength`, the length of the BS year (364 to 367), which replaces
+  the Gregorian `IsLeapYear` reading (`D-12`).
+- `nepdate-core`: `NepaliDate#isToday`, `isYesterday` and `isTomorrow`, each taking the time zone
+  explicitly, so no method depends on a hidden local zone.
+- `nepdate-core`: `NepaliDate.fromYmd` and `toYmd`, the `YYYYMMDD` integer form that C# exposed
+  through its `TypeConverter` (`D-11`).
+- `nepdate-core`: `NepaliDate.fromJSON`, the read half of the `toJSON` hook (`D-11`).
+- `nepdate-core`: `NepaliDate.tryParseLenient`, the non-throwing form of `parseLenient`.
+- `nepdate-core`: `NepaliDate.toNepaliDates` and `toEnglishDates`, one ordered batch conversion each
+  way. The C# parallel flag and batch size do not cross into the API, and the result is in input
+  order.
+- `nepdate-core`: `DateRange.fromDayCount`, `DateRange.single`, `DateRange.currentMonth`,
+  `DateRange.currentFiscalYear` and `DateRange.currentCalendarYear`.
+- `nepdate-core`: the rest of the `DateRange` surface: `containsRange`, `overlaps`, `isAdjacentTo`,
+  `intersect`, `union`, `except`, `splitByMonth`, `splitByFiscalQuarter`, `datesWithInterval`,
+  `workingDays`, `weekendDays`, `toString(options)` and `equals`.
+- `nepdate-core`: the `RangeFormatOptions` type for the formatted range string.
+
+### Changed
+
+- `NepDateError` gains the `"invalid-zone"` kind. `today()` and the three relative-date methods wrap
+  an unknown zone in it instead of letting the raw `Intl` `RangeError` escape, so one error type
+  covers the package.
+- `NepaliDate#equals` and `DateRange#equals` return `false` for a value that is not the same type
+  instead of throwing a `TypeError`, because a predicate that answers a question should not throw.
+- A pattern that ends in a backslash now writes a literal `\`; it used to write nothing. This matches
+  the formatting spec, whose last example is a single trailing backslash. Migration: escape a
+  literal backslash as `\\` and do not rely on a trailing `\` to disappear.
+- `year`, `month` and `day` are getters over the private day count, so an instance no longer has own
+  enumerable data properties. `JSON.stringify` still uses `toJSON`, destructuring still reads the
+  three fields, and assigning to one now throws in strict mode instead of leaving the packed day
+  count disagreeing with the fields.
+- The full API surface grows the core bundle from about 5.4 KB to 6.6 KB gzip, so the size gate's
+  single-file budget for the picker, which bundles the core, moves from 11 KB to 12 KB.
+
+### Breaking changes
+
+- `NepDateError` extends `Error`, not `RangeError`. A parse failure is not a numeric range failure,
+  and a caller that catches `RangeError` for an unrelated array index must not catch dates.
+  Migration: catch `NepDateError` (or `Error`) where you caught `RangeError` from this package;
+  `error.kind` is unchanged.
+- `NepaliDate#year`, `#month` and `#day` are getters, so `Object.keys(date)` is empty and `{ ...date }`
+  copies nothing. Migration: read the three fields directly and use `toGregorian()` or `toJSON()`
+  where you copied the fields into another object.
+
 ## [0.1.0-rc.1] - 2026-11-03
 
 ### Changed

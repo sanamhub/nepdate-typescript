@@ -72,13 +72,13 @@ describe("format pattern", () => {
     expect(d.format("''")).toBe("");
     expect(d.format("yy")).toBe("81");
     expect(d.format("yyyy'x'MM")).toBe("2081x04");
-    expect(d.format("yyyy\\")).toBe("2081");
-    expect(d.format("\\")).toBe("");
+    expect(d.format("yyyy\\")).toBe("2081\\");
+    expect(d.format("\\")).toBe("\\");
   });
 
-  test("format-pattern.tsv (451 rows), skipping only D-04 rows", () => {
+  test("format-pattern.tsv (452 rows), skipping only D-04 rows", () => {
     const rows = readVectors("csharp-golden/format-pattern.tsv");
-    expect(rows).toHaveLength(451);
+    expect(rows).toHaveLength(452);
     let skipped = 0;
     for (const row of rows) {
       const d = bs(row.bs as string);

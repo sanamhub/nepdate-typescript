@@ -39,3 +39,21 @@ describe("csharp-golden/dates.tsv", () => {
     for (const row of rows) checkRow(row);
   });
 });
+
+// year-length.tsv is the one reference vector (D-12): C# has no year-length API, so the value is
+// summed from the month lengths in shared/data, not recorded from C#.
+describe("year-length.tsv", () => {
+  const rows = readVectors("year-length.tsv");
+  test("has 299 rows", () => expect(rows).toHaveLength(299));
+  test("every year: the length is 364 to 367 and the sum of its twelve months", () => {
+    for (const row of rows) {
+      const year = Number(row.bs_year);
+      const length = Number(row.year_length);
+      expect(NepaliDate.of(year, 1, 1).yearLength, String(year)).toBe(length);
+      expect(length >= 364 && length <= 367, String(year)).toBe(true);
+      let sum = 0;
+      for (let month = 1; month <= 12; month++) sum += NepaliDate.of(year, month, 1).monthLength;
+      expect(sum, String(year)).toBe(length);
+    }
+  });
+});

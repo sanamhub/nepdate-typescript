@@ -6,4 +6,4 @@ export type { DateOrder, Separator } from "./format.js";
 export type { GregorianDate } from "./gregorian.js";
 export type { Lang } from "./lang.js";
 export { monthName, monthShortName, weekdayName, weekdayShortName } from "./names.js";
-export { DateRange } from "./range.js";
+export { DateRange, type RangeFormatOptions } from "./range.js";
