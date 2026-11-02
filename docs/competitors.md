@@ -1,98 +1,55 @@
 # Other npm packages for the Bikram Sambat calendar
 
-Checked 2026-09-25 against the npm registry and downloads API, bundlephobia, GitHub and published
-sources (read, not run); rechecked 2026-10-08 (weekly downloads for 2026-09-28 to 2026-10-04 where
-the bulk downloads API returns them, and `world-calendars` added). Used by the benchmark suite.
-No package covers BS 1901–2199; the widest real tables start at 1970. Sizes are bundlephobia
-min / gzip.
+Checked 2026-11-02 against the npm registry, the npm downloads API, deps.dev and GitHub. The
+selection follows [`shared/spec/BENCHMARK.md`](../shared/spec/BENCHMARK.md) section 7. Usage is
+weekly downloads from the npm downloads API and dependents from deps.dev, read on 2026-11-02. The
+bar is 1,000 weekly downloads and 5 dependents, first release at least 12 months before 2026-11-02,
+a release or commit in the last 36 months, a license, not archived or deprecated, and a build on the
+current Node.js.
 
-## Platform support
+## Candidate table
 
-JavaScript has no Bikram Sambat calendar to build on. `Intl.supportedValuesOf("calendar")` on
-Node 24.19.0 (ICU 78.3, CLDR 48) lists `buddhist chinese coptic dangi ethioaa ethiopic gregory
-hebrew indian islamic islamic-civil islamic-rgsa islamic-tbla islamic-umalqura iso8601 japanese
-persian roc` (run on 2026-10-08); `indian` is the Indian national (Saka) calendar, not Bikram
-Sambat. Temporal accepts only the calendars `Intl` supports, so it has none either. Browsers ship
-the same ICU and CLDR data. Sources: CLDR calendar identifiers
-(https://github.com/unicode-org/cldr/blob/main/common/bcp47/calendar.xml), MDN
-`Intl.supportedValuesOf` (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/supportedValuesOf).
-The port is needed.
+| Package | Weekly downloads | Dependents | First release | Last release | License | Verdict |
+|---|---:|---:|---|---|---|---|
+| `world-calendars` | 895,562 | 509 | 2016-11-02 | 2025-07-11 | MIT | selected |
+| `nepali-date-converter` | 14,051 | 22 | 2018-10-12 | 2026-10-29 | MIT | selected; the harness pins 3.4.0, published 2025-04-06, because 3.4.2 is under 14 days old |
+| `bikram-sambat` | 1,962 | 10 | 2017-03-23 | 2026-06-09 | Apache-2.0 | selected |
+| `bikram-sambat-js` | 1,723 | 20 | 2019-08-25 | 2025-08-21 | MIT | passes the bar, ranks fourth |
+| `@sbmdkl/nepali-date-converter` | 1,455 | 5 | 2021-06-18 | 2026-05-02 | MIT | passes the bar, ranks fifth |
+| `@remotemerge/nepali-date-converter` | 1,189 | 0 | 2025-01-04 | 2026-10-31 | MIT | fails 5 dependents |
+| `nepali-datetime` | 1,108 | 1 | 2023-02-10 | 2026-04-11 | GPL-3.0 | fails 5 dependents |
+| `nepali-date-library` | 484 | 0 | 2025-02-26 | 2026-08-11 | MIT | fails 1,000 weekly downloads and 5 dependents |
+| `@inicrea/bikram-sambat-core` | 558 | 0 | 2026-08-20 | 2026-08-25 | MIT | fails 1,000 weekly downloads, 5 dependents and the 12-month bar |
+| `@zener/nepali-date` | 336 | 0 | 2024-10-12 | 2025-03-10 | MIT | fails 1,000 weekly downloads and 5 dependents |
+| `nepali-calendar-toolkit` | 157 | 0 | 2026-09-01 | 2026-09-25 | MIT | fails 1,000 weekly downloads, 5 dependents and the 12-month bar |
+| `@bsday.js/core` | 22 | 0 | 2026-03-28 | 2026-08-30 | MIT | fails 1,000 weekly downloads, 5 dependents and the 12-month bar |
+| `@nepali-date-picker/core` | 16 | 0 | 2026-09-16 | 2026-09-21 | MPL-2.0 | fails 1,000 weekly downloads, 5 dependents and the 12-month bar |
 
-## Packages we benchmark against
+`world-calendars` is a general calendar library, but its `calendars.nepali` module is a Bikram
+Sambat implementation with a documented 1970 to 2100 table, so it is a candidate. Its usage is
+mostly through `plotly.js`, as the dependents count shows.
 
-| Package (pinned in `bench/package.json`) | Weekly downloads | License | BS range | Approach | min / gz | Types |
-|---|---|---|---|---|---|---|
-| `nepali-date-converter@3.4.0` | ~18,400 | MIT | 2000–2090 | month lengths + cumulative days, UTC epoch | 18.1 / 3.2 KB | yes |
-| `bikram-sambat@1.8.1` (medic) | ~3,400 | Apache-2.0 | 1970–2090 | 2-bit packed months; walks year by year from 1970 | 2.8 / 1.1 KB | no, CommonJS |
-| `bikram-sambat-js@1.0.3` | ~1,900 | MIT (npm field) | 1970–2100 | table on local-time `Date` | 5.3 / 1.7 KB | yes |
-| `@remotemerge/nepali-date-converter@1.2.1` | ~2,200 | MIT | 1975–2099 | table, UTC epoch | 4.4 / 1.5 KB | yes |
-| `nepali-datetime@2.0.0` | ~1,000 | GPL-3.0 (benchmark only, never copy its tables) | 2000–2099 | table | 19.4 / 4.9 KB | yes |
-| `@sbmdkl/nepali-date-converter@2.0.5` | ~850 | MIT | 1978–2099 | table | 8.5 / 2.0 KB | yes |
-| `nepali-date-library@1.1.16` | ~700 | MIT | 1976–2100 | table, UTC epoch; fiscal year | 20.9 / 4.4 KB | yes |
-| `@inicrea/bikram-sambat-core@0.1.3` | ~340 | MIT | 1975–2100 | pure TS, `{utc: true}` option, fiscal year | 10.3 / 4.1 KB | yes |
-| `world-calendars@1.0.4` (Plotly, from kbwood/calendars) | ~810,000, mostly as a dependency of `plotly.js` | MIT | 1970–2100, then a fixed default month pattern with no error | year table, Julian day via its Gregorian calendar | 23.8 KB unminified for `calendars/nepali.js` alone (measured) | no, CommonJS |
+## Calls measured
 
-Two groups, because string APIs are dominated by parsing and formatting:
+| Package | B1 BS to AD | B2 AD to BS |
+|---|---|---|
+| `world-calendars` | `nepali.newDate(y, m, d).toJD()`, then `gregorian.fromJD(jd)` | `nepali.fromJD(gregorian.newDate(y, m, d).toJD())` |
+| `nepali-date-converter` | `new NepaliDate(y, m0, d).getAD()` | `NepaliDate.fromAD(date).getBS()` |
+| `bikram-sambat` | `toGreg(y, m, d)` | `toBik("YYYY-MM-DD")` |
 
-| Group | Package | BS → AD | AD → BS |
-|---|---|---|---|
-| numeric | medic `bikram-sambat` | `toGreg(y, m, d)` | `toBik("YYYY-MM-DD")` (string in) |
-| numeric | `nepali-datetime/dateConverter` | `nepaliToEnglish(y, m0, d)` (0-based month, inferred) | `englishToNepali(y, m0, d)` |
-| numeric | `@inicrea/bikram-sambat-core` | `bsToAd({year, month, day})` | `adToBs("YYYY-MM-DD", {utc: true})` |
-| numeric | `nepali-date-converter` | `new NepaliDate(y, m0, d).getAD()` | `NepaliDate.fromAD(date).getBS()` |
-| numeric | `world-calendars` | `nepali.newDate(y, m, d).toJD()`, then `gregorian.fromJD(jd)` | `nepali.fromJD(gregorian.newDate(y, m, d).toJD())` |
-| string | `bikram-sambat-js` | `BSToAD("2076-05-08")` | `ADToBS("2019-08-25")` |
-| string | `@sbmdkl/nepali-date-converter` | `bsToAd("YYYY-MM-DD")` | `adToBs("YYYY-MM-DD")` |
-| string | `nepali-date-library` | `BStoAD("YYYY-MM-DD")` | `ADtoBS("YYYY-MM-DD")` |
-| string | `@remotemerge/nepali-date-converter` | `new DateConverter("2080-01-15").toAd()` | `new DateConverter("2023-04-28").toBs()` |
+`nepali-date-converter` takes a zero-based month. `bikram-sambat` takes its B2 input as a string; the
+strings are built once in setup, as for B6, and a returned string is consumed by its length.
 
-Our numeric row is `NepaliDate.of(y, m, d).toGregorian()` / `NepaliDate.fromGregorian({year, month, day})`;
-our string row is `NepaliDate.parse(s).toGregorian()` formatted to ISO. The common range of the
-64 BENCHMARK dates is BS 2000-01-01 to 2090-12-30 (AD 1943-04-14 to 2034-04-13). Every package in
-the table documents a BS or AD range that covers those dates. [benchmarks.md](benchmarks.md) cites
-the README or code line for each range; a disagreement on a date inside the package's own range is a
-mismatch, not an out-of-range result.
+## Correctness
 
-## Correctness and bugs seen in sources or issues
+- `world-calendars` agrees with `shared/data` on all 64 dates in both directions.
+- `nepali-date-converter` differs at BS 2088-01-04 and 2089-06-10.
+- `bikram-sambat` differs at BS 2086-07-23, 2088-01-04 and 2089-06-10.
 
-- `nepali-date-converter`: throws above 2090-12-30 (#63), nothing below 2000 (#71), AD 2027-06-22 one
-  day off versus Hamro Patro (#73, provisional data); no `exports` map.
-- `bikram-sambat` (medic): `toBik` uses `Date.parse` on the input (its own TODO); O(years) walk.
-- `bikram-sambat-js`: `new Date("YYYY-MM-DD")` (UTC midnight) read with `getDate()` (local): wrong day
-  in zones west of UTC.
-- `@sbmdkl/nepali-date-converter`: results depend on the machine's zone (open PR #7).
-- `nepali-datetime`: "future dates may be inaccurate" (#121), as for every table library.
-- `world-calendars`: outside its 1970–2100 table it fills years with a default month pattern
-  (`daysPerMonth`), so out-of-range dates come back wrong instead of failing; its downloads come
-  from `plotly.js`, not from direct use.
-- Every table ends by 2100, and future years are provisional everywhere, NepDate included
-  (`shared/data/README.md`, 2087–2090).
-
-## Not benchmarked
-
-Heavy or niche: `@nepali-date-picker/core` (Kotlin/JS, 63 KB gz, has events and holidays),
-`@bsday.js/core` + `@bsday.js/dataset` (Day.js style; data in a separate package, the split we also
-use), `nepali-calendar-panchang` (computes tithi), `@zener/nepali-date`, `@sushill/bikram-sambat`
-(estimates outside 2000–2099), `@lacspace/nepali-date`, `nepali-toolkit` (many subpaths, including a
-Temporal adapter), `nepali-calendar-toolkit` (React bundle). Abandoned: `nepali-date` (2018),
-`ad-bs-converter` (2017), `nepali-calendar-js` (2018).
-
-## Name
-
-The npm names `nepdate` and `nepdate-patro` must be checked before the first release;
-fallback `nepdate-core` and `nepdate-patro`.
-
-On 2026-10-22 the first publish of `nepdate` was refused: "Package name too similar to existing
-package nep-date". The core is published as `nepdate-core`, the same name as on PyPI, and the patro
-keeps `nepdate-patro` (ADR-0013).
+The report lists every differing date. A fast wrong answer is listed, never ranked first.
 
 ## Sources
 
 `https://registry.npmjs.org/<name>`, `https://api.npmjs.org/downloads/point/last-week/<name>`,
-bundlephobia API, and the repositories: subeshb1/Nepali-Date, medic/bikram-sambat,
-puncoz-official/bikram-sambat-js, remotemerge/nepali-date-converter,
-opensource-nepal/node-nepali-datetime, sbmdkl/nepali-date-converter,
-SandipGhimire/Nepali-Date-Library-NodeJS, Inicrea-Technologies-Pvt-Ltd/bikram-sambat,
-plotly/world-calendars (all on GitHub); `https://api.npmjs.org/downloads/point/2026-09-28:2026-10-04/<names>`
-for the 2026-10-08 recheck. On 2026-10-07 the registry returned "Not found" for `nepdate` and
-`nepdate-patro`, so both names were free then. Check them again before the first release.
+`https://api.deps.dev/v3alpha/systems/NPM/packages/<name>/versions/<version>:dependents`, and the
+repositories: plotly/world-calendars, subeshb1/Nepali-Date and medic/bikram-sambat.

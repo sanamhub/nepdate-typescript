@@ -1,0 +1,19 @@
+{
+  "impl": "nepdate",
+  "op": "B3",
+  "pid": 9076,
+  "ns": 12.983025654707813,
+  "n": 64,
+  "inRange": 64,
+  "outOfRange": [],
+  "agrees": null,
+  "firstMismatch": null,
+  "throws": 0,
+  "coreLoad": 12.8,
+  "allLoad": 8.481701285855593,
+  "backgroundLoad": 13.64821122499662,
+  "attempts": 1,
+  "loaded": false,
+  "heapBytes": 23.517034090482273,
+  "checkOnly": false
+}
