@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml"><img src="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://www.npmjs.com/package/nepdate-patro"><img src="https://img.shields.io/npm/v/nepdate-patro/beta?logo=npm&label=nepdate-patro" alt="nepdate-patro on npm"></a>
+  <a href="https://www.npmjs.com/package/nepdate-patro"><img src="https://img.shields.io/npm/v/nepdate-patro/rc?logo=npm&label=nepdate-patro" alt="nepdate-patro on npm"></a>
   <a href="https://github.com/sanamhub/nepdate-typescript/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
 </p>
 
@@ -15,13 +15,13 @@ The patro (पात्रो, the Nepali almanac) for
 events for each Bikram Sambat day. `nepdate-patro` needs `nepdate-core` as a peer dependency and shares
 its version.
 
-> **Status:** 0.1.0-beta.1, the first public pre-release, on the `beta` dist-tag. The data is
+> **Status:** 0.1.0-rc.1, a release candidate, on the `rc` dist-tag. The data is
 > informational, not an official calendar.
 
 ## Install
 
 ```bash
-npm install nepdate-core@beta nepdate-patro@beta
+npm install nepdate-core@rc nepdate-patro@rc
 ```
 
 ## Use

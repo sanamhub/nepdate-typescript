@@ -9,6 +9,8 @@ name. `nepdate-datepicker` has its own version and changelog in
 
 ## [Unreleased]
 
+## [0.1.0-rc.1] - 2026-11-03
+
 ### Changed
 
 - The published check also runs weekly on Linux with npm, pnpm, Yarn in both linkers and bun, and
