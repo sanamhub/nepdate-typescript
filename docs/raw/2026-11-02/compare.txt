@@ -1,0 +1,29 @@
+compare: nepali-date-converter@3.4.0 B1
+compare: nepali-date-converter@3.4.0 B2
+compare: bikram-sambat@1.8.1 B1
+compare: bikram-sambat@1.8.1 B2
+compare: world-calendars@1.0.4 B1
+compare: world-calendars@1.0.4 B2
+node v26.13.0, 6 rows, one process each, affinity 4, ns/op over in-range dates
+
+nepali-date-converter@3.4.0
+  BS 2000-01-01..2090-12-30 (documented)  AD 1943-04-14..2034-04-13 (derived)
+  B1     2111.4 ns/op  n=64  in-range 64/64  out none  core  12%  all  11%  during   8%  1 tries  final   DISAGREES
+        first mismatch: BS 2086-07-23: 2029-11-09, expected 2029-11-08
+  B2     2250.6 ns/op  n=64  in-range 64/64  out none  core   0%  all   1%  during   8%  1 tries  final   DISAGREES
+        first mismatch: AD 2029-11-08: 2086-07-22, expected 2086-07-23
+
+bikram-sambat@1.8.1
+  BS 1970-01-01..2090-12-30 (documented)  AD 1913-04-13..2034-04-13 (derived)
+  B1     2751.2 ns/op  n=64  in-range 64/64  out none  core   0%  all   2%  during  10%  1 tries  final   DISAGREES
+        first mismatch: BS 2088-01-04: 2031-04-18, expected 2031-04-19
+  B2     1482.6 ns/op  n=64  in-range 64/64  out none  core   0%  all   3%  during   5%  2 tries  final   DISAGREES
+        first mismatch: AD 2031-04-19: 2088-01-05, expected 2088-01-04
+
+world-calendars@1.0.4
+  BS 1970-01-01..2100-12-30 (documented)  AD 1913-04-13..2044-04-12 (derived)
+  B1      778.8 ns/op  n=64  in-range 64/64  out none  core  12%  all  10%  during   6%  1 tries  final   DISAGREES
+        first mismatch: BS 2033-03-07: 1976-06-29, expected 1976-06-20
+  B2      832.9 ns/op  n=64  in-range 64/64  out none  core  22%  all   9%  during   9%  1 tries  final   DISAGREES
+        first mismatch: AD 1976-06-20: 2033-02-29, expected 2033-03-07
+wrote docs\raw\2026-11-02\compare.json

@@ -31,7 +31,7 @@ const report = {
 if (process.argv.includes("--json")) {
   console.log(JSON.stringify(report, null, 2));
 } else if (checkOnly) {
-  console.log(`node ${process.version}, 18 agreement checks, no measurements`);
+  console.log(`node ${process.version}, ${rows.length} agreement checks, no measurements`);
   for (const row of rows) {
     const range = COMPETITOR_RANGES.find((entry) => entry.id === row.impl);
     const direction = row.op === "B1" ? range?.bs : range?.ad;
