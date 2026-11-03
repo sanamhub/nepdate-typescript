@@ -65,14 +65,14 @@ describe("range and date edges after the 0.2 API", () => {
     expect(base.equals(range(date(2081, 4, 4), date(2081, 4, 10)))).toBe(false);
   });
 
-  test("tryParse lets a non-parse error through", () => {
+  test("tryParseLenient lets a non-parse error through", () => {
     const broken = {
       length: 1,
       charCodeAt: () => {
         throw new TypeError("boom");
       },
     };
-    expect(() => NepaliDate.tryParse(broken as unknown as string)).toThrow(TypeError);
+    expect(() => NepaliDate.tryParseLenient(broken as unknown as string)).toThrow(TypeError);
   });
 
   test("base64Value reads the padding code as 63", () => {
