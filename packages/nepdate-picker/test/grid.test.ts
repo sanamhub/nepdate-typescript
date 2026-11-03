@@ -1,4 +1,4 @@
-import { NepaliDate } from "nepdate-core";
+import { NepaliDate, NepDateError } from "nepdate-core";
 import { describe, expect, test } from "vitest";
 import {
   GRID_ROWS,
@@ -99,8 +99,8 @@ describe("monthGrid", () => {
   });
 
   test("throws outside the range", () => {
-    expect(() => monthGrid(1900, 12)).toThrow(RangeError);
-    expect(() => monthGrid(2200, 1)).toThrow(RangeError);
+    expect(() => monthGrid(1900, 12)).toThrow(NepDateError);
+    expect(() => monthGrid(2200, 1)).toThrow(NepDateError);
   });
 
   test("every month of the range fits in six rows", () => {

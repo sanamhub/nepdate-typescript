@@ -126,6 +126,11 @@ export function fromSerial(serial: number): NepaliDate {
   );
 }
 
+/** Internal: the weekday of `serial`, 0 = Sunday to 6 = Saturday. */
+export function weekdayOfSerial(serial: number): number {
+  return (serial + EPOCH_WEEKDAY) % 7;
+}
+
 /**
  * A date of the Bikram Sambat calendar, BS 1901-01-01 to 2199-12-30. Immutable; build one with
  * {@link NepaliDate.of} or {@link NepaliDate.fromGregorian}. Months are 1-based.
@@ -145,20 +150,35 @@ export class NepaliDate {
   /** The last supported date, BS 2199-12-30 (AD 2143-04-15). */
   static readonly MAX: NepaliDate = fromSerial(MAX_SERIAL);
 
-  /** The BS year, 1901 to 2199. */
-  readonly year: number;
-  /** The month, 1 (Baishakh) to 12 (Chaitra). */
-  readonly month: number;
-  /** The day of the month, 1 to 32. */
-  readonly day: number;
+  #year: number;
+  #month: number;
+  #day: number;
   #serial: number;
 
   private constructor(token: symbol, year: number, month: number, day: number, serial: number) {
     if (token !== TOKEN) throw new TypeError("use NepaliDate.of or NepaliDate.fromGregorian");
-    this.year = year;
-    this.month = month;
-    this.day = day;
+    this.#year = year;
+    this.#month = month;
+    this.#day = day;
     this.#serial = serial;
+  }
+
+  /**
+   * The BS year, 1901 to 2199. It is a getter, not a data property, so a JavaScript caller cannot
+   * assign to it and leave the packed serial disagreeing with the fields.
+   */
+  get year(): number {
+    return this.#year;
+  }
+
+  /** The month, 1 (Baishakh) to 12 (Chaitra). */
+  get month(): number {
+    return this.#month;
+  }
+
+  /** The day of the month, 1 to 32. */
+  get day(): number {
+    return this.#day;
   }
 
   /**
@@ -246,27 +266,33 @@ export class NepaliDate {
   /**
    * Today's BS date in `timeZone` (default `"Asia/Kathmandu"`), read with
    * `Intl.DateTimeFormat` so the machine's own zone never matters.
-   * @throws {NepDateError} `"out-of-range"` when the clock is outside AD 1844-04-11..2143-04-15.
-   * @throws {RangeError} from `Intl` when `timeZone` is not a known zone.
+   * @throws {NepDateError} `"out-of-range"` when the clock is outside AD 1844-04-11..2143-04-15,
+   * or `"invalid-zone"` when `timeZone` is not a known zone. `Intl` throws a bare `RangeError` for
+   * an unknown zone; it is wrapped so one error type covers the package.
    * @example
    * NepaliDate.today("Asia/Kathmandu");
    */
   static today(timeZone: string = "Asia/Kathmandu"): NepaliDate {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(Date.now());
-    let year = 0;
-    let month = 0;
-    let day = 0;
-    for (const part of parts) {
-      if (part.type === "year") year = Number(part.value);
-      else if (part.type === "month") month = Number(part.value);
-      else if (part.type === "day") day = Number(part.value);
+    try {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(Date.now());
+      let year = 0;
+      let month = 0;
+      let day = 0;
+      for (const part of parts) {
+        if (part.type === "year") year = Number(part.value);
+        else if (part.type === "month") month = Number(part.value);
+        else if (part.type === "day") day = Number(part.value);
+      }
+      return NepaliDate.fromGregorian({ year, month, day });
+    } catch (error) {
+      if (error instanceof NepDateError) throw error;
+      throw new NepDateError("invalid-zone", `${timeZone} is not a known time zone`);
     }
-    return NepaliDate.fromGregorian({ year, month, day });
   }
 
   /**
@@ -313,14 +339,104 @@ export class NepaliDate {
     return NepaliDate.of(year, month, day);
   }
 
+  /**
+   * `parseLenient`, or `null` instead of throwing.
+   * @example
+   * NepaliDate.tryParseLenient("15 Jestha 2081")?.toJSON(); // => "2081-02-15"
+   */
+  static tryParseLenient(s: string): NepaliDate | null {
+    try {
+      return NepaliDate.parseLenient(s);
+    } catch (error) {
+      if (error instanceof NepDateError) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * The BS date that the JSON text `text` holds, the inverse of {@link NepaliDate.toJSON} (D-11).
+   * `text` is JSON, not the bare date: `"2081-04-15"` with the quotes, as `JSON.stringify` writes
+   * it. JSON `null` is rejected, because an invalid date cannot be constructed (D-01).
+   * @throws {NepDateError} `"unrecognized"` when `text` is not JSON or does not hold a string, else
+   * the parse kinds of {@link NepaliDate.parse}.
+   * @example
+   * NepaliDate.fromJSON('"2081-04-15"').toJSON(); // => "2081-04-15"
+   */
+  static fromJSON(text: string): NepaliDate {
+    let value: unknown;
+    try {
+      value = JSON.parse(text);
+    } catch {
+      throw new NepDateError("unrecognized", "not JSON text");
+    }
+    if (typeof value !== "string") {
+      throw new NepDateError("unrecognized", "the JSON value is not a date string");
+    }
+    return NepaliDate.parse(value);
+  }
+
+  /**
+   * The BS date of the `YYYYMMDD` integer form that {@link NepaliDate.toYmd} writes (D-11).
+   * A negative number, and a number whose year part is not a year, is out of range.
+   * @throws {NepDateError} `"not-an-integer"`, then the first failing check of
+   * {@link NepaliDate.of}: `"out-of-range"`, `"invalid-month"`, `"invalid-day"`.
+   * @example
+   * NepaliDate.fromYmd(20810415).toJSON(); // => "2081-04-15"
+   */
+  static fromYmd(n: number): NepaliDate {
+    checkInteger("n", n);
+    // C# truncates toward zero, so a negative number lands on year 0 and fails the year check.
+    // Math.trunc, not `| 0`: `| 0` wraps above 2^31 and would read a huge number as a valid date.
+    return NepaliDate.of(Math.trunc(n / 10000), Math.trunc(n / 100) % 100, n % 100);
+  }
+
   /** -1 if `a` is before `b`, 1 if after, 0 if the same day. Pass it to `Array.prototype.sort`. */
   static compare(a: NepaliDate, b: NepaliDate): -1 | 0 | 1 {
     return a.#serial < b.#serial ? -1 : a.#serial > b.#serial ? 1 : 0;
   }
 
+  /**
+   * Every Gregorian date of `dates` as a BS date, in input order. This is the one
+   * batch call each way: the C# parallel flag and batch size do not cross into the port.
+   * @throws {NepDateError} from {@link NepaliDate.fromGregorian} for the first date outside the
+   * supported range; the whole call fails, as C# does.
+   * @example
+   * NepaliDate.toNepaliDates([{ year: 2024, month: 7, day: 30 }]).map((d) => d.toJSON()); // => ["2081-04-15"]
+   */
+  static toNepaliDates(dates: Iterable<GregorianDate>): NepaliDate[] {
+    const out: NepaliDate[] = [];
+    for (const date of dates) out.push(NepaliDate.fromGregorian(date));
+    return out;
+  }
+
+  /**
+   * The Gregorian date of every BS date in `dates`, in input order. It is a
+   * `GregorianDate`, not a `Date`, because a `Date` holds an instant and needs a zone; pass one to
+   * {@link NepaliDate.toJSDate} when you need the `Date`.
+   * @throws {NepDateError} from {@link NepaliDate.parse} for the first string that does not parse.
+   * @example
+   * NepaliDate.toEnglishDates(["2081-04-15"]); // => [{ year: 2024, month: 7, day: 30 }]
+   */
+  static toEnglishDates(strings: Iterable<string>): GregorianDate[];
+  /**
+   * The Gregorian date of every BS date in `dates`, in input order.
+   * @example
+   * NepaliDate.toEnglishDates([NepaliDate.of(2081, 4, 15)]); // => [{ year: 2024, month: 7, day: 30 }]
+   */
+  static toEnglishDates(dates: Iterable<NepaliDate>): GregorianDate[];
+  static toEnglishDates(items: Iterable<string | NepaliDate>): GregorianDate[] {
+    const out: GregorianDate[] = [];
+    for (const item of items) {
+      out.push(
+        typeof item === "string" ? NepaliDate.parse(item).toGregorian() : item.toGregorian(),
+      );
+    }
+    return out;
+  }
+
   /** The day of the week, 0 = Sunday to 6 = Saturday (as `Date#getDay`). */
   get weekday(): number {
-    return (this.#serial + EPOCH_WEEKDAY) % 7;
+    return weekdayOfSerial(this.#serial);
   }
 
   /** The day of the BS year, 1 to 367. */
@@ -420,6 +536,45 @@ export class NepaliDate {
     return FiscalYear.containing(this);
   }
 
+  /**
+   * The length of this date's BS year, 364 to 367, the sum of its twelve months (D-12).
+   */
+  get yearLength(): number {
+    const i = this.#year - MIN_YEAR;
+    return (YEAR_START[i + 1] as number) - (YEAR_START[i] as number);
+  }
+
+  /**
+   * True when this date is today in `timeZone`. The zone is required: there is no hidden local
+   * zone that the caller did not name.
+   * @throws {NepDateError} as {@link NepaliDate.today}.
+   * @example
+   * NepaliDate.today("Asia/Kathmandu").isToday("Asia/Kathmandu"); // => true
+   */
+  isToday(timeZone: string): boolean {
+    return NepaliDate.today(timeZone).#serial === this.#serial;
+  }
+
+  /**
+   * True when this date is yesterday in `timeZone`, and so a day the clock has just left.
+   * @throws {NepDateError} as {@link NepaliDate.today}.
+   * @example
+   * NepaliDate.today("UTC").isYesterday("UTC"); // => false
+   */
+  isYesterday(timeZone: string): boolean {
+    return NepaliDate.today(timeZone).#serial - 1 === this.#serial;
+  }
+
+  /**
+   * True when this date is tomorrow in `timeZone`, and so a day the clock has not reached.
+   * @throws {NepDateError} as {@link NepaliDate.today}.
+   * @example
+   * NepaliDate.today("UTC").isTomorrow("UTC"); // => false
+   */
+  isTomorrow(timeZone: string): boolean {
+    return NepaliDate.today(timeZone).#serial + 1 === this.#serial;
+  }
+
   /** The fiscal quarter of this date: 1 for Shrawan to Ashoj, ..., 4 for Baishakh to Ashad. */
   quarter(): Quarter {
     // Months 4..12 map to 1..3 three at a time; months 1..3 wrap round to 4.
@@ -434,6 +589,11 @@ export class NepaliDate {
   /** The interchange form, `YYYY-MM-DD` (D-11). */
   toJSON(): string {
     return shortDate(this.year, this.month, this.day, "ymd", "-", true, "en");
+  }
+
+  /** The `YYYYMMDD` integer form, the inverse of {@link NepaliDate.fromYmd} (D-11). */
+  toYmd(): number {
+    return this.#year * 10000 + this.#month * 100 + this.#day;
   }
 
   /**
@@ -484,8 +644,13 @@ export class NepaliDate {
     return formatDate(this.year, this.month, this.day, this.weekday, pattern, lang);
   }
 
-  /** True if `other` is the same day. */
+  /**
+   * True if `other` is a `NepaliDate` on the same day, false for any other value. A
+   * predicate must not throw, so a JavaScript caller that passes a plain object gets `false`.
+   * @example
+   * NepaliDate.of(2081, 4, 15).equals(NepaliDate.of(2081, 4, 15)); // => true
+   */
   equals(other: NepaliDate): boolean {
-    return this.#serial === other.#serial;
+    return other instanceof NepaliDate && this.#serial === other.#serial;
   }
 }
