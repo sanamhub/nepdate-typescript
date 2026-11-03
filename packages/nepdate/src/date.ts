@@ -386,7 +386,8 @@ export class NepaliDate {
   static fromYmd(n: number): NepaliDate {
     checkInteger("n", n);
     // C# truncates toward zero, so a negative number lands on year 0 and fails the year check.
-    return NepaliDate.of((n / 10000) | 0, ((n / 100) | 0) % 100, n % 100);
+    // Math.trunc, not `| 0`: `| 0` wraps above 2^31 and would read a huge number as a valid date.
+    return NepaliDate.of(Math.trunc(n / 10000), Math.trunc(n / 100) % 100, n % 100);
   }
 
   /** -1 if `a` is before `b`, 1 if after, 0 if the same day. Pass it to `Array.prototype.sort`. */

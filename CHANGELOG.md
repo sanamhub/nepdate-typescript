@@ -41,9 +41,6 @@ because the line is still 0.x.
   covers the package.
 - `NepaliDate#equals` and `DateRange#equals` return `false` for a value that is not the same type
   instead of throwing a `TypeError`, because a predicate that answers a question should not throw.
-- A pattern that ends in a backslash now writes a literal `\`; it used to write nothing. This matches
-  the formatting spec, whose last example is a single trailing backslash. Migration: escape a
-  literal backslash as `\\` and do not rely on a trailing `\` to disappear.
 - `year`, `month` and `day` are getters over the private day count, so an instance no longer has own
   enumerable data properties. `JSON.stringify` still uses `toJSON`, destructuring still reads the
   three fields, and assigning to one now throws in strict mode instead of leaving the packed day
@@ -60,6 +57,9 @@ because the line is still 0.x.
 - `NepaliDate#year`, `#month` and `#day` are getters, so `Object.keys(date)` is empty and `{ ...date }`
   copies nothing. Migration: read the three fields directly and use `toGregorian()` or `toJSON()`
   where you copied the fields into another object.
+- A pattern that ends in a backslash now writes a literal `\`; it used to write nothing. This matches
+  the formatting spec, whose last example is a single trailing backslash. Migration: remove the
+  trailing `\` when the old output without it was intended.
 
 ## [0.1.0-rc.1] - 2026-11-03
 

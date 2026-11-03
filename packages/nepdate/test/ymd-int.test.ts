@@ -42,6 +42,9 @@ describe("ymd-int.tsv", () => {
     expect(kindOf(() => NepaliDate.fromYmd(-1))).toBe("out-of-range");
     expect(kindOf(() => NepaliDate.fromYmd(2081.5))).toBe("not-an-integer");
     expect(kindOf(() => NepaliDate.fromYmd(2081))).toBe("out-of-range");
+    // (2^32 + 2081) * 10000 + 415: a 32-bit wrap would read it as 2081-04-15.
+    expect(kindOf(() => NepaliDate.fromYmd(42949693770415))).toBe("out-of-range");
+    expect(kindOf(() => NepaliDate.fromYmd(Number.MAX_SAFE_INTEGER))).toBe("out-of-range");
   });
 
   test("the integer is not the interchange form; toJSON keeps the dashes", () => {
