@@ -15,7 +15,7 @@ The patro (पात्रो, the Nepali almanac) for
 events for each Bikram Sambat day. `nepdate-patro` needs `nepdate-core` as a peer dependency and shares
 its version.
 
-> **Status:** 0.1.0-rc.1, a release candidate, on the `rc` dist-tag. The data is
+> **Status:** 0.2.0-rc.1, a release candidate, on the `rc` dist-tag. The data is
 > informational, not an official calendar.
 
 ## Install
