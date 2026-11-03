@@ -8,10 +8,11 @@ name: verify-published
 # latest.
 #
 # Scheduled runs keep the published packages honest after the release page goes quiet. Every Monday
-# one Linux runner installs the latest of both version lines with each package manager and checks
-# them, and every day a metadata-only check confirms npm still lists those versions and serves the
-# tarballs without downloading them. A failure opens or updates one issue labelled published-check.
-# Only the report job writes; the check jobs read the repository and the registry and nothing else.
+# one Linux runner installs the latest core line and the newest picker that peers on it with each
+# package manager and checks them, and every day a metadata-only check confirms npm still lists those
+# versions and serves the tarballs without downloading them. A failure opens or updates one issue
+# labelled published-check. Only the report job writes; the check jobs read the repository and the
+# registry and nothing else.
 on:
   workflow_call:
     inputs:
