@@ -1,13 +1,13 @@
 version: 2
 updates:
-  # Keeps the pinned action SHAs current. The cooldown gives a bad release a week to be pulled.
+  # Keeps the pinned action SHAs current. The cooldown gives a bad release two weeks to be pulled.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
     cooldown:
-      default-days: 7
+      default-days: 14
   # Dev tools only: neither package has runtime dependencies (ADR-0001 §1).
   - package-ecosystem: npm
     directories: ["/", "/bench"]
@@ -15,7 +15,7 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     cooldown:
-      default-days: 7
+      default-days: 14
     # vitest and its plugins only install at one shared version, so a lone bump fails npm ci.
     groups:
       vitest:
