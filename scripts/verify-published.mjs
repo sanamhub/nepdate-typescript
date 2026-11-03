@@ -2,7 +2,7 @@
 // checks them: the installed versions, the README quick start, one patro lookup and one picker
 // month grid. The SDK line and the picker line release separately (ADR-0018), so a check names the
 // line it verifies: the core and patro at one version, the picker and the core it peers on, or both
-// lines at their latest versions.
+// lines at the latest versions that fit together.
 //
 //   node scripts/verify-published.mjs --kind sdk --version 0.1.0-rc.1 [--manager npm] [--wait 15]
 //   node scripts/verify-published.mjs --kind picker --version 0.1.0-beta.2 --core-version 0.1.0-rc.1
@@ -110,26 +110,104 @@ async function latestVersion(name) {
   return version;
 }
 
-// The package versions a check installs. An empty input means latest, so a scheduled run follows
-// each line without being told a version.
+// npm compares prerelease identifiers one by one: numbers as numbers, strings as strings, and a
+// shorter list is lower when the shared part is equal.
+function comparePrerelease(left, right) {
+  const a = left === "" ? [] : left.split(".");
+  const b = right === "" ? [] : right.split(".");
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    if (a[index] === undefined) return -1;
+    if (b[index] === undefined) return 1;
+    const aNumber = /^\d+$/.test(a[index]) ? Number(a[index]) : null;
+    const bNumber = /^\d+$/.test(b[index]) ? Number(b[index]) : null;
+    if (aNumber !== null && bNumber !== null) {
+      if (aNumber !== bNumber) return aNumber - bNumber;
+    } else if (aNumber !== null) {
+      return -1;
+    } else if (bNumber !== null) {
+      return 1;
+    } else if (a[index] !== b[index]) {
+      return a[index] < b[index] ? -1 : 1;
+    }
+  }
+  return 0;
+}
+
+function parseVersion(version) {
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(version);
+  if (match === null) fail(`cannot read the version ${version}`);
+  return {
+    numbers: [Number(match[1]), Number(match[2]), Number(match[3])],
+    prerelease: match[4] ?? "",
+  };
+}
+
+function compareVersions(left, right) {
+  const a = parseVersion(left);
+  const b = parseVersion(right);
+  for (let index = 0; index < 3; index += 1) {
+    if (a.numbers[index] !== b.numbers[index]) return a.numbers[index] - b.numbers[index];
+  }
+  return comparePrerelease(a.prerelease, b.prerelease);
+}
+
+// The picker publishes a caret or tilde range on the core. A prerelease joins the range only on the
+// tuple that carries one (ADR-0018 decision 5), so the tuple is compared as well.
+function rangeAdmitsVersion(range, version) {
+  const match = /^([~^])?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(range.trim());
+  if (match === null) fail(`cannot read the peer range ${range}`);
+  const operator = match[1] ?? "";
+  const bound = parseVersion(match[2]);
+  const candidate = parseVersion(version);
+  if (compareVersions(version, match[2]) < 0) return false;
+  if (operator === "") return compareVersions(version, match[2]) === 0;
+  if (candidate.prerelease !== "" && candidate.numbers.join(".") !== bound.numbers.join(".")) {
+    return false;
+  }
+  if (operator === "~") {
+    return candidate.numbers[0] === bound.numbers[0] && candidate.numbers[1] === bound.numbers[1];
+  }
+  if (bound.numbers[0] !== 0) return candidate.numbers[0] === bound.numbers[0];
+  if (bound.numbers[1] !== 0) return candidate.numbers[1] === bound.numbers[1];
+  return candidate.numbers[1] === 0 && candidate.numbers[2] === bound.numbers[2];
+}
+
+// The picker line trails the SDK line: pre-releases never move its latest dist-tag (ADR-0018
+// decision 8), so a check that resolves both lines takes the newest picker whose peer range admits
+// the resolved core.
+async function pickerForCore(core) {
+  const document = await registryDocument("nepdate-datepicker");
+  const versions = document.versions ?? {};
+  const compatible = Object.keys(versions).filter((version) => {
+    const peer = versions[version]?.peerDependencies?.["nepdate-core"];
+    return typeof peer !== "string" || rangeAdmitsVersion(peer, core);
+  });
+  if (compatible.length === 0) {
+    fail(`no nepdate-datepicker release accepts nepdate-core ${core}`);
+  }
+  const latest = document["dist-tags"]?.latest;
+  if (typeof latest === "string" && compatible.includes(latest)) return latest;
+  compatible.sort(compareVersions);
+  return compatible[compatible.length - 1];
+}
+
+// The package versions a check installs. An empty input means the newest that fits, so a scheduled
+// run follows each line without being told a version and still installs a picker that accepts the
+// core.
 async function versionsFor(options) {
   if (options.kind === "sdk") {
     const version = options.version === "" ? await latestVersion("nepdate-core") : options.version;
     return { "nepdate-core": version, "nepdate-patro": version };
   }
   if (options.kind === "picker") {
-    const picker =
-      options.version === "" ? await latestVersion("nepdate-datepicker") : options.version;
     const core =
       options.coreVersion === "" ? await latestVersion("nepdate-core") : options.coreVersion;
+    const picker = options.version === "" ? await pickerForCore(core) : options.version;
     return { "nepdate-core": core, "nepdate-datepicker": picker };
   }
   const core =
     options.coreVersion === "" ? await latestVersion("nepdate-core") : options.coreVersion;
-  const picker =
-    options.pickerVersion === ""
-      ? await latestVersion("nepdate-datepicker")
-      : options.pickerVersion;
+  const picker = options.pickerVersion === "" ? await pickerForCore(core) : options.pickerVersion;
   return { "nepdate-core": core, "nepdate-patro": core, "nepdate-datepicker": picker };
 }
 
