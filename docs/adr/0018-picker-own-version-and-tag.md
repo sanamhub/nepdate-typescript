@@ -49,7 +49,9 @@ to one trusted publisher per package.
    of a later patch such as `0.1.1-beta.1`, because a prerelease range admits prereleases only on
    the tuple that carries one. That is the conservative choice: a later patch's prerelease joins the
    range when the SDK line reaches it, and the preflight rejects a picker release whose range does
-   not accept the core version in the repository.
+   not accept the core version in the repository. Amended 2026-11-03: for the 0.2 SDK line the
+   range is `~0.2.0-rc.1`, and the picker version that carries it is `0.1.0-beta.2`; `0.1.0-beta.1`
+   stays on the 0.1 range it was published with.
 6. **The picker has its own changelog.** Its entries move from the root `CHANGELOG.md` to
    `packages/nepdate-picker/CHANGELOG.md`. The root changelog covers the core and the patro.
 7. **Trusted publishing replaces the token.** The publish job uses OIDC with `id-token: write`, the
