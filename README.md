@@ -30,9 +30,9 @@ its own `datepicker-v*` tag.
 Pure TypeScript, no WASM and no time zone guessing. BS 1901-01-01 to 2199-12-30 (AD 1844-04-11 to
 2143-04-15). Node 22.12.0 and later (the floor is tested in CI), Deno, Bun and current browsers.
 
-> **Status:** 0.1.0-rc.1, a release candidate, on the `rc` dist-tag. The API is listed
+> **Status:** 0.2.0-rc.1, a release candidate, on the `rc` dist-tag. The API is listed
 > in [docs/API.md](https://github.com/sanamhub/nepdate-typescript/blob/main/docs/API.md) and may
-> still change before 0.1.0. Patro data (tithi, holidays, events) is informational, not an official
+> still change before 0.2.0. Patro data (tithi, holidays, events) is informational, not an official
 > calendar.
 
 ```bash
@@ -56,7 +56,7 @@ console.log(republicDay.long({ weekday: true })); // "Tuesday, Jestha 15, 2081"
 ## Quick start (Deno)
 
 ```ts
-import { NepaliDate } from "npm:nepdate-core@0.1.0-rc.1";
+import { NepaliDate } from "npm:nepdate-core@0.2.0-rc.1";
 
 console.log(NepaliDate.of(2081, 2, 15).toJSON()); // "2081-02-15"
 ```
@@ -65,7 +65,7 @@ console.log(NepaliDate.of(2081, 2, 15).toJSON()); // "2081-02-15"
 
 ```html
 <script type="module">
-  import { NepaliDate } from "https://esm.sh/nepdate-core@0.1.0-rc.1";
+  import { NepaliDate } from "https://esm.sh/nepdate-core@0.2.0-rc.1";
   document.body.textContent = NepaliDate.of(2081, 2, 15).toJSON();
 </script>
 ```

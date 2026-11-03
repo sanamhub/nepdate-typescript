@@ -9,6 +9,8 @@ name. `nepdate-datepicker` has its own version and changelog in
 
 ## [Unreleased]
 
+## [0.2.0-rc.1] - 2026-11-03
+
 The full API of the NepDate family, with the vectors and the deliberate deviations the hub's
 `spec/API.md` and `spec/PARITY.md` name. `nepdate-core` gains the range set operations and the
 fiscal-year, batch, integer and year-length members it was missing; the changes below are allowed

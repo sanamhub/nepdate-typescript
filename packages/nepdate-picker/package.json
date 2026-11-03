@@ -55,6 +55,6 @@
     "prepack": "node -e \"require('node:fs').copyFileSync('../../LICENSE', 'LICENSE')\""
   },
   "peerDependencies": {
-    "nepdate-core": "~0.1.0-beta.1"
+    "nepdate-core": "~0.2.0-rc.1"
   }
 }
