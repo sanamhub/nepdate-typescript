@@ -1,10 +1,22 @@
 name: mutation
 
-# ADR-0007: mutation testing is not a pull-request gate. The weekly run catches test rot while the
-# release workflow blocks a tag that scores below the floor.
+# ADR-0019: the weekly run catches test rot, and a pull request that changes the library, its tests
+# or the triage files runs the same gate, so a survivor is caught in review instead of at the tag.
 on:
   schedule:
     - cron: "0 3 * * 1"
+  pull_request:
+    paths:
+      - "packages/nepdate/src/**"
+      - "packages/nepdate-patro/src/**"
+      - "packages/nepdate/test/**"
+      - "packages/nepdate-patro/test/**"
+      - "packages/*/vitest.stryker.config.ts"
+      - "stryker*.mjs"
+      - "scripts/mutation-check.ts"
+      - "scripts/mutation-summary.ts"
+      - "docs/mutation/**"
+      - ".github/workflows/mutation.yml"
   workflow_dispatch:
 
 permissions:
