@@ -10,9 +10,10 @@
 //   node scripts/verify-published.mjs --kind sdk --resolve
 //   node scripts/verify-published.mjs --kind all --metadata
 //
-// --resolve prints the latest version of the line and exits, so a workflow can pass it to the later
-// jobs. --metadata reads the registry document and confirms that each version is listed, not
-// deprecated, and that its tarball answers a HEAD request; it downloads no package file.
+// --resolve prints the latest version of the line, or for a picker with --core-version the picker
+// that peers on it, so a workflow can pass the result to the later jobs. --metadata reads the
+// registry document and confirms that each version is listed, not deprecated, and that its tarball
+// answers a HEAD request; it downloads no package file.
 //
 // The manager is the one a user would choose. Yarn means Yarn Berry through corepack, with the
 // linker written out. Only npm checks the registry signatures, because npm audit signatures reads
@@ -451,8 +452,12 @@ function parseArguments(argv) {
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   if (options.mode === "resolve") {
-    const name = options.kind === "picker" ? "nepdate-datepicker" : "nepdate-core";
-    console.log(await latestVersion(name));
+    if (options.kind === "picker" && options.coreVersion !== "") {
+      console.log(await pickerForCore(options.coreVersion));
+    } else {
+      const name = options.kind === "picker" ? "nepdate-datepicker" : "nepdate-core";
+      console.log(await latestVersion(name));
+    }
     return;
   }
   const versions = await versionsFor(options);
