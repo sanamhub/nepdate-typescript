@@ -1,5 +1,5 @@
-// ADR-0007: mutation testing is a weekly and release check, never a pull-request check. The checks
-// read the parsed YAML, so a comment or a moved step cannot satisfy a rule by accident.
+// ADR-0019: mutation testing runs weekly, by hand, and on a pull request that changes the library.
+// The checks read the parsed YAML, so a comment or a moved step cannot satisfy a rule by accident.
 
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -40,12 +40,15 @@ function order(first: string, second: string): boolean {
 }
 
 describe("weekly mutation workflow", () => {
-  it("runs on a schedule and manual dispatch, never on a pull request", () => {
-    expect([...triggers(PARSED)].sort()).toEqual(["schedule", "workflow_dispatch"]);
+  it("runs on a schedule, manual dispatch, and library pull requests", () => {
+    expect([...triggers(PARSED)].sort()).toEqual(["pull_request", "schedule", "workflow_dispatch"]);
     const schedule = trigger(PARSED, "schedule");
     expect(Array.isArray(schedule)).toBe(true);
     expect(schedule).toEqual([{ cron: "0 3 * * 1" }]);
-    expect(trigger(PARSED, "pull_request")).toBeUndefined();
+    const paths = stringValues(trigger(PARSED, "pull_request"));
+    expect(paths).toContain("packages/nepdate/src/**");
+    expect(paths).toContain("packages/nepdate-patro/src/**");
+    expect(paths).toContain("docs/mutation/**");
   });
 
   it("has only the mutation job", () => {
