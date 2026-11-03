@@ -7,6 +7,11 @@ format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the 
 
 ## [Unreleased]
 
+### Changed
+
+- The `nepdate-core` peer range is `~0.2.0-rc.1`, so the picker installs beside the SDK 0.2 line.
+  The picker keeps its own version; nothing else about it changes in this release.
+
 ## [0.1.0-beta.1] - 2026-10-25
 
 First public pre-release. The npm name is `nepdate-datepicker` (ADR-0016), and the package peers on

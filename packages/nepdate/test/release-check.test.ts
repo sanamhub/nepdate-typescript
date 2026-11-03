@@ -322,15 +322,15 @@ function tagOutput(ref: string): Record<string, string> {
 }
 
 test("an SDK tag selects the core and patro line", () => {
-  const output = tagOutput("v0.1.0-rc.1");
+  const output = tagOutput("v0.2.0-rc.1");
   expect(output).toMatchObject({
-    version: "0.1.0-rc.1",
+    version: "0.2.0-rc.1",
     kind: "sdk",
     "dist-tag": "rc",
     packages: "nepdate-core,nepdate-patro",
-    tag: "v0.1.0-rc.1",
+    tag: "v0.2.0-rc.1",
   });
-  expect(output["core-version"]).toBe("0.1.0-rc.1");
+  expect(output["core-version"]).toBe("0.2.0-rc.1");
 });
 
 test("a picker tag selects only the picker", () => {
