@@ -5,7 +5,12 @@ releases on `datepicker-vX.Y.Z` (ADR-0018); the core and the patro share the oth
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.0-beta.3] - 2026-11-04
+
+### Changed
+
+- The `nepdate-core` peer range is `^1.0.0-rc.1`, so the picker installs beside the SDK 1.0 line.
+  npm refuses a changed peer under an existing version, so the picker moves to `0.1.0-beta.3`.
 
 ## [0.1.0-beta.2] - 2026-11-03
 
