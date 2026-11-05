@@ -158,6 +158,25 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
+      - name: Wait for the npm core the picker peers on
+        if: needs.resolve.outputs.kind == 'picker'
+        env:
+          CORE_VERSION: ${{ needs.resolve.outputs.core-version }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 3 * 60 * 60))
+          while true; do
+            if served="$(npm view "nepdate-core@$CORE_VERSION" version 2>/dev/null)"; then
+              echo "nepdate-core@$CORE_VERSION is served: $served"
+              break
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::npm does not serve nepdate-core@$CORE_VERSION after three hours"
+              exit 1
+            fi
+            echo "waiting for nepdate-core@$CORE_VERSION on npm"
+            sleep 60
+          done
       - name: Install and check the published packages
         id: check
         env:
