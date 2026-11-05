@@ -129,7 +129,8 @@ jobs:
   smoke:
     needs: pack
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # A picker release can wait up to three hours for the core to reach npm.
+    timeout-minutes: 190
     permissions:
       contents: read
     steps:
@@ -170,6 +171,27 @@ jobs:
             "../release-tarballs/nepdate-core-$VERSION.tgz" \
             "../release-tarballs/nepdate-patro-$VERSION.tgz"
           node ../scripts/smoke.ts --mode patro --project "$PWD"
+      # The picker tag can go out before npm serves the core it peers on. Poll the exact floor the
+      # picker declares before installing, so the smoke job does not fail on a temporary 404.
+      - name: Wait for the npm core the picker peers on
+        if: needs.pack.outputs.kind == 'picker'
+        env:
+          CORE_VERSION: ${{ needs.pack.outputs.core-version }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 3 * 60 * 60))
+          while true; do
+            if served="$(npm view "nepdate-core@$CORE_VERSION" version 2>/dev/null)"; then
+              echo "nepdate-core@$CORE_VERSION is served: $served"
+              break
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::npm does not serve nepdate-core@$CORE_VERSION after three hours"
+              exit 1
+            fi
+            echo "waiting for nepdate-core@$CORE_VERSION on npm"
+            sleep 60
+          done
       - name: Core plus picker
         if: needs.pack.outputs.kind == 'picker'
         env:
