@@ -32,5 +32,8 @@
     "typescript6": "npm:typescript@6.0.3",
     "vitest": "5.0.5",
     "yaml": "2.9.1"
+  },
+  "overrides": {
+    "qs": "6.16.1"
   }
 }
