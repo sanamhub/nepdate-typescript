@@ -5,6 +5,20 @@ releases on `datepicker-vX.Y.Z` (ADR-0018); the core and the patro share the oth
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `theme.css`: today has a ring as well as its colour, so it still shows when it is also the chosen
+  day; days have a pixel of space between them; the arrows, month and year selects, field and
+  calendar button have hover states; the month and year selects have a focus ring; the day hover
+  colour fades in, except with reduced motion.
+
+### Fixed
+
+- `theme.css`: the chosen day kept its accent colour only until the pointer was over it, and an
+  unavailable day took the hover colour. Both now stay as they are.
+
 ## [0.1.0-beta.3] - 2026-11-04
 
 ### Changed
