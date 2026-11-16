@@ -52,8 +52,8 @@ page before starting, and do not skip a precondition because the workflow is gre
 
 ## Tag
 
-A pre-release such as `0.1.0-rc.1` follows the same steps with its own dated changelog section
-(`## [0.1.0-rc.1] - YYYY-MM-DD`); a stable section does not cover it and the other way round.
+A pre-release such as `1.1.0-rc.1` follows the same steps with its own dated changelog section
+(`## [1.1.0-rc.1] - YYYY-MM-DD`); a stable section does not cover it and the other way round.
 
 SDK release, from `main`:
 

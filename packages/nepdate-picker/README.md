@@ -19,7 +19,7 @@ dependencies; the standalone file below, core included, is about 10.5 KB.
 With a bundler (Vite, webpack, esbuild and the like):
 
 ```sh
-npm install nepdate-core@beta nepdate-datepicker@beta
+npm install nepdate-core@rc nepdate-datepicker@beta
 ```
 
 ```js
@@ -31,8 +31,8 @@ Without a build step, use the standalone file. It holds the elements and the cor
 and registers both elements, so the page needs no import map. Load it from a CDN:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.1/dist/theme.css" />
-<script type="module" src="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.1/dist/nepdate-datepicker.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.3/dist/theme.css" />
+<script type="module" src="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.3/dist/nepdate-datepicker.js"></script>
 ```
 
 Or copy `dist/nepdate-datepicker.js` and `dist/theme.css` from the package into your site, such as an
