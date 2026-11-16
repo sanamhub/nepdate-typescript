@@ -1,0 +1,2 @@
+own run idle gate: avg=5 max=8.9; during: n=62 total avg=5.1 peak=14.9 | other-cpus avg=4.4 peak=10.0
+compare run idle gate: avg=4.4 max=7.5; during: n=92 total avg=4.9 peak=12.5 | other-cpus avg=4.6 peak=11.0

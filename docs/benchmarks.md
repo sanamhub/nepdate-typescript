@@ -1,17 +1,16 @@
 # Benchmarks
 
 Operations B1 to B8 of [`shared/spec/BENCHMARK.md`](https://github.com/sanamhub/nepdate/blob/main/spec/BENCHMARK.md),
-run on 2026-11-02. Every row runs in a fresh process pinned to logical CPU 2. Before each
+run on 2026-11-16. Every row runs in a fresh process pinned to logical CPU 2. Before each
 measurement the child samples the all-CPU load; if it is at or above 15% it waits 5 s and retries,
 five times. During the row it samples the mean busy share of every CPU except CPU 2, because the
 benchmark keeps CPU 2 busy by design. A row is marked `LOADED` when either figure is at or above
 15%, and a loaded row is kept out of target verdicts. [ADR-0008](adr/0008-during-row-background-load.md)
 records the during-row rule.
 
-This pass has B1, B2, B5, B6, B7 and B8 final in the main run. B3 and B4 were loaded in that run, so
-they were measured again immediately afterwards with the same harness and both are final. The
-competitor rows were final or close to the gate; their per-row load is in
-[`raw/2026-11-02/compare.txt`](raw/2026-11-02/compare.txt).
+Every row of this pass is final, in the main run and in the competitor run; each row's load is in
+[`raw/2026-11-16/own.txt`](raw/2026-11-16/own.txt) and
+[`raw/2026-11-16/compare.txt`](raw/2026-11-16/compare.txt).
 
 ## Machine
 
@@ -21,38 +20,33 @@ competitor rows were final or close to the gate; their per-row load is in
 | RAM | 31.7 GB |
 | OS | Microsoft Windows 11 Home, 10.0.26300, 64-bit |
 | Power plan | Ultimate Performance |
-| Node | 26.13.0 |
+| Node | 26.13.1 |
 | mitata | 1.0.34 |
-| C# NepDate | 2.0.7 on .NET 10.0.14, from the hub's 2026-11-02 run |
+| C# NepDate | 2.0.7 on .NET 10.0.15, from the hub's 2026-11-16 run |
 | Pinned to | logical CPU 2 (`/affinity 4`) |
-| Date | 2026-11-02 |
-| Load before the main run | 13, 5 and 7 percent, sampled 2 s apart |
-| Load after the main run | 17, 7 and 3 percent, sampled 2 s apart |
-| Load before the B3/B4 rerun | 13, 11 and 9 percent; after 9, 14 and 3 percent |
+| Date | 2026-11-16 |
+| Idle gate before the main run | 5.0 percent average, 8.9 peak (30 one-second samples) |
+| Load during the main run | 5.1 percent average, 14.9 peak over 62 one-second samples |
+| Idle gate before the competitor run | 4.4 percent average, 7.5 peak |
+| Load during the competitor run | 4.9 percent average, 12.5 peak over 92 one-second samples |
 
-The machine had the owner's normal desktop applications open. No other build, test suite or
-benchmark ran during the run.
+The machine was idle: no other build, test suite or benchmark ran during either run. The samples are
+in [`raw/2026-11-16/`](raw/2026-11-16/) (`cpu-samples-own.txt`, `cpu-samples-compare.txt`,
+`load.txt`).
 
 ## Commands
 
 From the repository root after `npm run build`:
 
 ```
-node bench/own.ts --out docs/raw/2026-11-02
-node bench/compare.ts --out docs/raw/2026-11-02
-```
-
-B3 and B4 were repeated with:
-
-```
-node --expose-gc bench/measure.ts --impl nepdate --op B3 > docs/raw/2026-11-02/b3.json
-node --expose-gc bench/measure.ts --impl nepdate --op B4 > docs/raw/2026-11-02/b4.json
+node bench/own.ts --out docs/raw/2026-11-16
+node bench/compare.ts --out docs/raw/2026-11-16
 ```
 
 `bench/own.ts` and `bench/compare.ts` spawn one `node --expose-gc bench/measure.ts` per row under
 `cmd /c start "" /affinity 4 /wait /b`. The raw files are under
-[`raw/2026-11-02/`](raw/2026-11-02/): `own.json`, `compare.json`, `b3.json`, `b4.json` and the
-console logs.
+[`raw/2026-11-16/`](raw/2026-11-16/): `own.json`, `compare.json`, the printed tables
+(`own.txt`, `compare.txt`) and the console log `bench.log`.
 
 ## Results
 
@@ -62,22 +56,22 @@ approximation, not an allocator count. The C# column is the .NET 10 column of th
 
 | ID | Operation | nepdate ns/op | heap/op | C# .NET 10 ns/op | C# bytes/op |
 |---|---|---:|---:|---:|---:|
-| B1 | BS to AD | 26.3 | 8 B approx. | 13.50 | 0 |
-| B2 | AD to BS | 24.2 | 23 B approx. | 20.10 | 0 |
-| B3 | add 1000 days | 12.98 | 23 B approx. | 19.05 | 0 |
-| B4 | add 13 months, Clamp | 12.04 | 24 B approx. | 20.19 | 0 |
-| B5 | long format, Nepali, weekday | 262.3 | 6 B approx. | 150.41 | 435 |
-| B6 | strict parse `YYYY/MM/DD` | 76.5 | 313 B approx. | 22.42 | 0 |
-| B7 | patro info | 5.1 | 0 B approx. | 48.21 | 51 |
-| B8 | patro month grid | 383.1 | 2 B approx. | 3,112.76 | 1,429 |
+| B1 | BS to AD | 24.3 | 8 B approx. | 13.27 | 0 |
+| B2 | AD to BS | 22.8 | 23 B approx. | 18.70 | 0 |
+| B3 | add 1000 days | 12.0 | 23 B approx. | 20.06 | 0 |
+| B4 | add 13 months, Clamp | 11.4 | 24 B approx. | 19.30 | 0 |
+| B5 | long format, Nepali, weekday | 136.9 | 19 B approx. | 139.04 | 435 |
+| B6 | strict parse `YYYY/MM/DD` | 63.3 | 313 B approx. | 21.13 | 0 |
+| B7 | patro info | 4.8 | 0 B approx. | 48.63 | 51 |
+| B8 | patro month grid | 351.4 | 2 B approx. | 3,274.50 | 1,429 |
 
 ## Competitors (B1 and B2)
 
 | Package | Version | B1 ns/op | B1 agrees | B2 ns/op | B2 agrees |
 |---|---|---:|---|---:|---|
-| `world-calendars` | 1.0.4 | 778.8 | no | 832.9 | no |
-| `nepali-date-converter` | 3.4.0 | 2,111.4 | no | 2,250.6 | no |
-| `bikram-sambat` | 1.8.1 | 2,751.2 | no | 1,482.6 | no |
+| `world-calendars` | 1.0.4 | 712.2 | no | 757.3 | no |
+| `nepali-date-converter` | 3.4.0 | 1,961.4 | no | 2,108.3 | no |
+| `bikram-sambat` | 1.8.1 | 1,917.0 | no | 1,372.8 | no |
 
 Every selected package is slower than NepDate on both conversions. None agrees on all 64 dates.
 The first mismatches are:
@@ -86,10 +80,10 @@ The first mismatches are:
 - `nepali-date-converter` at BS 2086-07-23: it returns 2029-11-09, the hub data has 2029-11-08.
 - `bikram-sambat` at BS 2088-01-04: it returns 2031-04-18, the hub data has 2031-04-19.
 
-The full lists are in [`raw/2026-11-02/compare.txt`](raw/2026-11-02/compare.txt).
+The full lists are in [`raw/2026-11-16/compare.txt`](raw/2026-11-16/compare.txt).
 
 ## Targets
 
-BENCHMARK section 6 asks for B1, B2 and B7 within 3 times C# NepDate. B1 is 1.95 times, B2 is 1.20
-times and B7 is 0.11 times. Passes. The heap figures are approximate and are not used as allocation
+BENCHMARK section 6 asks for B1, B2 and B7 within 3 times C# NepDate. B1 is 1.83 times, B2 is 1.22
+times and B7 is 0.10 times. Passes. The heap figures are approximate and are not used as allocation
 targets.
