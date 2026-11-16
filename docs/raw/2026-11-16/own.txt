@@ -1,0 +1,11 @@
+node v26.13.1, 8 rows, one process each, affinity 4
+op  ns/op       n    all  core  during  tries  status  heap/op          operation
+B1    24.3    64    7%   92%      3%      1  final   8 B approx.       BS to AD: of(y, m, d).toGregorian()
+B2    22.8    64    9%   12%     12%      1  final   23 B approx.      AD to BS: fromGregorian(g)
+B3    12.0    64    4%    6%      3%      1  final   24 B approx.      addDays(1000)
+B4    11.4    64   10%    6%      6%      1  final   24 B approx.      addMonths(13) clamp
+B5   136.9    64    4%    0%      8%      1  final   19 B approx.      long({weekday: true, lang: 'ne'})
+B6    63.3    64    6%    6%      3%      1  final   312 B approx.     parse('YYYY/MM/DD')
+B7     4.8    64    5%    6%      4%      1  final   0 B approx.       patro info(date)
+B8   351.4    64    7%   13%      3%      1  final   2 B approx.       month grid: of + info for every day
+wrote docs\raw\2026-11-16\own.json
