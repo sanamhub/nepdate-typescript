@@ -43,8 +43,10 @@
   },
   "unpkg": "./dist/nepdate-datepicker.js",
   "jsdelivr": "./dist/nepdate-datepicker.js",
+  "customElements": "custom-elements.json",
   "files": [
     "dist",
+    "custom-elements.json",
     "LICENSE",
     "README.md"
   ],

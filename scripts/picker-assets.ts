@@ -4,8 +4,12 @@
 //   - dist/nepdate-datepicker.js, the standalone file: the elements and the core in one module that
 //     registers both elements, for a page with no bundler and no import map. The npm entries keep
 //     the core as a peer; this file is for a <script> tag, a CDN or a copied wwwroot file.
+//   - custom-elements.json, the Custom Elements Manifest, from the sources through
+//     packages/nepdate-picker/custom-elements-manifest.config.mjs.
 
+import { execFileSync } from "node:child_process";
 import { copyFileSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { buildSync } from "esbuild";
 
@@ -30,3 +34,9 @@ buildSync({
   legalComments: "none",
   logLevel: "warning",
 });
+
+// The analyzer's own CLI, run with this Node so no shell or npx is involved.
+const analyzer = createRequire(import.meta.url).resolve(
+  "@custom-elements-manifest/analyzer/cem.js",
+);
+execFileSync(process.execPath, [analyzer, "analyze", "--quiet"], { cwd: picker, stdio: "inherit" });

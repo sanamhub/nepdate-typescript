@@ -1,6 +1,7 @@
 import { NepDateCalendarElement } from "./calendar.js";
 import { NepDateInputElement } from "./input.js";
 
+export type { NepDateCalendarAttributes, NepDateInputAttributes } from "./attributes.js";
 export { CALENDAR_PARTS, NepDateCalendarElement } from "./calendar.js";
 export {
   GRID_ROWS,

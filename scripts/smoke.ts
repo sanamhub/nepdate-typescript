@@ -84,6 +84,8 @@ function pickerSmoke(project: string): void {
   for (const name of ["theme.css", "nepdate-datepicker.js"]) {
     if (!existsSync(join(dist, name))) throw new Error(`nepdate-datepicker has no dist/${name}`);
   }
+  const manifest = join(dist, "..", "custom-elements.json");
+  if (!existsSync(manifest)) throw new Error("nepdate-datepicker has no custom-elements.json");
   const standalone = readFileSync(join(dist, "nepdate-datepicker.js"), "utf8");
   if (/\bfrom\s*["']|\bimport\s*["'(]/.test(standalone)) {
     throw new Error("nepdate-datepicker dist/nepdate-datepicker.js imports a module");
@@ -117,7 +119,7 @@ function pickerSmoke(project: string): void {
     `smoke: picker ${packageVersion(project, "nepdate-datepicker")} with core ${packageVersion(
       project,
       "nepdate-core",
-    )} ok, theme.css and a standalone file with no import`,
+    )} ok, theme.css, custom-elements.json and a standalone file with no import`,
   );
 }
 

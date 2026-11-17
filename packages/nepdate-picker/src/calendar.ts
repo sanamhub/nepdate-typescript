@@ -1,5 +1,13 @@
 import { monthName, NepaliDate, toNepaliDigits, weekdayName, weekdayShortName } from "nepdate-core";
-import { ElementBase, langOf, parseDateAttribute, TEXT } from "./base.js";
+import {
+  adoptStyle,
+  ElementBase,
+  langOf,
+  parseDateAttribute,
+  reflect,
+  TEXT,
+  upgradeProperties,
+} from "./base.js";
 import {
   GRID_ROWS,
   type GridKey,
@@ -25,6 +33,18 @@ export const CALENDAR_PARTS: readonly string[] = [
   "disabled",
   "gregorian",
 ];
+
+// Every public property, for properties set before the element was defined.
+const CALENDAR_PROPERTIES = [
+  "value",
+  "date",
+  "isDateDisallowed",
+  "dayParts",
+  "min",
+  "max",
+  "firstDayOfWeek",
+  "showGregorian",
+] as const;
 
 const KEYS: Record<string, GridKey> = {
   ArrowLeft: "ArrowLeft",
@@ -58,9 +78,30 @@ td { padding: 0; text-align: center; }
 /**
  * `<nepdate-calendar>`: one BS month as a grid of days, chosen with a click or the keyboard.
  *
- * Attributes: `value`, `min`, `max` (BS dates such as `2081-04-15`), `lang` (`en` or `ne`),
- * `first-day-of-week` (0 = Sunday, the default), `show-gregorian`.
+ * Attributes: `value`, `min`, `max` (BS dates such as `2081-04-15`), `lang` (`en` or `ne`, else
+ * the nearest ancestor's), `first-day-of-week` (0 = Sunday, the default), `show-gregorian`.
  * Fires `change` when the visitor chooses a day. Style it with `::part()`; see the README.
+ *
+ * @attr value - The chosen date, `YYYY-MM-DD` in BS.
+ * @attr min - The earliest date that can be chosen.
+ * @attr max - The latest date that can be chosen.
+ * @attr lang - `en` or `ne`; without it, the nearest ancestor's `lang`.
+ * @attr first-day-of-week - 0 = Sunday (the default) to 6 = Saturday.
+ * @attr show-gregorian - Shows the AD day under each BS day.
+ * @fires change - The visitor chose a day.
+ * @csspart header - The row with the month buttons and selects.
+ * @csspart previous - The previous month button.
+ * @csspart next - The next month button.
+ * @csspart heading - The box around the two selects.
+ * @csspart month-select - The month select.
+ * @csspart year-select - The year select.
+ * @csspart grid - The table of days.
+ * @csspart weekday - A weekday heading.
+ * @csspart day - A day button.
+ * @csspart selected - The chosen day.
+ * @csspart today - Today.
+ * @csspart disabled - A day that can't be chosen.
+ * @csspart gregorian - The AD day, with `show-gregorian`.
  * @example
  * NepDateCalendarElement.observedAttributes.includes("show-gregorian"); // => true
  */
@@ -74,11 +115,22 @@ export class NepDateCalendarElement extends ElementBase {
     "show-gregorian",
   ];
 
+  /** The earliest date that can be chosen; reflects the `min` attribute. */
+  declare min: string;
+  /** The latest date that can be chosen; reflects the `max` attribute. */
+  declare max: string;
+  /** 0 = Sunday to 6 = Saturday; reflects the `first-day-of-week` attribute. */
+  declare firstDayOfWeek: number;
+  /** Shows the AD day under each BS day; reflects the `show-gregorian` attribute. */
+  declare showGregorian: boolean;
+
   #value: NepaliDate | null = null;
   #focused: NepaliDate | null = null;
   #isDateDisallowed: ((date: NepaliDate) => boolean) | null = null;
   #dayParts: ((date: NepaliDate) => readonly string[]) | null = null;
   #root: ShadowRoot | null = null;
+  #dirty = false;
+  #selectKey = "";
   #previous!: HTMLButtonElement;
   #next!: HTMLButtonElement;
   #monthSelect!: HTMLSelectElement;
@@ -86,6 +138,7 @@ export class NepDateCalendarElement extends ElementBase {
   #label!: HTMLDivElement;
   #weekdays!: HTMLTableCellElement[];
   #days!: HTMLButtonElement[];
+  #gregorian!: HTMLSpanElement[];
 
   /** The chosen date as `YYYY-MM-DD` (BS), or `""` when none. */
   get value(): string {
@@ -133,10 +186,12 @@ export class NepDateCalendarElement extends ElementBase {
 
   /** Moves keyboard focus to the focused day (the chosen one, or today). */
   focusDay(): void {
-    this.#dayButton(this.#currentFocus())?.focus();
+    this.#flush();
+    this.#dayButton(this.#currentFocus(this.#options()))?.focus();
   }
 
   connectedCallback(): void {
+    upgradeProperties(this, CALENDAR_PROPERTIES);
     if (!this.#root) this.#build();
     if (!this.#value && this.hasAttribute("value"))
       this.#value = parseDateAttribute(this.getAttribute("value"));
@@ -148,7 +203,21 @@ export class NepDateCalendarElement extends ElementBase {
       this.#value = parseDateAttribute(value);
       if (this.#value) this.#focused = this.#value;
     }
-    this.#render();
+    this.#invalidate();
+  }
+
+  // Attribute changes come in groups (nepdate-input copies five at once, a framework sets several
+  // props), so they mark the grid dirty and it renders once in a microtask. The value, date and
+  // callback setters still render at once, as they always have, so a script that sets a date can
+  // read the grid on the next line; that render takes any pending attribute change with it.
+  #invalidate(): void {
+    if (this.#dirty) return;
+    this.#dirty = true;
+    queueMicrotask(() => this.#flush());
+  }
+
+  #flush(): void {
+    if (this.#dirty) this.#render();
   }
 
   #options(): GridOptions {
@@ -160,8 +229,7 @@ export class NepDateCalendarElement extends ElementBase {
     };
   }
 
-  #currentFocus(): NepaliDate {
-    const options = this.#options();
+  #currentFocus(options: GridOptions): NepaliDate {
     // Keyboard moves clamp already; this covers a value or today outside min/max.
     return clampDate(this.#focused ?? this.#value ?? NepaliDate.today(), options);
   }
@@ -169,8 +237,7 @@ export class NepDateCalendarElement extends ElementBase {
   #build(): void {
     const root = this.attachShadow({ mode: "open" });
     this.#root = root;
-    const style = document.createElement("style");
-    style.textContent = STYLE;
+    adoptStyle(root, STYLE);
 
     const header = el("div", "header");
     this.#previous = el("button", "previous");
@@ -204,6 +271,7 @@ export class NepDateCalendarElement extends ElementBase {
     head.append(headRow);
     const body = document.createElement("tbody");
     this.#days = [];
+    this.#gregorian = [];
     for (let row = 0; row < GRID_ROWS; row++) {
       const tr = document.createElement("tr");
       for (let col = 0; col < 7; col++) {
@@ -211,6 +279,11 @@ export class NepDateCalendarElement extends ElementBase {
         const button = el("button", "day");
         button.type = "button";
         button.tabIndex = -1;
+        // One text node and one AD span per button, reused on every render.
+        button.append("");
+        const ad = el("span", "gregorian");
+        ad.setAttribute("aria-hidden", "true");
+        this.#gregorian.push(ad);
         td.append(button);
         tr.append(td);
         this.#days.push(button);
@@ -218,13 +291,14 @@ export class NepDateCalendarElement extends ElementBase {
       body.append(tr);
     }
     table.append(head, body);
-    root.append(style, header, this.#label, table);
+    root.append(header, this.#label, table);
 
     this.#previous.addEventListener("click", () => this.#showMonth(-1));
     this.#next.addEventListener("click", () => this.#showMonth(1));
     this.#monthSelect.addEventListener("change", () => this.#jump());
     this.#yearSelect.addEventListener("change", () => this.#jump());
     body.addEventListener("click", (event) => {
+      this.#flush();
       const button = (event.target as Element).closest("button");
       if (button) this.#choose(button);
     });
@@ -232,6 +306,7 @@ export class NepDateCalendarElement extends ElementBase {
   }
 
   #onKey(event: KeyboardEvent): void {
+    this.#flush();
     const button = (event.target as Element).closest("button");
     if (!button?.dataset.date) return;
     if (event.key === "Enter" || event.key === " ") {
@@ -259,23 +334,29 @@ export class NepDateCalendarElement extends ElementBase {
     this.#value = date;
     this.#render();
     this.focusDay();
-    if (changed) this.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    // Not composed, like a native change event: it stops at the shadow root it was fired in.
+    if (changed) this.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   #showMonth(step: -1 | 1): void {
+    const options = this.#options();
     this.#focused = moveFocus(
-      this.#currentFocus(),
+      this.#currentFocus(options),
       step < 0 ? "PageUp" : "PageDown",
-      this.#options(),
+      options,
     );
     this.#render();
   }
 
   #jump(): void {
+    const options = this.#options();
     const year = Number(this.#yearSelect.value);
     const month = Number(this.#monthSelect.value);
-    const day = Math.min(this.#currentFocus().day, NepaliDate.of(year, month, 1).monthLength);
-    this.#focused = clampDate(NepaliDate.of(year, month, day), this.#options());
+    const day = Math.min(
+      this.#currentFocus(options).day,
+      NepaliDate.of(year, month, 1).monthLength,
+    );
+    this.#focused = clampDate(NepaliDate.of(year, month, day), options);
     this.#render();
   }
 
@@ -285,11 +366,12 @@ export class NepDateCalendarElement extends ElementBase {
   }
 
   #render(): void {
+    this.#dirty = false;
     if (!this.#root) return;
     const lang = langOf(this);
     const text = TEXT[lang];
     const options = this.#options();
-    const focus = this.#currentFocus();
+    const focus = this.#currentFocus(options);
     const min = options.min ?? NepaliDate.MIN;
     const max = options.max ?? NepaliDate.MAX;
     const showGregorian = this.hasAttribute("show-gregorian");
@@ -299,18 +381,22 @@ export class NepDateCalendarElement extends ElementBase {
     this.#next.setAttribute("aria-label", text.next);
     this.#previous.disabled = focus.year * 12 + focus.month <= min.year * 12 + min.month;
     this.#next.disabled = focus.year * 12 + focus.month >= max.year * 12 + max.month;
-    this.#monthSelect.setAttribute("aria-label", text.month);
-    this.#yearSelect.setAttribute("aria-label", text.year);
-    fillSelect(
-      this.#monthSelect,
-      1,
-      12,
-      focus.month,
-      (m) => monthName(m, lang),
-      (m) =>
-        (focus.year === min.year && m < min.month) || (focus.year === max.year && m > max.month),
-    );
-    fillSelect(this.#yearSelect, min.year, max.year, focus.year, digits, () => false);
+    // The option labels change only with the language or the range, not with every key press.
+    const selectKey = `${lang} ${min.toJSON()} ${max.toJSON()}`;
+    if (selectKey !== this.#selectKey) {
+      this.#selectKey = selectKey;
+      this.#monthSelect.setAttribute("aria-label", text.month);
+      this.#yearSelect.setAttribute("aria-label", text.year);
+      fillSelect(this.#monthSelect, 1, 12, (m) => monthName(m, lang));
+      fillSelect(this.#yearSelect, min.year, max.year, digits);
+    }
+    for (const option of this.#monthSelect.options) {
+      const m = Number(option.value);
+      option.disabled =
+        (focus.year === min.year && m < min.month) || (focus.year === max.year && m > max.month);
+    }
+    this.#monthSelect.value = String(focus.month);
+    this.#yearSelect.value = String(focus.year);
     const label = `${monthName(focus.month, lang)} ${digits(focus.year)}`;
     if (this.#label.textContent !== label) this.#label.textContent = label;
 
@@ -324,11 +410,14 @@ export class NepDateCalendarElement extends ElementBase {
     const cells = monthGrid(focus.year, focus.month, options).flat();
     cells.forEach((cell, i) => {
       const button = this.#days[i];
-      if (!button) return;
+      const ad = this.#gregorian[i];
+      if (!button || !ad) return;
+      const dayText = button.firstChild as Text;
       const td = button.parentElement as HTMLTableCellElement;
       if (!cell) {
         button.hidden = true;
-        button.replaceChildren();
+        dayText.data = "";
+        ad.remove();
         button.removeAttribute("data-date");
         td.removeAttribute("role");
         td.removeAttribute("aria-selected");
@@ -350,16 +439,16 @@ export class NepDateCalendarElement extends ElementBase {
       toggleAttribute(button, "aria-current", cell.isToday ? "date" : null);
       td.setAttribute("role", "gridcell");
       td.setAttribute("aria-selected", String(selected));
-      button.replaceChildren(digits(cell.date.day));
+      dayText.data = digits(cell.date.day);
       if (showGregorian) {
-        const ad = el("span", "gregorian");
-        ad.setAttribute("aria-hidden", "true");
         ad.textContent = digits(cell.gregorian.day);
         button.append(ad);
-      }
+      } else ad.remove();
     });
   }
 }
+
+reflect(NepDateCalendarElement.prototype, "min max", "show-gregorian", "first-day-of-week");
 
 function clampDate(date: NepaliDate, options: GridOptions): NepaliDate {
   const min = options.min ?? NepaliDate.MIN;
@@ -380,28 +469,17 @@ function toggleAttribute(node: Element, name: string, value: string | null): voi
   else node.setAttribute(name, value);
 }
 
+// Builds a select's options, numbered from..to, with their labels.
 function fillSelect(
   select: HTMLSelectElement,
   from: number,
   to: number,
-  current: number,
   label: (n: number) => string,
-  disabled: (n: number) => boolean,
 ): void {
-  const count = to - from + 1;
-  if (select.options.length !== count || select.options[0]?.value !== String(from)) {
-    select.replaceChildren(
-      ...Array.from({ length: count }, (_, i) => {
-        const option = document.createElement("option");
-        option.value = String(from + i);
-        return option;
-      }),
-    );
-  }
-  for (const option of select.options) {
-    const n = Number(option.value);
-    option.textContent = label(n);
-    option.disabled = disabled(n);
-  }
-  select.value = String(current);
+  select.replaceChildren(
+    ...Array.from(
+      { length: to - from + 1 },
+      (_, i) => new Option(label(from + i), String(from + i)),
+    ),
+  );
 }

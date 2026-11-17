@@ -50,12 +50,14 @@ const DEFAULT_MEMBERS: MemberRule = {
   hint: "dist, LICENSE, NOTICE, README.md and package.json",
 };
 
-// ADR-0015: tsc output (no source maps for the JS), the theme and the standalone file. A file the
-// picker build does not write, such as a NOTICE or a nested dist folder, means the build changed.
+// ADR-0015: tsc output (no source maps for the JS), the theme, the standalone file and the Custom
+// Elements Manifest. A file the picker build does not write, such as a NOTICE or a nested dist
+// folder, means the build changed.
 export const PICKER_MEMBERS: MemberRule = {
-  allowed: /^(?:LICENSE|README\.md|dist\/theme\.css|dist\/[A-Za-z0-9-]+\.(?:js|d\.ts|d\.ts\.map))$/,
-  required: ["dist/theme.css", "dist/nepdate-datepicker.js"],
-  hint: "dist JavaScript, declarations and declaration maps, dist/theme.css, LICENSE, README.md and package.json",
+  allowed:
+    /^(?:LICENSE|README\.md|custom-elements\.json|dist\/theme\.css|dist\/[A-Za-z0-9-]+\.(?:js|d\.ts|d\.ts\.map))$/,
+  required: ["dist/theme.css", "dist/nepdate-datepicker.js", "custom-elements.json"],
+  hint: "dist JavaScript, declarations and declaration maps, dist/theme.css, custom-elements.json, LICENSE, README.md and package.json",
 };
 
 // npm runs these scripts when a consumer installs the package (prepare also for git and directory
