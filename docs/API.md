@@ -421,8 +421,28 @@ export declare function monthGrid(year: number, month: number, options?: GridOpt
 export declare function moveFocus(date: NepaliDate, key: GridKey, options?: GridOptions): NepaliDate;
 
 export declare const CALENDAR_PARTS: readonly string[];
+export interface NepDateCalendarAttributes {                // for framework element typings
+  value?: string;
+  min?: string;
+  max?: string;
+  lang?: string;
+  "first-day-of-week"?: number | string;
+  "show-gregorian"?: boolean;
+}
+export interface NepDateInputAttributes extends NepDateCalendarAttributes {
+  name?: string;
+  required?: boolean;
+  disabled?: boolean;
+  readonly?: boolean;
+  placeholder?: string;
+}
+
 export declare class NepDateCalendarElement extends ElementBase { // <nepdate-calendar>
   static readonly observedAttributes: string[];
+  min: string;                                               // reflects the attribute
+  max: string;
+  firstDayOfWeek: number;                                    // first-day-of-week
+  showGregorian: boolean;                                    // show-gregorian
   get value(): string;                                       // "YYYY-MM-DD" (BS) or ""
   set value(value: string);
   get date(): NepaliDate | null;
@@ -441,20 +461,34 @@ export declare const INPUT_PARTS: readonly string[];
 export declare class NepDateInputElement extends ElementBase { // <nepdate-input>, form-associated
   static readonly formAssociated: boolean;
   static readonly observedAttributes: string[];
+  name: string;                                              // each reflects its attribute
+  disabled: boolean;
+  required: boolean;
+  readOnly: boolean;                                         // readonly
+  min: string;
+  max: string;
+  placeholder: string;
+  firstDayOfWeek: number;
+  showGregorian: boolean;
   constructor();
   get value(): string;
   set value(value: string);
   get date(): NepaliDate | null;
   set date(date: NepaliDate | null);
   get calendar(): NepDateCalendarElement | null;
+  get open(): boolean;
   get form(): HTMLFormElement | null;
-  get name(): string;
+  get labels(): NodeList;
+  get willValidate(): boolean;
   get validity(): ValidityState;
   get validationMessage(): string;
   checkValidity(): boolean;
   reportValidity(): boolean;
+  setCustomValidity(message: string): void;
   showPicker(): void;
+  hidePicker(): void;
   connectedCallback(): void;
+  disconnectedCallback(): void;
   attributeChangedCallback(name: string): void;
   formResetCallback(): void;
   formDisabledCallback(disabled: boolean): void;
@@ -470,4 +504,5 @@ export declare function defineElements(): void;             // no-op without cus
   info(NepaliDate.of(2081, 2, 15)).isPublicHoliday === true` (Republic Day).
 - `today()` defaults to Nepal time via `Intl.DateTimeFormat` with `timeZone: "Asia/Kathmandu"`, not
   the machine's zone, and an unknown zone is a `NepDateError` of kind `"invalid-zone"`.
-- The picker's exports are unchanged; its README lists the elements' attributes and events.
+- The picker's README lists the elements' attributes, events, parts and states. ADR-0020 added the
+  reflected properties, the native input methods and the two attribute types.

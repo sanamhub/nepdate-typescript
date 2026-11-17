@@ -9,8 +9,8 @@ plain HTML and in any framework, plus the month grid underneath them for anyone 
   like a native input: it submits, resets, disables and reports validity.
 
 The elements are unstyled apart from layout. Style any piece with `::part()`, or import
-`nepdate-datepicker/theme.css` for a ready-made look. About 5.5 KB gzip on top of the core, no other
-dependencies; the standalone file below, core included, is about 10.5 KB.
+`nepdate-datepicker/theme.css` for a ready-made look. About 6.5 KB gzip on top of the core, no other
+dependencies; the standalone file below, core included, is about 12.5 KB.
 
 > **Pre-release.** The API may change before 0.1.0.
 
@@ -65,10 +65,14 @@ returns to it.
 |---|---|---|
 | `value` | both | The date, `YYYY-MM-DD` in BS. On `nepdate-input` it is the default that a form reset returns to. |
 | `min`, `max` | both | Earliest and latest date that can be chosen. |
-| `lang` | both | `en` (default) or `ne` for Nepali names and digits. |
+| `lang` | both | `en` or `ne` for Nepali names and digits. Without it, the nearest ancestor's `lang` counts, as for a native element; `ne-NP` is `ne`, and anything else is English. |
 | `first-day-of-week` | both | 0 = Sunday (default, as on a Nepali calendar) to 6 = Saturday. |
 | `show-gregorian` | both | Shows the AD day under each BS day. |
-| `name`, `required`, `disabled`, `placeholder` | `nepdate-input` | As on a native input. |
+| `name`, `required`, `disabled`, `readonly`, `placeholder` | `nepdate-input` | As on a native input. `readonly` stops typing and the calendar, and the date still submits. |
+
+Each attribute has a property, as on a native input: `min`, `max`, `firstDayOfWeek` and
+`showGregorian` on both elements, and `name`, `required`, `disabled`, `readOnly` and `placeholder`
+on `nepdate-input`. Frameworks that set properties, such as React 19, reach them all.
 
 ### Properties and events
 
@@ -78,9 +82,17 @@ returns to it.
   `calendar.dayParts = (d) => (info(d).isPublicHoliday ? ["holiday"] : [])`, then style
   `nepdate-calendar::part(holiday)`.
 - On `nepdate-input`: `calendar` (the calendar inside the popover, for the two callbacks above),
-  `showPicker()`, `form`, `validity`, `checkValidity()` and `reportValidity()`.
-- Both fire `change` when the date changes. `nepdate-input` also fires `input`, once per change,
-  not per keystroke.
+  `open`, `showPicker()`, `hidePicker()`, `form`, `labels`, `willValidate`, `validity`,
+  `validationMessage`, `checkValidity()`, `reportValidity()` and `setCustomValidity(message)`.
+- Validity follows a native date input: `valueMissing`, `badInput` for text that isn't a date,
+  `rangeUnderflow` and `rangeOverflow` for `min` and `max`, and `stepMismatch` for a typed date that
+  `isDateDisallowed` refuses (the date is kept, as a native input keeps a date its `step` refuses).
+  A `setCustomValidity` message adds `customError` and wins; an empty string clears it.
+- Both fire `change` when the date changes; like a native `change`, it does not cross shadow roots.
+  `nepdate-input` also fires `input`, once per change, not per keystroke.
+- Enter in the field commits the text and submits the form where a native text field would:
+  through the form's first submit button, or, with no submit button, when this is the form's only
+  text-like field.
 
 ## Styling
 
@@ -103,9 +115,28 @@ nepdate-calendar::part(selected) {
 }
 ```
 
+`nepdate-input` also has custom states, like the pseudo-classes of a native input:
+
+| State | When |
+|---|---|
+| `open` | The calendar is open. |
+| `invalid` | The date fails validation, as `:invalid`. |
+| `user-invalid` | Invalid after the visitor committed a date or the form was submitted, as `:user-invalid`. A form reset clears it. |
+
+```css
+nepdate-input:state(user-invalid)::part(field) {
+  border-color: crimson;
+}
+nepdate-input:state(open)::part(button) {
+  background: #eee;
+}
+```
+
 `theme.css` reads custom properties (`--nepdate-accent`, `--nepdate-surface`, `--nepdate-text`,
 `--nepdate-radius` and a few more, listed at the top of the file) and uses `light-dark()`, so it
-follows the page's `color-scheme`.
+follows the page's `color-scheme`. All of it is in the `nepdate-datepicker` cascade layer, so any
+page rule outside a layer wins over it, whatever its specificity. With forced colors (Windows High
+Contrast and the like) it draws the chosen day, today and focus with system colors.
 
 ## Frameworks
 
@@ -140,9 +171,82 @@ tag helper only works on built-in elements, so write the name:
 <nepdate-input name="@Html.NameFor(m => m.Dob)" value="@Model.Dob" required></nepdate-input>
 ```
 
-These five were checked in Chromium, Firefox and WebKit: plain HTML with the standalone file,
+Svelte and Angular:
+
+```svelte
+<nepdate-input value={date} onchange={(e) => (date = e.target.value)} />
+```
+
+```typescript
+// Angular: let the template use custom elements.
+@Component({ schemas: [CUSTOM_ELEMENTS_SCHEMA], template: `<nepdate-input [value]="date" />` })
+```
+
+The package ships `custom-elements.json` (a [Custom Elements
+Manifest](https://github.com/webcomponents/custom-elements-manifest), named by the
+`customElements` field in `package.json`), which editors and tools such as Storybook read for the
+attributes, properties, events, parts and states.
+
+### TypeScript in frameworks
+
+The package exports `NepDateInputAttributes` and `NepDateCalendarAttributes`, and depends on no
+framework's types. Declare the elements once, in a `.d.ts` file of your project.
+
+React 19:
+
+```typescript
+import type { NepDateCalendarAttributes, NepDateInputAttributes } from "nepdate-datepicker";
+import type { DetailedHTMLProps, HTMLAttributes } from "react";
+
+type Element<E, A> = DetailedHTMLProps<HTMLAttributes<E>, E> & A;
+
+declare module "react" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "nepdate-input": Element<HTMLElementTagNameMap["nepdate-input"], NepDateInputAttributes>;
+      "nepdate-calendar": Element<HTMLElementTagNameMap["nepdate-calendar"], NepDateCalendarAttributes>;
+    }
+  }
+}
+```
+
+Vue: tell the compiler the tags are custom elements, in `vite.config.ts`
+(`vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith("nepdate-") } } })`),
+and type them for templates:
+
+```typescript
+import type { NepDateCalendarAttributes, NepDateInputAttributes } from "nepdate-datepicker";
+import type { DefineComponent } from "vue";
+
+declare module "vue" {
+  interface GlobalComponents {
+    "nepdate-input": DefineComponent<NepDateInputAttributes>;
+    "nepdate-calendar": DefineComponent<NepDateCalendarAttributes>;
+  }
+}
+```
+
+Svelte 5:
+
+```typescript
+import type { NepDateCalendarAttributes, NepDateInputAttributes } from "nepdate-datepicker";
+import type { HTMLAttributes } from "svelte/elements";
+
+declare module "svelte/elements" {
+  interface SvelteHTMLElements {
+    "nepdate-input": HTMLAttributes<HTMLElementTagNameMap["nepdate-input"]> & NepDateInputAttributes;
+    "nepdate-calendar": HTMLAttributes<HTMLElementTagNameMap["nepdate-calendar"]> &
+      NepDateCalendarAttributes;
+  }
+}
+```
+
+Angular needs no typing beyond `CUSTOM_ELEMENTS_SCHEMA` above.
+
+Five setups were checked in Chromium, Firefox and WebKit: plain HTML with the standalone file,
 React 19.3, Vue 3.5, Blazor (.NET 10, interactive server) and MVC (.NET 10). Svelte, Solid and
-Angular set properties on custom elements the same way but have not been run.
+Angular set properties on custom elements the same way but have not been run, and neither have the
+type declarations above.
 
 ## Keyboard
 
@@ -168,7 +272,10 @@ console.log(moveFocus(NepaliDate.of(2081, 4, 15), "PageDown").toJSON()); // 2081
 ## Browsers
 
 Current Chrome, Edge, Firefox and Safari. The elements use custom elements, shadow DOM, form-
-associated elements and the Popover API, and are tested in Chromium, Firefox and WebKit.
+associated elements and the Popover API, and are tested in Chromium, Firefox and WebKit. CSS anchor
+positioning keeps the calendar beside the field; where a browser lacks it, a script places the
+calendar instead. Custom states need `ElementInternals.states`; without it the states are simply
+not set.
 
 ## License
 

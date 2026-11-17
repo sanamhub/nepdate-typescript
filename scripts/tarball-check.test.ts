@@ -237,6 +237,7 @@ function pickerMembers(): TestMember[] {
     { name: "package/dist/define.js", data: Buffer.from("export {};") },
     { name: "package/dist/nepdate-datepicker.js", data: Buffer.from("var a=1;") },
     { name: "package/dist/theme.css", data: Buffer.from(":root{}") },
+    { name: "package/custom-elements.json", data: Buffer.from("{}") },
     { name: "package/LICENSE", data: Buffer.from("MIT") },
     { name: "package/README.md", data: Buffer.from("# Picker") },
   ];
@@ -261,8 +262,8 @@ test("a picker source, test or stray file fails", () => {
   }
 });
 
-test("a picker without the theme or the standalone file fails", () => {
-  for (const path of ["dist/theme.css", "dist/nepdate-datepicker.js"]) {
+test("a picker without the theme, the standalone file or the manifest fails", () => {
+  for (const path of ["dist/theme.css", "dist/nepdate-datepicker.js", "custom-elements.json"]) {
     const errors = checkMembers(
       pickerMembers().filter((member) => member.name !== `package/${path}`),
       PICKER,

@@ -188,3 +188,112 @@ describe("nepdate-calendar", () => {
     expect(calendar.value).toBe("");
   });
 });
+
+describe("nepdate-calendar: rendering cost and platform features", () => {
+  // Every render sets the previous button's name, so each record is one render.
+  function countRenders(calendar: NepDateCalendarElement): () => number {
+    let delivered = 0;
+    const observer = new MutationObserver((records) => {
+      delivered += records.length;
+    });
+    observer.observe(part(calendar, "previous"), { attributeFilter: ["aria-label"] });
+    return () => {
+      const count = delivered + observer.takeRecords().length;
+      delivered = 0;
+      return count;
+    };
+  }
+
+  test("several attribute changes render once, in a microtask", async () => {
+    const calendar = mount({ value: "2081-04-15" });
+    const renders = countRenders(calendar);
+    calendar.setAttribute("lang", "ne");
+    calendar.setAttribute("min", "2081-01-01");
+    calendar.setAttribute("max", "2081-12-30");
+    calendar.setAttribute("first-day-of-week", "1");
+    calendar.setAttribute("show-gregorian", "");
+    expect(renders()).toBe(0);
+    await Promise.resolve();
+    expect(renders()).toBe(1);
+    expect(label(calendar)).toBe("साउन २०८१");
+  });
+
+  test("focusDay renders a pending change first", () => {
+    const calendar = mount({ value: "2081-04-15" });
+    calendar.setAttribute("value", "2082-01-05");
+    calendar.focusDay();
+    expect(focused(calendar)).toBe("2082-01-05");
+  });
+
+  test("arrow keys leave the year options alone; a new language relabels them", async () => {
+    const calendar = mount({ value: "2081-04-15" });
+    const years = part(calendar, "year-select") as HTMLSelectElement;
+    let mutations = 0;
+    const observer = new MutationObserver((records) => {
+      mutations += records.length;
+    });
+    observer.observe(years, { childList: true, characterData: true, subtree: true });
+    calendar.focusDay();
+    await userEvent.keyboard("{ArrowRight}{PageDown}");
+    expect(mutations + observer.takeRecords().length).toBe(0);
+    calendar.setAttribute("lang", "ne");
+    await Promise.resolve();
+    expect(mutations + observer.takeRecords().length).toBeGreaterThan(0);
+    expect(years.selectedOptions[0]?.textContent).toBe("२०८१");
+  });
+
+  test("a day keeps its AD span across renders", () => {
+    const calendar = mount({ value: "2081-04-15", "show-gregorian": "" });
+    const ad = day(calendar, "2081-04-15").querySelector('[part="gregorian"]');
+    calendar.value = "2081-04-16";
+    expect(day(calendar, "2081-04-15").querySelector('[part="gregorian"]')).toBe(ad);
+  });
+
+  test("calendars share one constructed stylesheet", () => {
+    const a = mount();
+    const b = mount();
+    expect(shadow(a).adoptedStyleSheets).toHaveLength(1);
+    expect(shadow(a).adoptedStyleSheets[0]).toBe(shadow(b).adoptedStyleSheets[0]);
+    expect(shadow(a).querySelector("style")).toBeNull();
+  });
+
+  test("change is not composed, like a native change event", async () => {
+    const calendar = mount({ value: "2081-04-15" });
+    const events: Event[] = [];
+    calendar.addEventListener("change", (event) => events.push(event));
+    await userEvent.click(day(calendar, "2081-04-20"));
+    expect(events.map((event) => [event.bubbles, event.composed])).toEqual([[true, false]]);
+  });
+
+  test("without lang it takes the nearest ancestor's, through shadow roots", () => {
+    const section = document.createElement("section");
+    section.lang = "ne-NP";
+    const host = document.createElement("div");
+    section.append(host);
+    document.body.append(section);
+    const calendar = document.createElement("nepdate-calendar");
+    calendar.setAttribute("value", "2081-04-15");
+    host.attachShadow({ mode: "open" }).append(calendar);
+    expect(label(calendar)).toBe("साउन २०८१");
+    // Newari ("new") starts with the letters ne but is not Nepali.
+    section.lang = "new";
+    calendar.value = "2081-04-15";
+    expect(label(calendar)).toBe("Shrawan 2081");
+  });
+
+  test("min, max, firstDayOfWeek and showGregorian reflect their attributes", () => {
+    const calendar = mount();
+    calendar.min = "2081-01-01";
+    calendar.max = "2081-12-30";
+    calendar.firstDayOfWeek = 1;
+    calendar.showGregorian = true;
+    expect(calendar.getAttribute("min")).toBe("2081-01-01");
+    expect(calendar.getAttribute("max")).toBe("2081-12-30");
+    expect(calendar.getAttribute("first-day-of-week")).toBe("1");
+    expect(calendar.hasAttribute("show-gregorian")).toBe(true);
+    calendar.showGregorian = false;
+    expect(calendar.hasAttribute("show-gregorian")).toBe(false);
+    calendar.setAttribute("first-day-of-week", "6");
+    expect(calendar.firstDayOfWeek).toBe(6);
+  });
+});

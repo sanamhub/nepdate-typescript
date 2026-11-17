@@ -10,6 +10,8 @@ packages/nepdate/README.md
 .readme-check/
 reports/
 .stryker-tmp/
+# Written by the picker build (scripts/picker-assets.ts).
+packages/nepdate-picker/custom-elements.json
 
 # Vitest browser mode failure screenshots
 .vitest/

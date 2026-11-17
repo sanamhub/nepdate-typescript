@@ -17,11 +17,71 @@ export function parseDateAttribute(value: string | null): NepaliDate | null {
 }
 
 /**
- * The element's language: `ne` when its `lang` attribute is `ne`, else `en`.
+ * The element's language, found as a native element finds it: its own `lang` attribute, else the
+ * nearest ancestor's, crossing shadow roots to their hosts. `ne` and `ne-*` mean Nepali; anything
+ * else, or no `lang` at all, means English.
  * @returns `"en"` or `"ne"`.
  */
-export function langOf(element: HTMLElement): Lang {
-  return element.getAttribute("lang") === "ne" ? "ne" : "en";
+export function langOf(element: Element): Lang {
+  let node: Element | null = element;
+  while (node) {
+    const lang = node.closest("[lang]")?.getAttribute("lang");
+    if (lang != null) return /^ne(-|$)/i.test(lang) ? "ne" : "en";
+    node = (node.getRootNode() as ShadowRoot).host ?? null;
+  }
+  return "en";
+}
+
+const sheets = new Map<string, CSSStyleSheet>();
+
+/**
+ * Puts the element's own CSS in its shadow root. Where constructable stylesheets work, every
+ * element of a class shares one sheet; elsewhere each root gets a `<style>`.
+ */
+export function adoptStyle(root: ShadowRoot, css: string): void {
+  if ("adoptedStyleSheets" in root && "replaceSync" in CSSStyleSheet.prototype) {
+    let sheet = sheets.get(css);
+    if (!sheet) {
+      sheet = new CSSStyleSheet();
+      sheet.replaceSync(css);
+      sheets.set(css, sheet);
+    }
+    root.adoptedStyleSheets = [sheet];
+  } else {
+    const style = document.createElement("style");
+    style.textContent = css;
+    root.prepend(style);
+  }
+}
+
+/**
+ * Defines properties that mirror attributes, as a native input's `min` or `disabled` do. Frameworks
+ * such as React 19 set a property when the element has one, so each attribute needs its property.
+ * Each argument is a space-separated list of attribute names: text, present-or-absent and number
+ * attributes. The property is the camelCase name (`first-day-of-week` is `firstDayOfWeek`), except
+ * `readonly`, which is `readOnly` as on a native input.
+ */
+export function reflect(target: object, texts: string, booleans: string, numbers: string): void {
+  for (const [kind, names] of [texts, booleans, numbers].entries()) {
+    for (const attribute of names.split(" ")) {
+      const property =
+        attribute === "readonly"
+          ? "readOnly"
+          : attribute.replace(/-(.)/g, (_, c) => c.toUpperCase());
+      Object.defineProperty(target, property, {
+        configurable: true,
+        get(this: Element) {
+          if (kind === 1) return this.hasAttribute(attribute);
+          const value = this.getAttribute(attribute);
+          return kind === 2 ? Number(value) || 0 : (value ?? "");
+        },
+        set(this: Element, value: unknown) {
+          if (kind === 1) this.toggleAttribute(attribute, Boolean(value));
+          else this.setAttribute(attribute, String(value));
+        },
+      });
+    }
+  }
 }
 
 /** The elements' own words (button names, validation messages) in English and Nepali. */
@@ -36,6 +96,7 @@ export const TEXT = {
     tooEarly: "Choose a date on or after",
     tooLate: "Choose a date on or before",
     missing: "Enter a date.",
+    unavailable: "This date can't be chosen.",
   },
   ne: {
     previous: "अघिल्लो महिना",
@@ -47,5 +108,6 @@ export const TEXT = {
     tooEarly: "यो मिति वा पछिको मिति छान्नुहोस्:",
     tooLate: "यो मिति वा अघिको मिति छान्नुहोस्:",
     missing: "मिति लेख्नुहोस्।",
+    unavailable: "यो मिति छान्न मिल्दैन।",
   },
 } as const;

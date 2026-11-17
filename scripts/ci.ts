@@ -13,12 +13,14 @@ const PICKER = "packages/nepdate-picker";
 const EVENT_SENTINEL = "World Day Against Human Trafficking";
 const CORE_GZIP_LIMIT = 8 * 1024;
 const PATRO_GZIP_LIMIT = 28 * 1024;
-// ADR-0015: the picker without the core (its peer) was 5,383 B gzip when it was added.
-const PICKER_GZIP_LIMIT = 6 * 1024;
+// ADR-0015: the picker without the core (its peer) was 5,383 B gzip when it was added. ADR-0020:
+// 6,582 B with native input parity (reflected properties, readonly, custom validity, states,
+// anchor positioning).
+const PICKER_GZIP_LIMIT = 7 * 1024;
 // The standalone file carries the core too: 10,447 B gzip when it was added, 11,537 B when the
-// core grew to the full API surface (ranges, batch conversion, the integer form). The limit keeps
-// the same margin over the measured size as it had then.
-const STANDALONE_GZIP_LIMIT = 12 * 1024;
+// core grew to the full API surface (ranges, batch conversion, the integer form), 12,666 B with
+// ADR-0020. The limit keeps the same margin over the measured size as it had then.
+const STANDALONE_GZIP_LIMIT = 13 * 1024;
 
 class GateError extends Error {}
 

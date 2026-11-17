@@ -20,8 +20,9 @@ ADR.
 | [0012](0012-ci-without-hub-remote.md) | CI without the hub remote | Superseded by 0017 |
 | [0013](0013-core-package-name.md) | The core package is `nepdate-core` on npm | Accepted |
 | [0014](0014-typescript-7.md) | TypeScript 7 for tsc, the 6.x API for declaration tools | Accepted |
-| [0015](0015-date-picker-web-components.md) | A date picker as web components, in a third package | Accepted |
+| [0015](0015-date-picker-web-components.md) | A date picker as web components, in a third package | Accepted (amended by 0020) |
 | [0016](0016-picker-npm-name.md) | The picker package is `nepdate-datepicker` on npm | Accepted |
 | [0017](0017-the-reusable-shared-check.md) | The reusable shared check, without the manifest | Accepted |
 | [0018](0018-picker-own-version-and-tag.md) | The date picker has its own version and tag | Proposed |
 | [0019](0019-mutation-on-library-pull-requests.md) | Mutation testing on library pull requests | Accepted |
+| [0020](0020-picker-native-parity-and-size.md) | Date picker native input parity, platform features and size limits | Accepted |
