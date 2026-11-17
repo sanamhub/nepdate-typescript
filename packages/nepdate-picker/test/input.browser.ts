@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import {
-  defineElements,
-  type NepDateCalendarElement,
-  type NepDateInputElement,
-} from "../src/index.js";
+import { defineElements, type NepDateCalendarElement, NepDateInputElement } from "../src/index.js";
 
 defineElements();
 
@@ -449,5 +445,23 @@ describe("nepdate-input: rendering, platform features and native parity", () => 
     expect(el.hasAttribute("required")).toBe(false);
     expect(el.disabled).toBe(false);
     expect(el.readOnly).toBe(false);
+  });
+});
+
+describe("properties set before the element is defined", () => {
+  test("are applied when it upgrades", () => {
+    // A framework can render and set properties before the script that defines the element runs.
+    const form = mount('<nepdate-input-late name="dob"></nepdate-input-late>');
+    const late = form.querySelector("nepdate-input-late") as NepDateInputElement;
+    const props = late as unknown as Record<string, unknown>;
+    props.value = "2081-04-15";
+    props.required = true;
+    props.min = "2081-01-01";
+    customElements.define("nepdate-input-late", class extends NepDateInputElement {});
+    expect(late.value).toBe("2081-04-15");
+    expect(late.hasAttribute("required")).toBe(true);
+    expect(late.getAttribute("min")).toBe("2081-01-01");
+    expect(Object.hasOwn(late, "value")).toBe(false);
+    expect(new FormData(form).get("dob")).toBe("2081-04-15");
   });
 });

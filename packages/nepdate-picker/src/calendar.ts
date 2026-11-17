@@ -1,5 +1,13 @@
 import { monthName, NepaliDate, toNepaliDigits, weekdayName, weekdayShortName } from "nepdate-core";
-import { adoptStyle, ElementBase, langOf, parseDateAttribute, reflect, TEXT } from "./base.js";
+import {
+  adoptStyle,
+  ElementBase,
+  langOf,
+  parseDateAttribute,
+  reflect,
+  TEXT,
+  upgradeProperties,
+} from "./base.js";
 import {
   GRID_ROWS,
   type GridKey,
@@ -25,6 +33,18 @@ export const CALENDAR_PARTS: readonly string[] = [
   "disabled",
   "gregorian",
 ];
+
+// Every public property, for properties set before the element was defined.
+const CALENDAR_PROPERTIES = [
+  "value",
+  "date",
+  "isDateDisallowed",
+  "dayParts",
+  "min",
+  "max",
+  "firstDayOfWeek",
+  "showGregorian",
+] as const;
 
 const KEYS: Record<string, GridKey> = {
   ArrowLeft: "ArrowLeft",
@@ -171,6 +191,7 @@ export class NepDateCalendarElement extends ElementBase {
   }
 
   connectedCallback(): void {
+    upgradeProperties(this, CALENDAR_PROPERTIES);
     if (!this.#root) this.#build();
     if (!this.#value && this.hasAttribute("value"))
       this.#value = parseDateAttribute(this.getAttribute("value"));

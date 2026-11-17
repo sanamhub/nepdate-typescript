@@ -1,4 +1,4 @@
-# ADR-0020: Date picker native input parity, platform features and size limits
+# ADR-0021: Date picker native input parity, platform features and size limits
 
 - Status: Accepted
 - Date: 2026-11-17

@@ -84,6 +84,22 @@ export function reflect(target: object, texts: string, booleans: string, numbers
   }
 }
 
+/**
+ * Re-applies properties a page set before the element was defined (a framework rendering before
+ * the script that registers the elements ran). Such a value sits on the instance and hides the
+ * class's accessor, so it is removed and set again through the accessor.
+ */
+export function upgradeProperties(element: object, names: readonly string[]): void {
+  const record = element as Record<string, unknown>;
+  for (const name of names) {
+    if (Object.hasOwn(element, name)) {
+      const value = record[name];
+      delete record[name];
+      record[name] = value;
+    }
+  }
+}
+
 /** The elements' own words (button names, validation messages) in English and Nepali. */
 export const TEXT = {
   en: {

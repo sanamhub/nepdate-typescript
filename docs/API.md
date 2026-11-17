@@ -504,5 +504,5 @@ export declare function defineElements(): void;             // no-op without cus
   info(NepaliDate.of(2081, 2, 15)).isPublicHoliday === true` (Republic Day).
 - `today()` defaults to Nepal time via `Intl.DateTimeFormat` with `timeZone: "Asia/Kathmandu"`, not
   the machine's zone, and an unknown zone is a `NepDateError` of kind `"invalid-zone"`.
-- The picker's README lists the elements' attributes, events, parts and states. ADR-0020 added the
+- The picker's README lists the elements' attributes, events, parts and states. ADR-0021 added the
   reflected properties, the native input methods and the two attribute types.

@@ -41,7 +41,7 @@ format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the 
 - `nepdate-input` closes its calendar when it becomes disabled or read-only, and removes its window
   listeners when it leaves the page.
 - `theme.css` is in the `nepdate-datepicker` cascade layer, so any unlayered page rule wins.
-- The size limits are 7 KB gzip without the core and 13 KB for the standalone file (ADR-0020).
+- The size limits are 7 KB gzip without the core and 13 KB for the standalone file (ADR-0021).
 
 - `theme.css`: today has a ring as well as its colour, so it still shows when it is also the chosen
   day; days have a pixel of space between them; the arrows, month and year selects, field and

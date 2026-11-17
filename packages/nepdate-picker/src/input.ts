@@ -1,5 +1,13 @@
 import { NepaliDate } from "nepdate-core";
-import { adoptStyle, ElementBase, langOf, parseDateAttribute, reflect, TEXT } from "./base.js";
+import {
+  adoptStyle,
+  ElementBase,
+  langOf,
+  parseDateAttribute,
+  reflect,
+  TEXT,
+  upgradeProperties,
+} from "./base.js";
 import { CALENDAR_PARTS, type NepDateCalendarElement } from "./calendar.js";
 
 /** Parts of `nepdate-input` itself; the calendar's parts are forwarded too. */
@@ -20,6 +28,21 @@ const STYLE = `
 }
 svg { width: 1.1em; height: 1.1em; }
 `;
+
+// Every public writable property, for properties set before the element was defined.
+const INPUT_PROPERTIES = [
+  "value",
+  "date",
+  "name",
+  "disabled",
+  "required",
+  "readOnly",
+  "min",
+  "max",
+  "placeholder",
+  "firstDayOfWeek",
+  "showGregorian",
+] as const;
 
 const ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
@@ -184,6 +207,7 @@ export class NepDateInputElement extends ElementBase {
   }
 
   connectedCallback(): void {
+    upgradeProperties(this, INPUT_PROPERTIES);
     if (!this.#root) this.#build();
     if (!this.#dirty) this.#value = parseDateAttribute(this.getAttribute("value"));
     this.#sync();
