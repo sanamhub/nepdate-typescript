@@ -363,7 +363,7 @@ declared in the arithmetic and ranges groups.
 
 ```ts
 // "nepdate-patro": a separate npm package (hub ADR-0004, ADR-0001 §1).
-// peerDependencies: { "nepdate-core": "~X.Y.Z" }, same version as the core.
+// peerDependencies: { "nepdate-core": "X.Y.Z" }, exactly the core version (ADR-0020).
 import type { DateRange, NepaliDate } from "nepdate-core";
 
 export interface Named { readonly np: string; readonly en: string }

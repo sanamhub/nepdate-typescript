@@ -26,3 +26,4 @@ ADR.
 | [0018](0018-picker-own-version-and-tag.md) | The date picker has its own version and tag | Proposed |
 | [0019](0019-mutation-on-library-pull-requests.md) | Mutation testing on library pull requests | Accepted |
 | [0020](0020-picker-native-parity-and-size.md) | Date picker native input parity, platform features and size limits | Accepted |
+| [0020](0020-patro-pins-the-exact-core-version.md) | The patro requires exactly the same core version | Accepted |

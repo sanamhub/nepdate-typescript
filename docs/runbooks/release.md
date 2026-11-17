@@ -28,7 +28,7 @@ page before starting, and do not skip a precondition because the workflow is gre
    tag. The publish job waits for that approval.
 5. **The version is ready.** For an SDK release, `packages/nepdate/package.json` and
    `packages/nepdate-patro/package.json` say X.Y.Z. `nepdate-patro` has
-   `peerDependencies["nepdate-core"]` `~X.Y.Z` and no `devDependencies`. For a picker release,
+   `peerDependencies["nepdate-core"]` exactly `X.Y.Z` and no `devDependencies`. For a picker release,
    `packages/nepdate-picker/package.json` says its own X.Y.Z and its
    `peerDependencies["nepdate-core"]` range accepts the core version in the repository. The picker
    does not share the SDK version. Every package still has a zero runtime-dependency rule and no
@@ -46,7 +46,7 @@ page before starting, and do not skip a precondition because the workflow is gre
    ```
 
    Run the command for the line being released. Every failure names the expected value. The SDK
-   check covers the two manifests, the patro peer range, the empty `[Unreleased]` section and the
+   check covers the two manifests, the exact patro peer, the empty `[Unreleased]` section and the
    root changelog. The picker check covers its manifest, its `nepdate-core` peer range, the empty
    `[Unreleased]` section and the picker changelog.
 

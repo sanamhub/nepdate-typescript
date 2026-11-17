@@ -18,7 +18,7 @@ function packageJson(fields: Record<string, unknown> = {}): TestMember {
       JSON.stringify({
         name: "nepdate-patro",
         version: "0.1.0",
-        peerDependencies: { "nepdate-core": "~0.1.0" },
+        peerDependencies: { "nepdate-core": "0.1.0" },
         repository: { type: "git", url: REPOSITORY_URL, directory: "packages/nepdate-patro" },
         ...fields,
       }),
@@ -96,7 +96,7 @@ test("the wrong version fails", () => {
   assert.match(errors[0] as string, /version 0\.1\.1, expected 0\.1\.0/);
 });
 
-test("the wrong peer range fails", () => {
+test("the wrong peer version fails", () => {
   const members = allowed().map((member) =>
     member.name === "package/package.json"
       ? packageJson({ peerDependencies: { "nepdate-core": "~0.2.0" } })
@@ -105,7 +105,20 @@ test("the wrong peer range fails", () => {
   const errors = checkMembers(members, PATRO);
   assert.match(
     errors[0] as string,
-    /peerDependencies\["nepdate-core"\] is ~0\.2\.0, expected ~0\.1\.0/,
+    /peerDependencies\["nepdate-core"\] is ~0\.2\.0, expected 0\.1\.0/,
+  );
+});
+
+test("a tilde range on the right version fails", () => {
+  const members = allowed().map((member) =>
+    member.name === "package/package.json"
+      ? packageJson({ peerDependencies: { "nepdate-core": "~0.1.0" } })
+      : member,
+  );
+  const errors = checkMembers(members, PATRO);
+  assert.match(
+    errors[0] as string,
+    /peerDependencies\["nepdate-core"\] is ~0\.1\.0, expected 0\.1\.0/,
   );
 });
 
