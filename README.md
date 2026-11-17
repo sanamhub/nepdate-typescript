@@ -21,7 +21,7 @@ Two npm packages, `nepdate-core` and `nepdate-patro`, released together with the
   parsing, ranges and fiscal years. ESM only, types included, zero dependencies, no event data.
 - [`nepdate-patro`](https://www.npmjs.com/package/nepdate-patro): the patro (पात्रो, the Nepali
   almanac): tithi, public holidays and events from BS 2077-01-01 to 2084-08-20. It needs `nepdate-core`
-  as a peer dependency.
+  as a peer dependency of exactly its own version.
 
 A third package, [`nepdate-datepicker`](https://www.npmjs.com/package/nepdate-datepicker), is a BS
 date picker as web components (a calendar and a form input). It has its own version and releases on

@@ -12,7 +12,7 @@
 
 The patro (पात्रो, the Nepali almanac) for
 [`nepdate-core`](https://www.npmjs.com/package/nepdate-core): tithi (lunar day), gazetted public holidays and
-events for each Bikram Sambat day. `nepdate-patro` needs `nepdate-core` as a peer dependency and shares
+events for each Bikram Sambat day. `nepdate-patro` needs `nepdate-core` as a peer dependency of exactly the same version and shares
 its version.
 
 > **Status:** 1.0.0-rc.1, the release candidate on the 1.0 line, on the `rc` dist-tag. The data is

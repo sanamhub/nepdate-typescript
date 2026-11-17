@@ -133,11 +133,11 @@ function manifestErrors(member: Member, expected: ExpectedManifest): string[] {
           )}, expected a range that accepts ${expected.peerCoreVersion}`,
         );
       }
-    } else if (declared !== `~${expected.version}`) {
+    } else if (declared !== expected.version) {
       errors.push(
         `package.json peerDependencies["${expected.peer}"] is ${String(
           declared,
-        )}, expected ~${expected.version}`,
+        )}, expected ${expected.version}`,
       );
     }
   }

@@ -7,6 +7,12 @@ name. `nepdate-datepicker` has its own version and changelog in
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `nepdate-patro` requires exactly the same `nepdate-core` version as its peer (ADR-0020), not a `~` range.
+
 ## [1.0.0-rc.1] - 2026-11-04
 
 ### Changed

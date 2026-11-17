@@ -1,5 +1,5 @@
 // Preflight for a release (ADR-0005, amended by ADR-0018). An SDK tag checks that the core and the
-// patro agree with the tag, that the patro peer range is ~X.Y.Z, and that the root CHANGELOG.md has
+// patro agree with the tag, that the patro peer is exactly X.Y.Z, and that the root CHANGELOG.md has
 // the dated section and an empty [Unreleased]. A picker tag checks the picker manifest, that its
 // nepdate-core peer range accepts the core version in the repository, and the picker's own changelog.
 //
@@ -107,11 +107,11 @@ if (kind === "sdk") {
   errors.push(...versionErrors("nepdate-core", core, version));
   const patro = readManifest(join(root, "packages/nepdate-patro/package.json"));
   errors.push(...versionErrors("nepdate-patro", patro, version));
-  // The patro builds on the core, so it pins it with a tilde range on the same version.
+  // The patro reads the core internals, so it pins the core to exactly the same version.
   const peer = patro.peerDependencies?.["nepdate-core"];
-  if (peer !== `~${version}`) {
+  if (peer !== version) {
     errors.push(
-      `nepdate-patro peerDependencies["nepdate-core"] is ${String(peer)}, expected ~${version}`,
+      `nepdate-patro peerDependencies["nepdate-core"] is ${String(peer)}, expected ${version}`,
     );
   }
 } else {
@@ -154,6 +154,6 @@ if (kind === "picker") {
   );
 } else {
   console.log(
-    `release-check: ${version} agrees in the core and patro manifests, the patro peer range, the empty [Unreleased] section and ${changelogFile}`,
+    `release-check: ${version} agrees in the core and patro manifests, the exact patro peer, the empty [Unreleased] section and ${changelogFile}`,
   );
 }
