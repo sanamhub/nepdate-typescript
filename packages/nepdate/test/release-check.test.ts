@@ -41,7 +41,7 @@ function fixture(options: Fixture = {}): string {
   writeFileSync(
     join(dir, "packages/nepdate-patro/package.json"),
     manifest(options.patroVersion ?? "0.1.0", {
-      peerDependencies: { "nepdate-core": options.peer ?? "~0.1.0" },
+      peerDependencies: { "nepdate-core": options.peer ?? "0.1.0" },
     }),
   );
   writeFileSync(
@@ -73,7 +73,7 @@ function check(
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
-test("release-check accepts matching SDK manifests, peer range, empty [Unreleased] and changelog", () => {
+test("release-check accepts matching SDK manifests, exact peer, empty [Unreleased] and changelog", () => {
   const result = check(fixture());
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("0.1.0 agrees");
@@ -98,13 +98,21 @@ test("release-check fails when the patro version differs", () => {
   expect(result.stderr).toContain("nepdate-patro version 0.1.1, expected 0.1.0");
 });
 
-test("release-check fails when the patro peer range is not ~X.Y.Z", () => {
+test("release-check fails when the patro peer range is not exactly X.Y.Z", () => {
   const result = check(fixture({ peer: "~0.2.0" }));
   expect(result.status).toBe(1);
   expect(result.stderr).toContain(
-    'nepdate-patro peerDependencies["nepdate-core"] is ~0.2.0, expected ~0.1.0',
+    'nepdate-patro peerDependencies["nepdate-core"] is ~0.2.0, expected 0.1.0',
   );
   expect(result.stderr).not.toContain("nepdate-datepicker");
+});
+
+test("release-check fails when the patro peer is a range on the right version", () => {
+  const result = check(fixture({ peer: "~0.1.0" }));
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain(
+    'nepdate-patro peerDependencies["nepdate-core"] is ~0.1.0, expected 0.1.0',
+  );
 });
 
 test("release-check fails when the changelog has no section for the version", () => {
@@ -152,7 +160,7 @@ function betaFixture(changelog: string): string {
     coreVersion: "0.1.0-beta.1",
     patroVersion: "0.1.0-beta.1",
     pickerVersion: "0.1.0-beta.1",
-    peer: "~0.1.0-beta.1",
+    peer: "0.1.0-beta.1",
     pickerPeer: "~0.1.0-beta.1",
     changelog,
   });
@@ -184,7 +192,7 @@ function pickerFixture(options: Fixture = {}): string {
     coreVersion: "0.1.0-rc.1",
     patroVersion: "0.1.0-rc.1",
     pickerVersion: "0.1.0-beta.2",
-    peer: "~0.1.0-rc.1",
+    peer: "0.1.0-rc.1",
     pickerPeer: "~0.1.0-beta.1",
     changelog: "# Changelog\n\n## [Unreleased]\n\n## [0.1.0-rc.1] - 2026-11-02\n",
     pickerChangelog: "# Changelog\n\n## [Unreleased]\n\n## [0.1.0-beta.2] - 2026-11-02\n",
@@ -389,4 +397,27 @@ test("release-version rejects a leading zero", () => {
   });
   expect(result.status).toBe(1);
   expect(result.stderr).toContain("is not a strict X.Y.Z or X.Y.Z-PRERELEASE version");
+});
+
+const SDK_VERSION_SCRIPT = fileURLToPath(new URL("../../../scripts/version.ts", import.meta.url));
+
+function sdkVersion(dir: string): { status: number | null; stdout: string; stderr: string } {
+  const result = spawnSync(process.execPath, [SDK_VERSION_SCRIPT], { cwd: dir, encoding: "utf8" });
+  return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+}
+
+test("version prints the shared version when the patro pins the core exactly", () => {
+  const result = sdkVersion(fixture());
+  expect(result.status).toBe(0);
+  expect(result.stdout.trim()).toBe("0.1.0");
+});
+
+test("version fails when the patro peer is not the core version", () => {
+  for (const peer of ["~0.1.0", "^0.1.0", "0.1.1"]) {
+    const result = sdkVersion(fixture({ peer }));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      `nepdate-patro requires nepdate-core ${peer}, expected exactly 0.1.0`,
+    );
+  }
 });
