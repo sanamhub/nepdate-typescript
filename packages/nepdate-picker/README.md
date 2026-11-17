@@ -12,7 +12,7 @@ The elements are unstyled apart from layout. Style any piece with `::part()`, or
 `nepdate-datepicker/theme.css` for a ready-made look. About 6.5 KB gzip on top of the core, no other
 dependencies; the standalone file below, core included, is about 12.5 KB.
 
-> **Pre-release.** The API may change before 0.1.0.
+> **Pre-release.** The API may change before 1.0.0, which ships with nepdate-core 1.0.0.
 
 ## Install
 
@@ -31,8 +31,8 @@ Without a build step, use the standalone file. It holds the elements and the cor
 and registers both elements, so the page needs no import map. Load it from a CDN:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.3/dist/theme.css" />
-<script type="module" src="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.3/dist/nepdate-datepicker.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.4/dist/theme.css" />
+<script type="module" src="https://cdn.jsdelivr.net/npm/nepdate-datepicker@0.1.0-beta.4/dist/nepdate-datepicker.js"></script>
 ```
 
 Or copy `dist/nepdate-datepicker.js` and `dist/theme.css` from the package into your site, such as an
