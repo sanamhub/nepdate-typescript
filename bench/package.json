@@ -5,7 +5,7 @@
   "dependencies": {
     "bikram-sambat": "1.8.1",
     "mitata": "1.0.34",
-    "nepali-date-converter": "3.4.0",
+    "nepali-date-converter": "3.4.2",
     "nepdate-core": "file:../packages/nepdate",
     "nepdate-patro": "file:../packages/nepdate-patro",
     "world-calendars": "1.0.4"
