@@ -6,8 +6,8 @@
 
 <p align="center">
   <a href="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml"><img src="https://github.com/sanamhub/nepdate-typescript/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://www.npmjs.com/package/nepdate-core"><img src="https://img.shields.io/npm/v/nepdate-core/rc?logo=npm&label=nepdate-core" alt="nepdate-core on npm"></a>
-  <a href="https://www.npmjs.com/package/nepdate-patro"><img src="https://img.shields.io/npm/v/nepdate-patro/rc?logo=npm&label=nepdate-patro" alt="nepdate-patro on npm"></a>
+  <a href="https://www.npmjs.com/package/nepdate-core"><img src="https://img.shields.io/npm/v/nepdate-core?logo=npm&label=nepdate-core" alt="nepdate-core on npm"></a>
+  <a href="https://www.npmjs.com/package/nepdate-patro"><img src="https://img.shields.io/npm/v/nepdate-patro?logo=npm&label=nepdate-patro" alt="nepdate-patro on npm"></a>
   <a href="https://github.com/sanamhub/nepdate-typescript/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
 </p>
 
@@ -33,7 +33,7 @@ Pure TypeScript, no WASM and no time zone guessing. BS 1901-01-01 to 2199-12-30 
 The API is listed in [docs/API.md](https://github.com/sanamhub/nepdate-typescript/blob/main/docs/API.md) and is stable from 1.0 ([ADR-0009](https://github.com/sanamhub/nepdate/blob/main/docs/adr/0009-what-1.0-promises.md)). Tithi, public holidays and events are informational, not an official calendar.
 
 ```bash
-npm install nepdate-core@rc
+npm install nepdate-core
 ```
 
 ## Quick start (Node, Bun, bundlers)
@@ -53,7 +53,7 @@ console.log(republicDay.long({ weekday: true })); // "Tuesday, Jestha 15, 2081"
 ## Quick start (Deno)
 
 ```ts
-import { NepaliDate } from "npm:nepdate-core@1.0.0-rc.1";
+import { NepaliDate } from "npm:nepdate-core@1.0.0";
 
 console.log(NepaliDate.of(2081, 2, 15).toJSON()); // "2081-02-15"
 ```
@@ -62,7 +62,7 @@ console.log(NepaliDate.of(2081, 2, 15).toJSON()); // "2081-02-15"
 
 ```html
 <script type="module">
-  import { NepaliDate } from "https://esm.sh/nepdate-core@1.0.0-rc.1";
+  import { NepaliDate } from "https://esm.sh/nepdate-core@1.0.0";
   document.body.textContent = NepaliDate.of(2081, 2, 15).toJSON();
 </script>
 ```
@@ -230,7 +230,7 @@ so the machine's own zone never changes the answer.
 Install both packages:
 
 ```bash
-npm install nepdate-core@rc nepdate-patro@rc
+npm install nepdate-core nepdate-patro
 ```
 
 ```ts
