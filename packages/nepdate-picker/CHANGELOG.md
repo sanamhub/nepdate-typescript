@@ -7,6 +7,16 @@ format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the 
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-18
+
+The picker's first stable release, shipped with `nepdate-core` 1.0.0. It has no change since
+0.1.0-beta.4 except the peer range.
+
+### Changed
+
+- The `nepdate-core` peer range is `^1.0.0`. The 1.0 release candidates of the core no longer
+  satisfy it, so install the picker beside `nepdate-core` 1.0.0 or later.
+
 ## [0.1.0-beta.4] - 2026-11-17
 
 ### Added
