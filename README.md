@@ -255,7 +255,7 @@ console.log(day.events.map((event) => event.en)); // ["Republic Day"]
 | The date picker | [nepdate.com/docs/datepicker](https://nepdate.com/docs/datepicker/) |
 | Every exported name | [docs/API.md](https://github.com/sanamhub/nepdate-typescript/blob/main/docs/API.md) |
 | Why it is built this way | [docs/adr](https://github.com/sanamhub/nepdate-typescript/tree/main/docs/adr) |
-| Speed and bundle size, with the C# baseline | [docs/benchmarks.md](https://github.com/sanamhub/nepdate-typescript/blob/main/docs/benchmarks.md) |
+| Speed and bundle size | [docs/benchmarks.md](https://github.com/sanamhub/nepdate-typescript/blob/main/docs/benchmarks.md) |
 | What changed in each version | [CHANGELOG.md](https://github.com/sanamhub/nepdate-typescript/blob/main/CHANGELOG.md) |
 | Building, gates and pull requests | [CONTRIBUTING.md](https://github.com/sanamhub/nepdate-typescript/blob/main/CONTRIBUTING.md) |
 | Reporting a vulnerability | [SECURITY.md](https://github.com/sanamhub/nepdate-typescript/blob/main/SECURITY.md) |
