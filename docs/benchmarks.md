@@ -22,7 +22,7 @@ Every row of this pass is final, in the main run and in the competitor run; each
 | Power plan | Ultimate Performance |
 | Node | 26.13.1 |
 | mitata | 1.0.34 |
-| C# NepDate | 2.0.7 on .NET 10.0.15, from the hub's 2026-11-16 run |
+| C# NepDate | 2.1.0 on .NET 10.0.15, from the hub's 2026-11-20 run |
 | Pinned to | logical CPU 2 (`/affinity 4`) |
 | Date | 2026-11-16 |
 | Idle gate before the main run | 5.0 percent average, 8.9 peak (30 one-second samples) |
@@ -56,14 +56,14 @@ approximation, not an allocator count. The C# column is the .NET 10 column of th
 
 | ID | Operation | nepdate ns/op | heap/op | C# .NET 10 ns/op | C# bytes/op |
 |---|---|---:|---:|---:|---:|
-| B1 | BS to AD | 24.3 | 8 B approx. | 13.27 | 0 |
-| B2 | AD to BS | 22.8 | 23 B approx. | 18.70 | 0 |
-| B3 | add 1000 days | 12.0 | 23 B approx. | 20.06 | 0 |
-| B4 | add 13 months, Clamp | 11.4 | 24 B approx. | 19.30 | 0 |
-| B5 | long format, Nepali, weekday | 136.9 | 19 B approx. | 139.04 | 435 |
-| B6 | strict parse `YYYY/MM/DD` | 63.3 | 313 B approx. | 21.13 | 0 |
-| B7 | patro info | 4.8 | 0 B approx. | 48.63 | 51 |
-| B8 | patro month grid | 351.4 | 2 B approx. | 3,274.50 | 1,429 |
+| B1 | BS to AD | 24.3 | 8 B approx. | 5.60 | 0 |
+| B2 | AD to BS | 22.8 | 23 B approx. | 5.90 | 0 |
+| B3 | add 1000 days | 12.0 | 23 B approx. | 2.79 | 0 |
+| B4 | add 13 months, Clamp | 11.4 | 24 B approx. | 2.45 | 0 |
+| B5 | long format, Nepali, weekday | 136.9 | 19 B approx. | 29.96 | 69 |
+| B6 | strict parse `YYYY/MM/DD` | 63.3 | 313 B approx. | 7.28 | 0 |
+| B7 | patro info | 4.8 | 0 B approx. | 16.46 | 51 |
+| B8 | patro month grid | 351.4 | 2 B approx. | 633.13 | 1,429 |
 
 ## Competitors (B1 and B2)
 
@@ -84,6 +84,6 @@ The full lists are in [`raw/2026-11-16/compare.txt`](raw/2026-11-16/compare.txt)
 
 ## Targets
 
-BENCHMARK section 6 asks for B1, B2 and B7 within 3 times C# NepDate. B1 is 1.83 times, B2 is 1.22
-times and B7 is 0.10 times. Passes. The heap figures are approximate and are not used as allocation
+BENCHMARK section 6 asks for B1, B2 and B7 within 3 times C# NepDate. B1 is 4.34 times, B2 is 3.86
+times and B7 is 0.29 times. B1 and B2 do not pass. The heap figures are approximate and are not used as allocation
 targets.
